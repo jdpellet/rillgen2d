@@ -19,3 +19,5 @@ Run the container locally
 ```
 docker run -it -v $(pwd):/work -w /work rillgen2d:centos 
 ```
+
+`rillgen2d` requires two input files in the current working directory, `input.txt` -- the parameter file, and `topo.txt` the digital elevation model (DEM). A sample DEM is hosted here: https://data.cyverse.org/dav-anon/iplant/home/tswetnam/rillgen2d

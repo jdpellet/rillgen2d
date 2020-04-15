@@ -260,8 +260,6 @@ if param22Var == 10:
 else:
     param22Out = param22Var
 param22Info = Label(image=AppInfoIcon).grid(row=25, column=0)
-
-
     
 def runCommand():
     if os.path.isfile('input.txt'):

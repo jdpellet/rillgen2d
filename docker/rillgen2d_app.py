@@ -1,302 +1,245 @@
+import tkinter as tk
 from tkinter import *
 import os.path
 import subprocess
 
-frame = Tk()
-
-########################### MAIN TAB ###########################
-
-AppInfoIcon = PhotoImage(file="img/AppInfoIcon.png")
-AppInfoIcon =AppInfoIcon.subsample(25, 25)
 
 
-introLabel = Label(text='rillgen2d', font='Helvetica 25 bold').grid(row=0, column=1)
-inputLabel = Label(text='Input default or other values for use').grid(row=2, column=3)
+class Application(tk.Frame):
+    def __init__(self, *args):
+        tk.Frame.__init__(self, *args)
 
+        ########################### MAIN TAB ###########################
+        self.introLabel = Label(self, text='rillgen2d', font='Helvetica 40 bold italic underline').grid(row=1, column=0)
+        self.description = Label(self, text='Input Descriptions', font='Halvetica 20 bold underline', fg='gray').grid(row=2, column=2)
+        self.inputLabel = Label(self, text='Inputs', font='Halvetica 20 bold underline').grid(row=2, column=0)
+        self.goButton = Button(self, text='Go', command=self.runCommand, padx=20)
+        self.goButton.grid(row=30, column=1)
 
-flagformaskLabel = Label(text='flagformask:', font='Helvetica 15 bold').grid(row=4, column=1)
-flagformaskLabel2 = Label(text='(Default value is 1)', fg='gray').grid(row=4, column=2)
-flagformaskVar = StringVar()
-flagformaskInput = Entry(textvariable=flagformaskVar, width=5)
-flagformaskInput.grid(row=4, column=3)
-if flagformaskVar == 1:
-    flagformaskOut = 1
-else:
-    flagformaskOut = flagformaskVar
-flagformaskInputInfo = Label(image=AppInfoIcon).grid(row=4, column=0)
-
-
-
-flagford50Label = Label(text='flagford50:', font='Helvetica 15 bold').grid(row=5, column=1)
-flagford50Label2 = Label(text='(Default value is 0)', fg='gray').grid(row = 5, column=2)
-flagford50Var = StringVar()
-flagford50Input = Entry(textvariable=flagford50Var, width=5)
-flagford50Input.grid(row=5, column=3)
-flagford50Input = flagford50Var.get()
-if flagford50Var == 0:
-    flagford50Out = 0
-else:
-    flagford50Out = flagford50Var
-flagford50Info = Label(image=AppInfoIcon).grid(row=5, column=0)
-
-
-flagfortaucsoilandvegLabel = Label(text='flagfortaucsoilandveg:', font='Helvetica 15 bold').grid(row=6, column=1)
-flagfortaucsoilandvegLabel2 = Label(text='(Default value is 0)', fg='gray').grid(row=6, column=2)
-flagfortaucsoilandvegVar = StringVar()
-flagfortaucsoilandvegInput = Entry(textvariable=flagfortaucsoilandvegVar, width=5)
-flagfortaucsoilandvegInput.grid(row=6, column=3)
-if flagfortaucsoilandvegVar == 0:
-    flagfortaucsoilandvegOut = 0
-else:
-    flagfortaucsoilandvegOut = flagfortaucsoilandvegVar
-flagfortaucsoilandvegInfo = Label(image=AppInfoIcon).grid(row=6, column=0)
-
-fillincrementLabel = Label(text='fillincrement:', font='Helvetica 15 bold').grid(row=7, column=1)
-fillincrementLabel2 = Label(text='(Default value is 0)', fg='gray').grid(row=7, column=2)
-fillincrementVar = StringVar()
-fillincrementInput = Entry(textvariable=fillincrementVar, width=5)
-fillincrementInput.grid(row=7, column=3)
-if fillincrementVar == 0:
-    fillincrementOut = 0
-else:
-    fillincrementOut = fillincrementVar
-fillincrementInfo = Label(image=AppInfoIcon).grid(row=7, column=0)
-
-
-threshslopeLabel = Label(text='threshslope:', font='Helvetica 15 bold').grid(row=8, column=1)
-threshslopeLabel2 = Label(text='(Default value is 0.01)', fg='gray').grid(row=8, column=2)
-threshslopeVar = StringVar()
-threshslopeInput = Entry(textvariable=threshslopeVar, width=5)
-threshslopeInput.grid(row=8, column=3)
-if threshslopeVar == 0.01:
-    threshslopeOut = 0.01
-else:
-    threshslopeOut = threshslopeVar
-threshslopeInfo = Label(image=AppInfoIcon).grid(row=8, column=0)
-
-expansionLabel = Label(text='expansion:', font='Helvetica 15 bold').grid(row=9, column=1)
-expansionLabel2 = Label(text='(Default value is 0.02)', fg='gray').grid(row=9, column=2)
-expansionVar = StringVar()
-expansionInput = Entry(textvariable=expansionVar, width=5)
-expansionInput.grid(row=9, column=3)
-if expansionVar == 0.02:
-    expansionOut = 0.02
-else:
-    expansionOut = expansionVar
-expansionInfo = Label(image=AppInfoIcon).grid(row=9, column=0)
-        
-yellowthresholdLabel = Label(text='yellowthreshold:', font='Helvetica 15 bold').grid(row=10, column=1)
-yellowthresholdLabel2 = Label(text=' (Default value is 5)', fg='gray').grid(row=10, column=2)
-yellowthresholdVar = StringVar()
-yellowthresholdInput = Entry(textvariable=yellowthresholdVar, width=5)
-yellowthresholdInput.grid(row=10, column=3)
-if yellowthresholdVar == 5:
-    yellowthresholdOut = 5
-else:
-    yellowthresholdOut = yellowthresholdVar
-yellowthresholdInfo = Label(image=AppInfoIcon).grid(row=10, column=0)
-        
-lattice_size_xLabel = Label(text='lattice_size_x:', font='Helvetica 15 bold').grid(row=11, column=1)
-lattice_size_xLabel2 = Label(text='(Default value is 0.5)', fg='gray').grid(row=11, column=2)
-lattice_size_xVar = StringVar()
-lattice_size_xInput = Entry(textvariable=lattice_size_xVar, width=5)
-lattice_size_xInput.grid(row=11, column=3)
-if lattice_size_xVar == 0.5:
-    lattice_size_xOut = 0.5
-else:
-    lattice_size_xOut = lattice_size_xVar
-lattice_size_xInfo = Label(image=AppInfoIcon).grid(row=11, column=0)
-        
-lattice_size_yLabel = Label(text='lattice_size_y:', font='Helvetica 15 bold').grid(row=12, column=1)
-lattice_size_yLabel2 = Label(text='(Default value is 3750)', fg='gray').grid(row=12, column=2)
-lattice_size_yVar = StringVar()
-lattice_size_yInput = Entry(textvariable=lattice_size_yVar, width=5)
-lattice_size_yInput.grid(row=12, column=3)
-if lattice_size_yVar == 3750:
-    lattice_size_yOut = 3750
-else:
-    lattice_size_yOut = lattice_size_yVar
-lattice_size_yInfo = Label(image=AppInfoIcon).grid(row=12, column=0)
-        
-deltaxLabel = Label(text='deltax:', font='Helvetica 15 bold').grid(row=13, column=1)
-deltaxLabel2 = Label(text='(Default value is 2400)', fg='gray').grid(row=13, column=2)
-deltaxVar = StringVar()
-deltaxInput = Entry(textvariable=deltaxVar, width=5)
-deltaxInput.grid(row=13, column=3)
-if deltaxVar == 2400:
-    deltaxOut = 2400
-else:
-    deltaxOut = deltaxVar
-deltaxInfo = Label(image=AppInfoIcon).grid(row=13, column=0)
-
-rainLabel = Label(text='rain:', font='Helvetica 15 bold').grid(row=14, column=1)
-rainLabel2 = Label(text='(Default value is 0.5)', fg='gray').grid(row=14, column=2)
-rainVar = StringVar()
-rainInput = Entry(textvariable=rainVar, width=5)
-rainInput.grid(row=14, column=3)
-if rainVar == 0.5:
-    rainOut = 0.5
-else:
-    rainOut = rainVar
-rainInfo = Label(image=AppInfoIcon).grid(row=14, column=0)
-        
-infilLabel = Label(text='infil:', font='Helvetica 15 bold').grid(row=15, column=1)
-infilLabel2 = Label(text='(Default value is 135)', fg='gray').grid(row=15, column=2)
-infilVar = StringVar()
-infilInput = Entry(textvariable=infilVar, width=5)
-infilInput.grid(row=15, column=3)
-if infilVar == 135:
-    infilOut = 135
-else:
-    infilOut = infilVar
-infilInfo = Label(image=AppInfoIcon).grid(row=15, column=0)
-        
-cuLabel = Label(text='cu:', font='Helvetica 15 bold').grid(row=16, column=1)
-cuLabel2 = Label(text='(Default value is 35)', fg='gray').grid(row=16, column=2)
-cuVar = StringVar()
-cuInput = Entry(textvariable=cuVar, width=5)
-cuInput.grid(row=16, column=3)
-if cuVar == 35:
-    cuOut = 35
-else:
-    cuOut = cuVar
-cuInfo = Label(image=AppInfoIcon).grid(row=16, column=0)
-        
-thicknessLabel = Label(text='thickness:', font='Helvetica 15 bold').grid(row=17, column=1)
-thicknessLabel2 = Label(text='(Default value is 2)', fg='gray').grid(row=17, column=2)
-thicknessVar = StringVar()
-thicknessInput = Entry(textvariable=thicknessVar, width=5)
-thicknessInput.grid(row=17, column=3)
-if thicknessVar == 2:
-    thicknessOut = 2
-else:
-    thicknessOut = thicknessVar
-thicknessInfo = Label(image=AppInfoIcon).grid(row=17, column=0)
-        
-rockcoverLabel = Label(text='rockcover:', font='Helvetica 15 bold').grid(row=18, column=1)
-rockcoverLabel2 = Label(text='(Default value is 3)', fg='gray').grid(row=18, column=2)
-rockcoverVar = StringVar()
-rockcoverInput = Entry(textvariable=rockcoverVar, width=5)
-rockcoverInput.grid(row=18, column=3)
-if rockcoverVar == 3:
-    rockcoverOut = 3
-else:
-    rockcoverOut = rockcoverVar
-rockcoverInfo = Label(image=AppInfoIcon).grid(row=18, column=0)
-        
-reducedspecificgravityLabel = Label(text='reducedspecificgravity:', font='Helvetica 15 bold').grid(row=19, column=1)
-reducedspecificgravityLabel2 = Label(text='(Default value is 1)', fg='gray').grid(row=19, column=2)
-reducedspecificgravityVar = StringVar()
-reducedspecificgravityInput = Entry(textvariable=reducedspecificgravityVar, width=5)
-reducedspecificgravityInput.grid(row=19, column=3)
-if reducedspecificgravityVar == 1:
-    reducedspecificgravityOut = 1
-else:
-    reducedspecificgravityOut = reducedspecificgravityVar
-reducedspecificgravityInfo = Label(image=AppInfoIcon).grid(row=19, column=0)
-        
-bLabel = Label(text='b:', font='Helvetica 15 bold').grid(row=20, column=1)
-bLabel2 = Label(text='(Default value is 1.65)', fg='gray').grid(row=20, column=2)
-bVar = StringVar()
-bInput = Entry(textvariable=bVar, width=5)
-bInput.grid(row=20, column=3)
-if bVar == 1.65:
-    bOut = 1.65
-else:
-    bOut = bVar
-bInfo = Label(image=AppInfoIcon).grid(row=20, column=0)
-        
-cLabel = Label(text='c:', font='Helvetica 15 bold').grid(row=21, column=1)
-cuLabel2 = Label(text='(Default value is 0.75)', fg='gray').grid(row=21, column=2)
-cVar = StringVar()
-cInput = Entry(textvariable=cVar, width=5)
-cInput.grid(row=21, column=3)
-if cVar == 0.75:
-    cOut = 0.75
-else:
-    cOut = cVar
-cInfo = Label(image=AppInfoIcon).grid(row=21, column=0)
-        
-rillwidthLabel = Label(text='rillwidth:', font='Helvetica 15 bold').grid(row=22, column=1)
-rillwidthLabel2 = Label(text='(Default value is 1.0)', fg='gray').grid(row=22, column=2)
-rillwidthVar = StringVar()
-rillwidthInput = Entry(textvariable=rillwidthVar, width=5)
-rillwidthInput.grid(row=22, column=3)
-if rillwidthVar == 1.0:
-    rillwidthOut = 1.0
-else:
-    rillwidthOut = rillwidthVar
-rillwidthInfo = Label(image=AppInfoIcon).grid(row=22, column=0)
-        
-param20Label = Label(text='Parameter 20:', font='Helvetica 15 bold').grid(row=23, column=1)
-param20Label2 = Label(text='(Default value is 0.2)', fg='gray').grid(row=23, column=2)
-param20Var = StringVar()
-param20Input = Entry(textvariable=param20Var, width=5)
-param20Input.grid(row=23, column=3)
-if param20Var == 0.2:
-    param20Out = 0.2
-else:
-    param20Out = param20Var
-param20Info = Label(image=AppInfoIcon).grid(row=23, column=0)
-        
-param21Label = Label(text='Parameter 21:', font='Helvetica 15 bold').grid(row=24, column=1)
-param21Label2 = Label(text='(Default value is 100)', fg='gray').grid(row=24, column=2)
-param21Var = StringVar()
-param21Input = Entry(textvariable=param21Var, width=5)
-param21Input.grid(row=24, column=3)
-if param21Var == 100:
-    param21Out = 100
-else:
-    param21Out = param21Var
-param21Info = Label(image=AppInfoIcon).grid(row=24, column=0)
-        
-param22Label = Label(text='Parameter 22:', font='Helvetica 15 bold').grid(row=25, column=1)
-param22Label2 = Label(text='(Default value is 10)', fg='gray').grid(row=25, column=2)
-param22Var = StringVar()
-param22Input = Entry(textvariable=param22Var, width=5)
-param22Input.grid(row=25, column=3)
-if param22Var == 10:
-    param22Out = 10
-else:
-    param22Out = param22Var
-param22Info = Label(image=AppInfoIcon).grid(row=25, column=0)
+        # Flagformask variable
+        self.flagformaskLabel = Label(self, text='flagformask:', font='Helvetica 15 bold').grid(row=3, column=0)
+        self.flagformaskLabel2 = Label(self, text='(Should be 1 if the user provides a raster (mask.txt) that restricts the model to certain portions of\nthe input DEM (mask = 1 means run the model, 0 means ignore these areas), 0 otherwise)', fg='gray').grid(row=3, column=2)
+        self.flagformaskVar = StringVar()
+        self.flagformaskInput = Entry(self, textvariable=self.flagformaskVar, width=5)
+        self.flagformaskInput.grid(row=3, column=1)
+        self.flagformaskOut = self.flagformaskVar        
+        # Should be 1 if the user provides a raster (mask.txt) that restricts the model to certain portions of the input DEM (mask = 1 means run the model, 0 means ignore these areas), 0 otherwise.
     
-def runCommand():
-    if os.path.isfile('input.txt'):
-        os.remove('input.txt')
-    f = open('input.txt', 'w')
-    f.write(str(flagformaskOut.get())+'\n') 
-    f.write(str(flagford50Out.get())+'\n')
-    f.write(str(flagfortaucsoilandvegOut.get())+'\n')
-    f.write(str(fillincrementOut.get())+'\n')
-    f.write(str(threshslopeOut.get())+'\n')
-    f.write(str(expansionOut.get())+'\n')
-    f.write(str(yellowthresholdOut.get())+'\n')
-    f.write(str(lattice_size_xOut.get())+'\n')
-    f.write(str(lattice_size_yOut.get())+'\n')
-    f.write(str(deltaxOut.get())+'\n')
-    f.write(str(rainOut.get())+'\n')
-    f.write(str(infilOut.get())+'\n')
-    f.write(str(cuOut.get())+'\n')
-    f.write(str(thicknessOut.get())+'\n')
-    f.write(str(rockcoverOut.get())+'\n')
-    f.write(str(reducedspecificgravityOut.get())+'\n')
-    f.write(str(bOut.get())+'\n')
-    f.write(str(cOut.get())+'\n')
-    f.write(str(rillwidthOut.get())+'\n')
-    f.write(str(param20Out.get())+'\n')
-    f.write(str(param21Out.get())+'\n')
-    f.write(str(param22Out.get()))
-    f.close()
-    subprocess.call(["gcc", "rillgen2d.c"])
-    return True
+        # Flagford50 variable
+        self.flagford50Label = Label(self, text='flagford50:', font='Helvetica 15 bold').grid(row=4, column=0)
+        self.flagford50Label2 = Label(self, text='(Should be 1 if the user provides a raster of median rock armor particle diameter (d50.txt) equal in size\nand resolution to the input DEM, 0 if a single value of the median rock armor particle dimater is input (including 0 in the case of no rock armor).)', fg='gray').grid(row = 4, column=2)
+        self.flagford50Var = StringVar()
+        self.flagford50Input = Entry(self, textvariable=self.flagford50Var, width=5)
+        self.flagford50Input.grid(row=4, column=1)
+        self.flagford50Out = self.flagford50Var
+        # Should be 1 if the user provides a raster of median rock armor particle diameter (d50.txt) equal in size and resolution to the input DEM, 0 if a single value of the median rock armor particle dimater is input (including 0 in the case of no rock armor).
 
-if runCommand:
-    pass
+        # Flagfortaucsoilandveg variable
+        self.flagfortaucsoilandvegLabel = Label(self, text='flagfortaucsoilandveg:', font='Helvetica 15 bold').grid(row=5, column=0)
+        self.flagfortaucsoilandvegLabel2 = Label(self, text='(Should be 1 if the user provides a raster of the shear strength of the soil and vegetation\n(taucsoilandveg.txt) equal to in size and resolution to the input DEM.)', fg='gray').grid(row=5, column=2)
+        self.flagfortaucsoilandvegVar = StringVar()
+        self.flagfortaucsoilandvegInput = Entry(self, textvariable=self.flagfortaucsoilandvegVar, width=5)
+        self.flagfortaucsoilandvegInput.grid(row=5, column=1)
+        self.flagfortaucsoilandvegOut = self.flagfortaucsoilandvegVar
+        # Should be 1 if the user provides a raster of the shear strength of the soil and vegetation (taucsoilandveg.txt) equal to in size and resolution to the input DEM.
 
-goButton = Button(text='Go', command=runCommand, padx=20)
-goButton.grid(row=30, column=3)
+        # Flagforrouting variable
+        self.flagforroutingLabel = Label(self, text='flagforrouting:', font='Helvetica 15 bold').grid(row=6, column=0)
+        self.flagforroutingLabel2 = Label(self, text='(Should be 1 if the user wants to use DInfinity (Tarboton et al., 1997) routing, \n0 if the user wants to use MFD (Freeman, 1991) routing.)', fg='gray').grid(row=6, column=2)
+        self.flagforroutingVar = StringVar()
+        self.flagforroutingInput = Entry(self, textvariable=self.flagforroutingVar, width=5)
+        self.flagforroutingInput.grid(row=6, column=1)
+        self.flagforroutingOut = self.flagforroutingVar
+        # Should be 1 if the user wants to use DInfinity (Tarboton et al., 1997) routing, 0 if the user wants to use MFD (Freeman, 1991) routing.
+
+        # Fillincrement variable
+        self.fillincrementLabel = Label(self, text='fillincrement:', font='Helvetica 15 bold').grid(row=7, column=0)
+        self.fillincrementLabel2 = Label(self, text='(This value (in meters) is used to fill in pits and flats for hydrologic correction.\n0.01 is a reasonable default value.)', fg='gray').grid(row=7, column=2)
+        self.fillincrementVar = StringVar()
+        self.fillincrementInput = Entry(self, textvariable=self.fillincrementVar, width=5)
+        self.fillincrementInput.grid(row=7, column=1)
+        self.fillincrementOut = self.fillincrementVar
+        # This value (in meters) is used to fill in pits and flats for hydrologic correction. 0.01 is a reasonable default value.
+
+        # Threshslope variable
+        self.threshslopeLabel = Label(self, text='threshslope:', font='Helvetica 15 bold').grid(row=8, column=0)
+        self.threshslopeLabel2 = Label(self, text='(This value (unitless) is used to halt runoff from areas below a threshold slope steepness.\nSetting this value larger than 0 is useful for eliminating runoff from portions of the landscape that the user expects are too flat to produce significant runoff.)', fg='gray').grid(row=8, column=2)
+        self.threshslopeVar = StringVar()
+        self.threshslopeInput = Entry(self, textvariable=self.threshslopeVar, width=5)
+        self.threshslopeInput.grid(row=8, column=1)
+        self.threshslopeOut = self.threshslopeVar
+        # This value (unitless) is used to halt runoff from areas below a threshold slope steepness. Setting this value larger than 0 is useful for eliminating runoff from portions of the landscape that the user expects are too flat to produce significant runoff.
+
+        # Expansion variable
+        self.expansionLabel = Label(self, text='expansion:', font='Helvetica 15 bold').grid(row=9, column=0)
+        self.expansionLabel2 = Label(self, text='(This value (in number of pixels) is used to expand the zones where rills are predicted in the output raster.\nThis is useful for making the areas where rilling is predicted easier to see in the model output.)', fg='gray').grid(row=9, column=2)
+        self.expansionVar = StringVar()
+        self.expansionInput = Entry(self, textvariable=self.expansionVar, width=5)
+        self.expansionInput.grid(row=9, column=1)
+        self.expansionOut = self.expansionVar
+        # This value (in number of pixels) is used to expand the zones where rills are predicted in the output raster. This is useful for making the areas where rilling is predicted easier to see in the model output.
+        
+        # Yellowthreshold variable
+        self.yellowthresholdLabel = Label(self, text='yellowthreshold:', font='Helvetica 15 bold').grid(row=10, column=0)
+        self.yellowthresholdLabel2 = Label(self, text=' (This is a threshold value of f used to indicate an area that is close to but less than the threshold for generating rills.\nThe model will visualize any location with a f value between this value and 1 as potentially prone to rill generation\n(any area with a f value larger than 1 is considered prone to rill generation and is colored red).)', fg='gray').grid(row=10, column=2)
+        self.yellowthresholdVar = StringVar()
+        self.yellowthresholdInput = Entry(self, textvariable=self.yellowthresholdVar, width=5)
+        self.yellowthresholdInput.grid(row=10, column=1)
+        self.yellowthresholdOut = self.yellowthresholdVar
+        # This is a threshold value of f used to indicate an area that is close to but less than the threshold for generating rills. The model will visualize any location with a f value between this value and 1 as potentially prone to rill generation (any area with a f value larger than 1 is considered prone to rill generation and is colored red)
+        
+        # Lattice_size_x variable
+        self.lattice_size_xLabel = Label(self, text='lattice_size_x:', font='Helvetica 15 bold').grid(row=11, column=0)
+        self.lattice_size_xLabel2 = Label(self, text='(The number of pixels along the east-west direction in the DEM.)', fg='gray').grid(row=11, column=2)
+        self.lattice_size_xVar = StringVar()
+        self.lattice_size_xInput = Entry(self, textvariable=self.lattice_size_xVar, width=5)
+        self.lattice_size_xInput.grid(row=11, column=1)
+        self.lattice_size_xOut = self.lattice_size_xVar
+        # The number of pixels along the east-west direction in the DEM.
+
+        # Lattice_size_y variable
+        self.lattice_size_yLabel = Label(self, text='lattice_size_y:', font='Helvetica 15 bold').grid(row=12, column=0)
+        self.lattice_size_yLabel2 = Label(self, text='(The number of pixels along the east-west direction in the DEM.)', fg='gray').grid(row=12, column=2)
+        self.lattice_size_yVar = StringVar()
+        self.lattice_size_yInput = Entry(self, textvariable=self.lattice_size_yVar, width=5)
+        self.lattice_size_yInput.grid(row=12, column=1)
+        self.lattice_size_yOut = self.lattice_size_yVar
+        # The number of pixels along the east-west direction in the DEM.
+
+        # Deltax variable
+        self.deltaxLabel = Label(self, text='deltax:', font='Helvetica 15 bold').grid(row=13, column=0)
+        self.deltaxLabel2 = Label(self, text='(The resolution (in meters/pixel) of the DEM and additional optional raster inputs.)', fg='gray').grid(row=13, column=2)
+        self.deltaxVar = StringVar()
+        self.deltaxInput = Entry(self, textvariable=self.deltaxVar, width=5)
+        self.deltaxInput.grid(row=13, column=1)
+        self.deltaxOut = self.deltaxVar
+        # The resolution (in meters/pixel) of the DEM and additional optional raster inputs.
+
+        # Rain variable
+        self.rainLabel = Label(self, text='rain:', font='Helvetica 15 bold').grid(row=14, column=0)
+        self.rainLabel2 = Label(self, text='(Peak 5 minute rainfall intensity (in mm/hr))', fg='gray').grid(row=14, column=2)
+        self.rainVar = StringVar()
+        self.rainInput = Entry(self, textvariable=self.rainVar, width=5)
+        self.rainInput.grid(row=14, column=1)
+        self.rainOut = self.rainVar
+        # Peak 5 minute rainfall intensity (in mm/hr)
+
+        # Infil variable
+        self.infilLabel = Label(self, text='infil:', font='Helvetica 15 bold').grid(row=15, column=0)
+        self.infilLabel2 = Label(self, text='(Effective infiltration rate (in mm/hr))', fg='gray').grid(row=15, column=2)
+        self.infilVar = StringVar()
+        self.infilInput = Entry(self, textvariable=self.infilVar, width=5)
+        self.infilInput.grid(row=15, column=1)
+        self.infilOut = self.infilVar
+        # Effective infiltration rate (in mm/hr)
+        
+        # Coefficient of uniformity variable
+        self.cuLabel = Label(self, text='cu:', font='Helvetica 15 bold').grid(row=16, column=0)
+        self.cuLabel2 = Label(self, text='(Cofficient of uniformity (unitless) of the rock armor. Not used if d50 or thickness equals 0.)', fg='gray').grid(row=16, column=2)
+        self.cuVar = StringVar()
+        self.cuInput = Entry(self, textvariable=self.cuVar, width=5)
+        self.cuInput.grid(row=16, column=1)
+        self.cuOut = self.cuVar
+        # Cofficient of uniformity (unitless) of the rock armor. Not used if d50 or thickness equals 0.
+        
+        # Thickness variable
+        self.thicknessLabel = Label(self, text='thickness:', font='Helvetica 15 bold').grid(row=17, column=0)
+        self.thicknessLabel2 = Label(self, text='(The thickness of the rock armor layer in multiples of the median grain diameter.\nFor example, if d50 is 10 cm and the rock armor is 30 cm thick then this value should be 3.)', fg='gray').grid(row=17, column=2)
+        self.thicknessVar = StringVar()
+        self.thicknessInput = Entry(self, textvariable=self.thicknessVar, width=5)
+        self.thicknessInput.grid(row=17, column=1)
+        self.thicknessOut = self.thicknessVar
+        # The thickness of the rock armor layer in multiples of the median grain diameter. For example, if d50 is 10 cm and the rock armor is 30 cm thick then this value should be 3.
+
+        # Rockcover variable
+        self.rockcoverLabel = Label(self, text='rockcover:', font='Helvetica 15 bold').grid(row=18, column=0)
+        self.rockcoverLabel2 = Label(self, text='(This value indicates the fraction of area covered by rock armor.\nWill be 1 for continuous rock armors, less than one for partial rock cover)', fg='gray').grid(row=18, column=2)
+        self.rockcoverVar = StringVar()
+        self.rockcoverInput = Entry(self, textvariable=self.rockcoverVar, width=5)
+        self.rockcoverInput.grid(row=18, column=1)
+        self.rockcoverOut = self.rockcoverVar
+        # This value indicates the fraction of area covered by rock armor. Will be 1 for continuous rock armors, less than one for partial rock cover.
+        
+        # Reducedspecificgravity variable
+        self.reducedspecificgravityLabel = Label(self, text='reducedspecificgravity:', font='Helvetica 15 bold').grid(row=19, column=0)
+        self.reducedspecificgravityLabel2 = Label(self, text='(Reduced specific gravity of the rock armor particles.\n1.65 is a reasonable default value for quartz-rich rocks.)', fg='gray').grid(row=19, column=2)
+        self.reducedspecificgravityVar = StringVar()
+        self.reducedspecificgravityInput = Entry(self, textvariable=self.reducedspecificgravityVar, width=5)
+        self.reducedspecificgravityInput.grid(row=19, column=1)
+        self.reducedspecificgravityOut = self.reducedspecificgravityVar
+        # Reduced specific gravity of the rock armor particles. 1.65 is a reasonable default value for quartz-rich rocks.
+
+        # b variable
+        self.bLabel = Label(self, text='b:', font='Helvetica 15 bold').grid(row=20, column=0)
+        self.bLabel2 = Label(self, text='(This value is the coefficient in the model component that predicts the relationship between runoff and contributing area.)', fg='gray').grid(row=20, column=2)
+        self.bVar = StringVar()
+        self.bInput = Entry(self, textvariable=self.bVar, width=5)
+        self.bInput.grid(row=20, column=1)
+        self.bOut = self.bVar
+        # This value is the coefficient in the model component that predicts the relationship between runoff and contributing area.
+
+        # c variable
+        self.cLabel = Label(self, text='c:', font='Helvetica 15 bold').grid(row=21, column=0)
+        self.cuLabel2 = Label(self, text='(This value is the exponent in the model component that predicts the relationship between runoff and contributing area.)', fg='gray').grid(row=21, column=2)
+        self.cVar = StringVar()
+        self.cInput = Entry(self, textvariable=self.cVar, width=5)
+        self.cInput.grid(row=21, column=1)
+        self.cOut = self.cVar
+        # This value is the exponent in the model component that predicts the relationship between runoff and contributing area. 
+
+        # Rillwidth variable
+        self.rillwidthLabel = Label(self, text='rillwidth:', font='Helvetica 15 bold').grid(row=22, column=0)
+        self.rillwidthLabel2 = Label(self, text='(The width of rills (in m) as they begin to form. This value is used to localize water flow to a width less than the width of a pixel.\nFor example, if deltax = 1 m and rillwidth = 20 cm then the flow entering each pixel is assumed, for the purposes of rill development,\nto be localized in a width equal to one fifth of the pixel width.)', fg='gray').grid(row=22, column=2)
+        self.rillwidthVar = StringVar()
+        self.rillwidthInput = Entry(self, textvariable=self.rillwidthVar, width=5)
+        self.rillwidthInput.grid(row=22, column=1)
+        self.rillwidthOut = self.rillwidthVar
+        # The width of rills (in m) as they begin to form. This value is used to localize water flow to a width less than the width of a pixel. 
+        # For example, if deltax = 1 m and rillwidth = 20 cm then the flow entering each pixel is assumed, for the purposes of rill development, to be localized in a width equal to one fifth of the pixel width.
+
+
+    
+    def runCommand(self):
+        if os.path.isfile('../input.txt'):
+            os.remove('../input.txt')
+        f = open('../input.txt', 'w')
+        f.write(str(self.flagformaskOut.get())+'\n') 
+        f.write(str(self.flagford50Out.get())+'\n')
+        f.write(str(self.flagfortaucsoilandvegOut.get())+'\n')
+        f.write(str(self.flagforroutingOut.get())+'\n')
+        f.write(str(self.fillincrementOut.get())+'\n')
+        f.write(str(self.threshslopeOut.get())+'\n')
+        f.write(str(self.expansionOut.get())+'\n')
+        f.write(str(self.yellowthresholdOut.get())+'\n')
+        f.write(str(self.lattice_size_xOut.get())+'\n')
+        f.write(str(self.lattice_size_yOut.get())+'\n')
+        f.write(str(self.deltaxOut.get())+'\n')
+        f.write(str(self.rainOut.get())+'\n')
+        f.write(str(self.infilOut.get())+'\n')
+        f.write(str(self.cuOut.get())+'\n')
+        f.write(str(self.thicknessOut.get())+'\n')
+        f.write(str(self.rockcoverOut.get())+'\n')
+        f.write(str(self.reducedspecificgravityOut.get())+'\n')
+        f.write(str(self.bOut.get())+'\n')
+        f.write(str(self.cOut.get())+'\n')
+        f.write(str(self.rillwidthOut.get()))
+        f.close()
+        subprocess.call(["gcc", "rillgen2d_local.c"])
+        return True
+
+    if runCommand:
+        pass
+
 ########################### ^MAIN TAB^ ###########################
 
-frame.title = ('RillGen2D')
-frame.mainloop()
+
+if __name__=="__main__":
+    root=tk.Tk()
+    Application(root).grid()
+    root.mainloop()
+
+
+
+
+
+

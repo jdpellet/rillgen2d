@@ -224,7 +224,7 @@ class Application(tk.Frame):
         f.write(str(self.cOut.get())+'\n')
         f.write(str(self.rillwidthOut.get()))
         f.close()
-        subprocess.call(["gcc", "rillgen2d_local.c"])
+        subprocess.call(["gcc", "rillgen2d.c"])
         return True
 
     if runCommand:

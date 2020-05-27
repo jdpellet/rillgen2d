@@ -20,7 +20,7 @@ class Application(tk.Frame):
         self.flagformaskLabel = Label(self, text='Flag for mask.txt:', font='Helvetica 15 bold').grid(row=3, column=0)
         self.flagformaskLabel2 = Label(self, text='Check this box if there is a mask.txt file in the current working directory.', fg='gray',justify=LEFT).grid(row=3, column=2, sticky='w')
         self.flagformaskVar = StringVar()
-        self.flagformaskInput = Checkbutton(self, variable=self.flagformaskVar, width=5)
+        self.flagformaskInput = Checkbutton(self, textvariable=self.flagformaskVar, width=5)
         self.flagformaskInput.grid(row=3, column=1)
         self.flagformaskOut = self.flagformaskVar        
         # Should be 1 if the user provides a raster (mask.txt) that restricts the model to certain portions of the input DEM (mask = 1 means run the model, 0 means ignore these areas), 0 otherwise.

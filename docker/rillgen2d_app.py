@@ -17,37 +17,37 @@ class Application(tk.Frame):
         self.goButton.grid(row=30, column=1)
 
         # Flagformask variable
-        self.flagformaskLabel = Label(self, text='flagformask:', font='Helvetica 15 bold').grid(row=3, column=0)
-        self.flagformaskLabel2 = Label(self, text='Should be 1 if the user provides a raster (mask.txt) that restricts the model to certain portions of the input DEM\n(mask = 1 means run the model, 0 means ignore these areas), 0 otherwise.', fg='gray',justify=LEFT).grid(row=3, column=2, sticky='w')
+        self.flagformaskLabel = Label(self, text='Flag for mask.txt:', font='Helvetica 15 bold').grid(row=3, column=0)
+        self.flagformaskLabel2 = Label(self, text='Check this box if there is a mask.txt file in the current working directory.', fg='gray',justify=LEFT).grid(row=3, column=2, sticky='w')
         self.flagformaskVar = StringVar()
-        self.flagformaskInput = Entry(self, textvariable=self.flagformaskVar, width=5)
+        self.flagformaskInput = Checkbutton(self, variable=self.flagformaskVar, width=5)
         self.flagformaskInput.grid(row=3, column=1)
         self.flagformaskOut = self.flagformaskVar        
         # Should be 1 if the user provides a raster (mask.txt) that restricts the model to certain portions of the input DEM (mask = 1 means run the model, 0 means ignore these areas), 0 otherwise.
     
         # Flagford50 variable
-        self.flagford50Label = Label(self, text='flagford50:', font='Helvetica 15 bold').grid(row=4, column=0)
-        self.flagford50Label2 = Label(self, text='Should be 1 if the user provides a raster of median rock armor particle diameter (d50.txt) equal in size and resolution to the input DEM,\n0 if a single value of the median rock armor particle dimater is input (including 0 in the case of no rock armor).', fg='gray',justify=LEFT).grid(row = 4, column=2, sticky='w')
+        self.flagford50Label = Label(self, text='Flag for d50.txt:', font='Helvetica 15 bold').grid(row=4, column=0)
+        self.flagford50Label2 = Label(self, text='Should be checked if the user provides a raster of median rock armor particle diameter (d50.txt) equal in size and resolution to the input DEM.', fg='gray',justify=LEFT).grid(row = 4, column=2, sticky='w')
         self.flagford50Var = StringVar()
-        self.flagford50Input = Entry(self, textvariable=self.flagford50Var, width=5)
+        self.flagford50Input = Checkbutton(self, textvariable=self.flagford50Var, width=5)
         self.flagford50Input.grid(row=4, column=1)
         self.flagford50Out = self.flagford50Var
         # Should be 1 if the user provides a raster of median rock armor particle diameter (d50.txt) equal in size and resolution to the input DEM, 0 if a single value of the median rock armor particle dimater is input (including 0 in the case of no rock armor).
 
         # Flagfortaucsoilandveg variable
-        self.flagfortaucsoilandvegLabel = Label(self, text='flagfortaucsoilandveg:', font='Helvetica 15 bold').grid(row=5, column=0)
-        self.flagfortaucsoilandvegLabel2 = Label(self, text='Should be 1 if the user provides a raster of the shear strength of the soil and vegetation (taucsoilandveg.txt) equal to in size and resolution to the input DEM.', fg='gray',justify=LEFT).grid(row=5, column=2, sticky='w')
+        self.flagfortaucsoilandvegLabel = Label(self, text='Flag for taucsoilandveg.txt:', font='Helvetica 15 bold').grid(row=5, column=0)
+        self.flagfortaucsoilandvegLabel2 = Label(self, text='Should be checked if the user provides a raster of the shear strength of the soil and vegetation (taucsoilandveg.txt) equal to in size and resolution to the input DEM.', fg='gray',justify=LEFT).grid(row=5, column=2, sticky='w')
         self.flagfortaucsoilandvegVar = StringVar()
-        self.flagfortaucsoilandvegInput = Entry(self, textvariable=self.flagfortaucsoilandvegVar, width=5)
+        self.flagfortaucsoilandvegInput = Checkbutton(self, textvariable=self.flagfortaucsoilandvegVar, width=5)
         self.flagfortaucsoilandvegInput.grid(row=5, column=1)
         self.flagfortaucsoilandvegOut = self.flagfortaucsoilandvegVar
         # Should be 1 if the user provides a raster of the shear strength of the soil and vegetation (taucsoilandveg.txt) equal to in size and resolution to the input DEM.
 
         # Flagforrouting variable
-        self.flagforroutingLabel = Label(self, text='flagforrouting:', font='Helvetica 15 bold').grid(row=6, column=0)
-        self.flagforroutingLabel2 = Label(self, text='Should be 1 if the user wants to use DInfinity (Tarboton et al., 1997) routing,  0 if the user wants to use MFD (Freeman, 1991) routing.', fg='gray',justify=LEFT).grid(row=6, column=2, sticky='w')
+        self.flagforroutingLabel = Label(self, text='Flag for routing:', font='Helvetica 15 bold').grid(row=6, column=0)
+        self.flagforroutingLabel2 = Label(self, text='Should be checked if the user wants to use DInfinity (Tarboton et al., 1997) routing. Otherwise, leave unchecked if the user wants to use MFD (Freeman, 1991) routing.', fg='gray',justify=LEFT).grid(row=6, column=2, sticky='w')
         self.flagforroutingVar = StringVar()
-        self.flagforroutingInput = Entry(self, textvariable=self.flagforroutingVar, width=5)
+        self.flagforroutingInput = Checkbutton(self, textvariable=self.flagforroutingVar, width=5)
         self.flagforroutingInput.grid(row=6, column=1)
         self.flagforroutingOut = self.flagforroutingVar
         # Should be 1 if the user wants to use DInfinity (Tarboton et al., 1997) routing, 0 if the user wants to use MFD (Freeman, 1991) routing.

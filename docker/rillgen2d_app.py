@@ -34,15 +34,6 @@ class Application(tk.Frame):
         self.flagforRainOut = self.flagforRainVar    
         # Should be 1 if the user provides a raster (rain.txt) that maps the peak 5 min rainfall intensity, 0 means a fixed value equal to rainfixed will be used.
 
-        # Flag for infil variable
-        self.flagforInfilLabel = Label(self, text='Flag for rain.txt:', font='Helvetica 15 bold').grid(row=5, column=0)
-        self.flagforInfilLabel2 = Label(self, text='Should be checked if the user provides a raster (infil.txt) that maps the effective infiltration rate,\nunchecked means a fixed value equal to infilfixed will be used.', fg='gray',justify=LEFT).grid(row = 5, column=2, sticky='w')
-        self.flagforInfilVar = StringVar()
-        self.flagforInfilInput = Checkbutton(self, textvariable=self.flagforInfilVar, width=5)
-        self.flagforInfilInput.grid(row=5, column=1)
-        self.flagforInfilOut = self.flagforInfilVar   
-        # Should be 1 if the user provides a raster (infil.txt) that maps the effective infiltration rate, 0 means a fixed value equal to infilfixed will be used.
-
         # Flagfortaucsoilandveg variable
         self.flagfortaucsoilandvegLabel = Label(self, text='Flag for taucsoilandveg.txt:', font='Helvetica 15 bold').grid(row=6, column=0)
         self.flagfortaucsoilandvegLabel2 = Label(self, text='Should be checked if the user provides a raster of the shear strength of the soil and vegetation\n(taucsoilandveg.txt) equal to in size and resolution to the input DEM.', fg='gray',justify=LEFT).grid(row=6, column=2, sticky='w')

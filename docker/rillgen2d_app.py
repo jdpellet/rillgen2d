@@ -19,8 +19,8 @@ class Application(tk.Frame):
         # Flag for mask variable
         self.flagformaskLabel = Label(self, text='Flag for mask.txt:', font='Helvetica 15 bold').grid(row=3, column=0)
         self.flagformaskLabel2 = Label(self, text='Should be checked if the user provides a raster (mask.txt) that restricts the model to certain portions of the input DEM.', fg='gray',justify=LEFT).grid(row=3, column=2, sticky='w')
-        self.flagformaskVar = StringVar()
-        self.flagformaskInput = Checkbutton(self, textvariable=self.flagformaskVar, width=5)
+        self.flagformaskVar = IntVar()
+        self.flagformaskInput = Checkbutton(self, variable=self.flagformaskVar, width=5)
         self.flagformaskInput.grid(row=3, column=1)
         self.flagformaskOut = self.flagformaskVar        
         # Should be 1 if the user provides a raster (mask.txt) that restricts the model to certain portions of the input DEM (mask = 1 means run the model, 0 means ignore these areas), 0 otherwise.
@@ -28,8 +28,8 @@ class Application(tk.Frame):
         # Flag for Rain variable
         self.flagforRainLabel = Label(self, text='Flag for rain.txt:', font='Helvetica 15 bold').grid(row=4, column=0)
         self.flagforRainLabel2 = Label(self, text='Should be checked if the user provides a raster (rain.txt) that maps the peak 5 minute rainfall intensity.\nIf unchecked, a fixed value equal to rainfixed will be used.', fg='gray',justify=LEFT).grid(row = 4, column=2, sticky='w')
-        self.flagforRainVar = StringVar()
-        self.flagforRainInput = Checkbutton(self, textvariable=self.flagforRainVar, width=5)
+        self.flagforRainVar = IntVar()
+        self.flagforRainInput = Checkbutton(self, variable=self.flagforRainVar, width=5)
         self.flagforRainInput.grid(row=4, column=1)
         self.flagforRainOut = self.flagforRainVar    
         # Should be 1 if the user provides a raster (rain.txt) that maps the peak 5 min rainfall intensity, 0 means a fixed value equal to rainfixed will be used.
@@ -37,8 +37,8 @@ class Application(tk.Frame):
         # Flagfortaucsoilandveg variable
         self.flagfortaucsoilandvegLabel = Label(self, text='Flag for taucsoilandveg.txt:', font='Helvetica 15 bold').grid(row=6, column=0)
         self.flagfortaucsoilandvegLabel2 = Label(self, text='Should be checked if the user provides a raster of the shear strength of the soil and vegetation\n(taucsoilandveg.txt) equal to in size and resolution to the input DEM.', fg='gray',justify=LEFT).grid(row=6, column=2, sticky='w')
-        self.flagfortaucsoilandvegVar = StringVar()
-        self.flagfortaucsoilandvegInput = Checkbutton(self, textvariable=self.flagfortaucsoilandvegVar, width=5)
+        self.flagfortaucsoilandvegVar = IntVar()
+        self.flagfortaucsoilandvegInput = Checkbutton(self, variable=self.flagfortaucsoilandvegVar, width=5)
         self.flagfortaucsoilandvegInput.grid(row=6, column=1)
         self.flagfortaucsoilandvegOut = self.flagfortaucsoilandvegVar
         # Should be 1 if the user provides a raster of the shear strength of the soil and vegetation (taucsoilandveg.txt) equal to in size and resolution to the input DEM.
@@ -46,8 +46,8 @@ class Application(tk.Frame):
         # Flag for d50 variable
         self.flagford50Label = Label(self, text='Flag for d50.txt:', font='Helvetica 15 bold').grid(row=7, column=0)
         self.flagford50Label2 = Label(self, text='Should be checked if the user provides a raster of median rock armor particle diameter (d50.txt)\nequal in size and resolution to the input DEM.', fg='gray',justify=LEFT).grid(row = 7, column=2, sticky='w')
-        self.flagford50Var = StringVar()
-        self.flagford50Input = Checkbutton(self, textvariable=self.flagford50Var, width=5)
+        self.flagford50Var = IntVar()
+        self.flagford50Input = Checkbutton(self, variable=self.flagford50Var, width=5)
         self.flagford50Input.grid(row=7, column=1)
         self.flagford50Out = self.flagford50Var
         # Should be 1 if the user provides a raster (d50.txt) that maps the median rock diameter, 0 means a fixed value equal to d50fixed will be used.
@@ -55,8 +55,8 @@ class Application(tk.Frame):
         #Flag for cu variable        
         self.flagforcuLabel = Label(self, text='Flag for cu.txt:', font='Helvetica 15 bold').grid(row=8, column=0)
         self.flagforcuLabel2 = Label(self, text='Should be checked if the user provides a raster (cu.txt) that maps the coefficient of uniformity, 0 means a fixed value equal to cufixed will be used.', fg='gray',justify=LEFT).grid(row=8, column=2, sticky='w')
-        self.flagforcuVar = StringVar()
-        self.flagforcuInput = Checkbutton(self, textvariable=self.flagforcuVar, width=5)
+        self.flagforcuVar = IntVar()
+        self.flagforcuInput = Checkbutton(self, variable=self.flagforcuVar, width=5)
         self.flagforcuInput.grid(row=8, column=1)
         self.flagforcuOut = self.flagforcuVar
         # Should be 1 if the user provides a raster (cu.txt) that maps the coefficient of uniformity, 0 means a fixed value equal to cufixed will be used.
@@ -64,8 +64,8 @@ class Application(tk.Frame):
         # Flag for thickness variable
         self.flagforthicknessLabel = Label(self, text='Flag for thickness.txt:', font='Helvetica 15 bold').grid(row=9, column=0)
         self.flagforthicknessLabel2 = Label(self, text='Should be checked if the user provides a raster (thickness.txt) that maps the rock armor thickness, unchecked means a fixed value equal to thicknessfixed will be used.', fg='gray',justify=LEFT).grid(row=9, column=2, sticky='w')
-        self.flagforthicknessVar = StringVar()
-        self.flagforthicknessInput = Checkbutton(self, textvariable=self.flagforthicknessVar, width=5)
+        self.flagforthicknessVar = IntVar()
+        self.flagforthicknessInput = Checkbutton(self, variable=self.flagforthicknessVar, width=5)
         self.flagforthicknessInput.grid(row=9, column=1)
         self.flagforthicknessOut = self.flagforthicknessVar
         # Should be 1 if the user provides a raster (thickness.txt) that maps the rock armor thickness, 0 means a fixed value equal to thicknessfixed will be used.
@@ -73,8 +73,8 @@ class Application(tk.Frame):
         # Flag for rockcover
         self.flagforrockcoverLabel = Label(self, text='Flag for rockcover.txt:', font='Helvetica 15 bold').grid(row=10, column=0)
         self.flagforrockcoverLabel2 = Label(self, text='Should be checked if the user provides a raster (rockcover.txt) that maps the rock cover fraction, unchecked means a fixed value equal to rockcoverfixed will be used.', fg='gray',justify=LEFT).grid(row=10, column=2, sticky='w')
-        self.flagforrockcoverVar = StringVar()
-        self.flagforrockcoverInput = Checkbutton(self, textvariable=self.flagforrockcoverVar, width=5)
+        self.flagforrockcoverVar = IntVar()
+        self.flagforrockcoverInput = Checkbutton(self, variable=self.flagforrockcoverVar, width=5)
         self.flagforrockcoverInput.grid(row=10, column=1)
         self.flagforrockcoverOut = self.flagforrockcoverVar
         # Should be 1 if the user provides a raster (rockcover.txt) that maps the rock cover fraction, 0 means a fixed value equal to rockcoverfixed will be used.
@@ -150,15 +150,6 @@ class Application(tk.Frame):
         self.rainInput.grid(row=18, column=1)
         self.rainOut = self.rainVar
         # Peak 5 minute rainfall intensity (in mm/hr)
-
-        # Infil fixed variable
-        self.infilLabel = Label(self, text='infil fixed:', font='Helvetica 15 bold').grid(row=19, column=0)
-        self.infilLabel2 = Label(self, text='Effective infiltration rate (in mm/hr).', fg='gray',justify=LEFT).grid(row=19, column=2, sticky='w')
-        self.infilVar = StringVar()
-        self.infilInput = Entry(self, textvariable=self.infilVar, width=5)
-        self.infilInput.grid(row=19, column=1)
-        self.infilOut = self.infilVar
-        # Effective infiltration rate (in mm/hr)
 
         # d50 fixed variable
         self.d50Label = Label(self, text='d50 fixed:', font='Helvetica 15 bold').grid(row=20, column=0)
@@ -240,9 +231,12 @@ class Application(tk.Frame):
             os.remove('../input.txt')
         f = open('../input.txt', 'w')
         f.write(str(self.flagformaskOut.get())+'\n') 
-        f.write(str(self.flagford50Out.get())+'\n')
+        f.write(str(self.flagforRainOut.get())+'\n')
         f.write(str(self.flagfortaucsoilandvegOut.get())+'\n')
-        f.write(str(self.flagforroutingOut.get())+'\n')
+        f.write(str(self.flagford50Out.get())+'\n')
+        f.write(str(self.flagforcuOut.get())+'\n')
+        f.write(str(self.flagforthicknessOut.get())+'\n')
+        f.write(str(self.flagforrockcoverOut.get())+'\n')
         f.write(str(self.fillincrementOut.get())+'\n')
         f.write(str(self.threshslopeOut.get())+'\n')
         f.write(str(self.expansionOut.get())+'\n')
@@ -251,14 +245,16 @@ class Application(tk.Frame):
         f.write(str(self.lattice_size_yOut.get())+'\n')
         f.write(str(self.deltaxOut.get())+'\n')
         f.write(str(self.rainOut.get())+'\n')
-        f.write(str(self.infilOut.get())+'\n')
+        f.write(str(self.d50Out.get())+'\n')
         f.write(str(self.cuOut.get())+'\n')
         f.write(str(self.thicknessOut.get())+'\n')
         f.write(str(self.rockcoverOut.get())+'\n')
         f.write(str(self.reducedspecificgravityOut.get())+'\n')
         f.write(str(self.bOut.get())+'\n')
         f.write(str(self.cOut.get())+'\n')
-        f.write(str(self.rillwidthOut.get()))
+        f.write(str(self.rillwidthOut.get())+'\n')
+        f.write('0.75' + '\n')
+        f.write('0.2' + '\n')
         f.close()
         subprocess.call(["gcc", "rillgen2d.c"])
         return True

@@ -15,10 +15,10 @@
 #define mfdweight 1.1
 
 long count,*topovecind,*lakeis,*lakejs,*iup,*idown,*jup,*jdown,lattice_size_x,lattice_size_y,ic,jc;
-int expansion,flagformask,flagford50,flagfortaucsoilandveg,flagforrain,flagforinfil,flagforcu,flagforthickness,flagforrockcover,**mask;
-float threshslope,**rain,**infil,**d50,**cu,**thickness,**rockcover,**taucsoilandveg,**tau,**angle,**topo,**topo2,**slope,**area,flow1,flow2,flow3,flow4,flow5,flow6,flow7,flow8,*topovec;
-float fillincrement,**f,**f2,slopex,slopey,deltax,yellowthreshold,rillwidth,reducedspecificgravity,rainfixed,infilfixed,b,c,d50fixed,rockcoverfixed,cufixed,thicknessfixed;
-float taucsoilandvegfixed,**sinofslope,**cosofslopeterm,**taucarmor;
+int expansion,flagformask,flagford50,flagfortaucsoilandveg,flagforrain,flagforcu,flagforthickness,flagforrockcover,**mask;
+float threshslope,**rain,**d50,**cu,**thickness,**rockcover,**taucsoilandveg,**tau,**angle,**topo,**topo2,**slope,**area,flow1,flow2,flow3,flow4,flow5,flow6,flow7,flow8,*topovec;
+float fillincrement,**f,**f2,slopex,slopey,deltax,yellowthreshold,rillwidth,reducedspecificgravity,rainfixed,b,c,d50fixed,rockcoverfixed,cufixed,thicknessfixed;
+float taucsoilandvegfixed,**sinofslope,**avsinofslope,**cosofslopeterm,**taucarmor;
 
 void free_lvector(long *v, long nl, long nh)
 /* free an unsigned long vector allocated with lvector() */
@@ -227,7 +227,15 @@ long i,j;
      area[iup[i]][jup[j]]+=area[i][j]*flow5;
      area[iup[i]][jdown[j]]+=area[i][j]*flow6;
      area[idown[i]][jup[j]]+=area[i][j]*flow7;
-     area[idown[i]][jdown[j]]+=area[i][j]*flow8;}
+     area[idown[i]][jdown[j]]+=area[i][j]*flow8;
+	 avsinofslope[iup[i]][j]+=avsinofslope[i][j]*flow1; 
+	 avsinofslope[idown[i]][j]+=avsinofslope[i][j]*flow2; 
+	 avsinofslope[i][jup[j]]+=avsinofslope[i][j]*flow3; 
+	 avsinofslope[i][jdown[j]]+=avsinofslope[i][j]*flow4; 
+	 avsinofslope[iup[i]][jup[j]]+=avsinofslope[i][j]*flow5; 
+	 avsinofslope[iup[i]][jdown[j]]+=avsinofslope[i][j]*flow6; 
+	 avsinofslope[idown[i]][jup[j]]+=avsinofslope[i][j]*flow7; 
+	 avsinofslope[idown[i]][jdown[j]]+=avsinofslope[i][j]*flow8;}
 }
 
 void push(i,j)
@@ -289,9 +297,9 @@ void setupgrids()
 	 taucsoilandveg=matrix(1,lattice_size_x,1,lattice_size_y);
 	 tau=matrix(1,lattice_size_x,1,lattice_size_y);
 	 sinofslope=matrix(1,lattice_size_x,1,lattice_size_y);
+	 avsinofslope=matrix(1,lattice_size_x,1,lattice_size_y);
 	 cosofslopeterm=matrix(1,lattice_size_x,1,lattice_size_y);
 	 rain=matrix(1,lattice_size_x,1,lattice_size_y);
-	 infil=matrix(1,lattice_size_x,1,lattice_size_y);
 	 d50=matrix(1,lattice_size_x,1,lattice_size_y);
 	 cu=matrix(1,lattice_size_x,1,lattice_size_y);
 	 thickness=matrix(1,lattice_size_x,1,lattice_size_y);
@@ -309,7 +317,7 @@ void computecontributingarea()
 	for (j=1;j<=lattice_size_y;j++)
      for (i=1;i<=lattice_size_x;i++)
 	  {topovec[(j-1)*lattice_size_x+i]=topo[i][j];
-	   area[i][j]=deltax*deltax;}
+	   if (mask[i][j]==1) area[i][j]=deltax*deltax; else area[i][j]=0;}
 	indexx(lattice_size_x*lattice_size_y,topovec,topovecind);
 	m=lattice_size_x*lattice_size_y+1;
 	while (m>1)
@@ -333,7 +341,6 @@ int main()
 	 fp3=fopen("./tau.txt","w");
 	 fscanf(fpin,"%d",&flagformask);
 	 fscanf(fpin,"%d",&flagforrain);
-	 fscanf(fpin,"%d",&flagforinfil);
 	 fscanf(fpin,"%d",&flagfortaucsoilandveg);
 	 fscanf(fpin,"%d",&flagford50); 
 	 fscanf(fpin,"%d",&flagforcu);
@@ -347,7 +354,6 @@ int main()
 	 fscanf(fpin,"%ld",&lattice_size_y);
 	 fscanf(fpin,"%f",&deltax);
      fscanf(fpin,"%f",&rainfixed);	 
-	 fscanf(fpin,"%f",&infilfixed); 
 	 fscanf(fpin,"%f",&taucsoilandvegfixed);
 	 fscanf(fpin,"%f",&d50fixed);
 	 fscanf(fpin,"%f",&cufixed);
@@ -380,16 +386,6 @@ int main()
 	     for (i=1;i<=lattice_size_x;i++)
 	      fscanf(fp4,"%f",&rain[i][j]);
 	    fclose(fp4);}
-     if (flagforinfil==0)
-	  {for (j=1;j<=lattice_size_y;j++)
-	    for (i=1;i<=lattice_size_x;i++)
-	     infil[i][j]=infilfixed;}
-	  else
-       {fp4=fopen("./infil.txt","r");
-		for (j=1;j<=lattice_size_y;j++)
-	     for (i=1;i<=lattice_size_x;i++)
-	      fscanf(fp4,"%f",&infil[i][j]);
-	    fclose(fp4);}		
 	 if (flagfortaucsoilandveg==0) 
 	  {for (j=1;j<=lattice_size_y;j++)
 	    for (i=1;i<=lattice_size_x;i++)
@@ -451,16 +447,20 @@ int main()
         slopey=topo[i][jup[j]]-topo[i][jdown[j]];
 	    slope[i][j]=0.5*sqrt(slopex*slopex+slopey*slopey)/deltax;
 		sinofslope[i][j]=sin(atan(slope[i][j]));
-	    cosofslopeterm[i][j]=sqrt(9.81*cos(atan(slope[i][j])));}
+		if (mask[i][j]==1) avsinofslope[i][j]=sin(atan(slope[i][j])); else avsinofslope[i][j]=0;
+		cosofslopeterm[i][j]=sqrt(9.81*cos(atan(slope[i][j])));}
 	 hydrologiccorrection();
      computecontributingarea();
+	 for (j=1;j<=lattice_size_y;j++)
+      for (i=1;i<=lattice_size_x;i++)
+	   avsinofslope[i][j]/=area[i][j]/(deltax*deltax);   
 	 for (j=1;j<=lattice_size_y;j++)
       for (i=1;i<=lattice_size_x;i++)
 	   if (mask[i][j]==1)
 	    {taucarmor[i][j]=9810*sinofslope[i][j]*pow(pow(pow(d50[i][j],0.38)*pow(cu[i][j],0.28)/(8.06*pow(thickness[i][j],0.62)*pow(slope[i][j],0.2)*1.16/pow(reducedspecificgravity,0.3)),4.76)/cosofslopeterm[i][j],0.666667);     
 	     if (taucarmor[i][j]<taucsoilandveg[i][j]) taucarmor[i][j]=taucsoilandveg[i][j];
 		 if ((rockcover[i][j]<0.99)&&(rockcover[i][j]>0.3)) taucarmor[i][j]/=exp(-4*(rockcover[i][j]-0.1));
-		 tau[i][j]=(9810*sinofslope[i][j]*pow(b*(rain[i][j]-infil[i][j])/1000/3600*slope[i][j]*pow(area[i][j],c)/(rillwidth*cosofslopeterm[i][j]),0.666667));
+		 tau[i][j]=(9810*sinofslope[i][j]*pow(b*rain[i][j]/1000/3600*avsinofslope[i][j]*pow(area[i][j],c)/(rillwidth*cosofslopeterm[i][j]),0.666667));
 		 f[i][j]=tau[i][j]/taucarmor[i][j];}
      for (j=1;j<=lattice_size_y;j++)
       for (i=1;i<=lattice_size_x;i++)

@@ -1,4 +1,4 @@
-#include<malloc.h>
+#include<malloc/malloc.h>
 #include<stdio.h>
 #include<stdlib.h>
 #include<math.h>
@@ -373,7 +373,7 @@ int main()
 	   {fp4=fopen("./mask.txt","r");
         for (j=1;j<=lattice_size_y;j++)
 	     for (i=1;i<=lattice_size_x;i++)
-		  {fscanf(fp4,"%f",&mask[i][j]);
+		  {fscanf(fp4,"%d",&mask[i][j]);
 		   if (mask[i][j]>0) mask[i][j]=1;}
 	    fclose(fp4);}
 	 if (flagforrain==0)
@@ -466,7 +466,7 @@ int main()
       for (i=1;i<=lattice_size_x;i++)
 	   {if ((f[i][j]>0)&&(f[i][j]<=2)) fprintf(fp1,"%f\n",f[i][j]); else fprintf(fp1,"0.0\n"); 
 		if (mask[i][j]==1) fprintf(fp3,"%f\n",tau[i][j]); else  fprintf(fp3,"0.0\n");}
-     fprintf(fp2,"P3\n%d %d\n255\n",lattice_size_x,lattice_size_y);
+     fprintf(fp2,"P3\n%ld %ld\n255\n",lattice_size_x,lattice_size_y);
 	 for (m=1;m<=expansion;m++)
 	  {for (j=1;j<=lattice_size_y;j++)
         for (i=1;i<=lattice_size_x;i++)

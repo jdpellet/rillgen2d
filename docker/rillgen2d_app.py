@@ -225,11 +225,11 @@ class Application(tk.Frame):
         # For example, if deltax = 1 m and rillwidth = 20 cm then the flow entering each pixel is assumed, for the purposes of rill development, to be localized in a width equal to one fifth of the pixel width.
         ########################### ^MAIN TAB^ ###########################
 
-    
+    '''
     def runCommand(self):
-        if os.path.isfile('../input.txt'):
-            os.remove('../input.txt')
-        f = open('../input.txt', 'w')
+        if os.path.isfile('input.txt'):
+            os.remove('input.txt')
+        f = open('input.txt', 'w')
         f.write(str(self.flagformaskOut.get())+'\n') 
         f.write(str(self.flagforRainOut.get())+'\n')
         f.write(str(self.flagfortaucsoilandvegOut.get())+'\n')
@@ -258,6 +258,27 @@ class Application(tk.Frame):
         f.close()
         subprocess.call(["gcc", "rillgen2d.c"])
         return True
+    '''
+    def runCommand(self):
+        if os.path.isfile('input.txt'):
+            os.remove('input.txt')
+        f = open('input.txt', 'w')
+        f.write('1' + ' /* Flag for mask out */')
+        f.write('0' + ' /* Flag for rain out */')
+        f.write('0' + ' /* Flag for taucsoilandveg out */')
+        f.write('0' + ' /* Flag for d50 out */')
+        f.write('0' + ' /* Flag for cu out */')
+        f.write('0' + ' /* Flag for thickness out */')
+        f.write('0' + ' /* Flag for rockcover out */')
+        f.write('0' + ' /* Fillincrement out */')
+        f.write('0.01' + ' /* Threshslope out */')
+        f.write('0.02' + ' /* Expansion out */')
+        f.write('5' _ ' /* Yellow threshold out */')
+        f.write('')
+        subprocess.call(["gcc", "rillgen2d.c"])
+        return True
+
+
 
     if runCommand:
         pass

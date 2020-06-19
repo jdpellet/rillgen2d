@@ -1,4 +1,4 @@
-#include<malloc/malloc.h>
+#include<malloc.h>
 #include<stdio.h>
 #include<stdlib.h>
 #include<math.h>
@@ -334,24 +334,31 @@ int main()
      FILE *fpin,*fp0,*fp1,*fp2,*fp3,*fp4;
 	 long i,j,m;
      
+     // import the parameters file "input.txt"
 	 fpin=fopen("./input.txt","r");
+
+	 // import the DEM model as .txt
 	 fp0=fopen("./topo.txt","r");
+
+	 // create intermediate outputs
 	 fp1=fopen("./f.txt","w");
 	 fp2=fopen("./rills.ppm","w");
 	 fp3=fopen("./tau.txt","w");
+
+	 // begin reading inputs from input.txt
 	 fscanf(fpin,"%d",&flagformask);
 	 fscanf(fpin,"%d",&flagforrain);
 	 fscanf(fpin,"%d",&flagfortaucsoilandveg);
-	 fscanf(fpin,"%d",&flagford50); 
+	 fscanf(fpin,"%d",&flagford50);
 	 fscanf(fpin,"%d",&flagforcu);
 	 fscanf(fpin,"%d",&flagforthickness);
 	 fscanf(fpin,"%d",&flagforrockcover);
 	 fscanf(fpin,"%f",&fillincrement); 
-	 fscanf(fpin,"%f",&threshslope); 
+	 fscanf(fpin,"%f",&threshslope);
 	 fscanf(fpin,"%d",&expansion); 
-	 fscanf(fpin,"%f",&yellowthreshold); 
-	 fscanf(fpin,"%ld",&lattice_size_x);
-	 fscanf(fpin,"%ld",&lattice_size_y);
+	 fscanf(fpin,"%f",&yellowthreshold);
+	 fscanf(fpin,"%lu",&lattice_size_x);
+	 fscanf(fpin,"%lu",&lattice_size_y);
 	 fscanf(fpin,"%f",&deltax);
      fscanf(fpin,"%f",&rainfixed);	 
 	 fscanf(fpin,"%f",&taucsoilandvegfixed);
@@ -365,6 +372,133 @@ int main()
      fscanf(fpin,"%f",&rillwidth);	 
 	 setupgridneighbors();
 	 setupgrids();
+
+	 // Debugging input.txt -- printing parameter inputs to be sure of values 
+
+	 // echo that job has started and input files are present
+	 printf("Starting RillGen2D simulation\r\n");
+	 printf("\r\n");
+
+	 if( fpin == NULL )
+	 	printf("Unable to open file. Check for input.txt\r\n");
+	 else {
+	 	printf("Success! Opened input.txt\r\n");
+	 }
+
+	  if( fp0 == NULL )
+	 	printf("Unable to open file. Check for topo.txt\r\n");
+	 else {
+	 	printf("Success! Opened topo.txt\r\n");
+	 }
+
+	 printf("\r\n");
+	 printf("Input Parameters from input.txt\r\n");
+	 printf("===============================\r\n");
+	 
+	 // check for Mask file
+	 if( flagformask == 0 )
+	 	printf("No Mask set\r\n Flag for Mask set to: %d \r\n", flagformask);
+	 else {
+	 	if( fp4 == NULL )
+	 	printf("Failed to open file mask.txt\r\n");
+	 else {
+	 	printf("Success! Found file mask.txt\r\n");
+	 	fclose(fp4);
+	 }
+	}
+	 
+	 // check flag for rain
+	 if( flagforrain == 0 )
+	 	printf("False No Rain\r\n Flag for Rain set to: %d \r\n", flagforrain);
+	 else {
+	 	printf("Flag for Rain: %d \r\n", flagforrain);
+	 }
+
+	 // check flag for Tau C soil and Veg
+	 if( flagfortaucsoilandveg == 0 )
+	 	printf("False No Tau C\r\n Flag for Tau C Soil and Veg set to: %d \r\n", flagfortaucsoilandveg);
+	 else {
+	 	printf("True \r\n Flag for Rain: %d \r\n", flagfortaucsoilandveg);
+	 }
+
+	 // check flag for d50
+	 if( flagford50 == 0 )
+	 	printf("False d50 \r\n Flag for d50 set to zero: %d \r\n", flagford50);
+	 else {
+	 	printf("Flag for d50: %d \r\n", flagford50);
+	 }
+
+	 // check flag for cu
+	 if( flagforcu == 0 )
+	 	printf("False cu \r\n Flag for cu set to: %d \r\n", flagforcu);
+	 else {
+	 	printf("Flag for cu: %d \r\n", flagforcu);
+	 }
+
+	 // check flag for thickness
+	 if( flagforthickness == 0 )
+	 	printf("False thickness \r\n Flag for thickness set to: %d \r\n", flagforthickness);
+	 else {
+	 	printf("Flag for thickness: %d \r\n", flagforthickness);
+	 }
+
+	 // check flag for rock cover
+	 if( flagforrockcover == 0 )
+	 	printf("False rock cover\r\n Flag for rock cover set to: %d \r\n", flagforrockcover);
+	 else {
+	 	printf("Flag for rock cover: %d \r\n", flagforrockcover);
+	 }
+
+	 // check fill increment
+	 printf("Value for fill increment: %f \r\n", fillincrement);
+	 
+	 // check threshold slope
+	 printf("Value for fill slope threshold set to: %f \r\n", threshslope);
+	
+	 // check flag for expansion
+ 	 printf("Value for expansion set to: %d \r\n", expansion);
+
+	 // check flag for yellow threshold
+	 printf("Value for yellow threshold set to: %f \r\n", yellowthreshold);
+	 
+	 // print lattice size X and Y
+	 printf("Lattice size X axis: %lu \r\n", lattice_size_x);
+	 printf("Lattice size Y axis: %lu \r\n", lattice_size_y);
+
+	 // print delta x
+	 printf("Value for Delta X: %f \r\n", deltax);
+
+	 // print Rain Fixed
+	 printf("Value for Rain Fixed: %f \r\n", rainfixed);
+
+	 // print taucsoilandvegfixed
+	 printf("Value for Tau C soil and veg fixed: %f \r\n", taucsoilandvegfixed);
+
+	 // print d50
+	 printf("Value for Delta X: %f \r\n", d50fixed);
+
+	 // print cu
+	 printf("Value for cu: %f \r\n", cufixed);
+
+	 // print thickness fixed
+	 printf("Value for thickness: %f \r\n", thicknessfixed);
+
+	 // print rock cover fixed
+	 printf("Value for rock cover: %f \r\n", rockcoverfixed);
+
+	 // print reduced specific gravity
+	 printf("Value for reduced specific gravity: %f \r\n", reducedspecificgravity);
+
+	 // print b
+	 printf("Value for b: %f \r\n", b);
+
+	 // print c
+	 printf("Value for c: %f \r\n", c);
+
+	 // print rillwidth
+	 printf("Value for rill width: %f \r\n", rillwidth);
+
+
 	 if (flagformask==0) 
 	  {for (j=1;j<=lattice_size_y;j++)
 	    for (i=1;i<=lattice_size_x;i++)
@@ -373,7 +507,7 @@ int main()
 	   {fp4=fopen("./mask.txt","r");
         for (j=1;j<=lattice_size_y;j++)
 	     for (i=1;i<=lattice_size_x;i++)
-		  {fscanf(fp4,"%d",&mask[i][j]);
+		  {fscanf(fp4,"%f",&mask[i][j]);
 		   if (mask[i][j]>0) mask[i][j]=1;}
 	    fclose(fp4);}
 	 if (flagforrain==0)
@@ -466,7 +600,7 @@ int main()
       for (i=1;i<=lattice_size_x;i++)
 	   {if ((f[i][j]>0)&&(f[i][j]<=2)) fprintf(fp1,"%f\n",f[i][j]); else fprintf(fp1,"0.0\n"); 
 		if (mask[i][j]==1) fprintf(fp3,"%f\n",tau[i][j]); else  fprintf(fp3,"0.0\n");}
-     fprintf(fp2,"P3\n%ld %ld\n255\n",lattice_size_x,lattice_size_y);
+     fprintf(fp2,"P3\n%d %d\n255\n",lattice_size_x,lattice_size_y);
 	 for (m=1;m<=expansion;m++)
 	  {for (j=1;j<=lattice_size_y;j++)
         for (i=1;i<=lattice_size_x;i++)

@@ -273,7 +273,7 @@ class Application(tk.Frame):
         f.write('0' + ' /* Fillincrement out */')
         f.write('0.01' + ' /* Threshslope out */')
         f.write('0.02' + ' /* Expansion out */')
-        f.write('5' _ ' /* Yellow threshold out */')
+        f.write('5' + ' /* Yellow threshold out */')
         f.write('')
         subprocess.call(["gcc", "rillgen2d.c"])
         return True

@@ -360,16 +360,16 @@ int main()
 	 fscanf(fpin,"%lu",&lattice_size_x);
 	 fscanf(fpin,"%lu",&lattice_size_y);
 	 fscanf(fpin,"%f",&deltax);
-     fscanf(fpin,"%f",&rainfixed);	 
+         fscanf(fpin,"%f",&rainfixed);	 
 	 fscanf(fpin,"%f",&taucsoilandvegfixed);
 	 fscanf(fpin,"%f",&d50fixed);
 	 fscanf(fpin,"%f",&cufixed);
-     fscanf(fpin,"%f",&thicknessfixed);
-     fscanf(fpin,"%f",&rockcoverfixed);  
+         fscanf(fpin,"%f",&thicknessfixed);
+         fscanf(fpin,"%f",&rockcoverfixed);  
 	 fscanf(fpin,"%f",&reducedspecificgravity); 
 	 fscanf(fpin,"%f",&b);
 	 fscanf(fpin,"%f",&c);
-     fscanf(fpin,"%f",&rillwidth);	 
+         fscanf(fpin,"%f",&rillwidth);	 
 	 setupgridneighbors();
 	 setupgrids();
 

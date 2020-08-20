@@ -50,3 +50,9 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# MacOS-created files
+*.DS_Store
+
+# MacOS-created folders
+*.idea

@@ -9,20 +9,17 @@ import urllib.request as urllib
 import folium
 import matplotlib.pyplot as plt
 import rasterio
-import osr
 
 from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg)
 from matplotlib.figure import Figure
-from osgeo import gdal, ogr
+from osgeo import gdal, osr
 from PyQt5 import QtWidgets, QtWebEngineWidgets, QtCore
 from rasterio.plot import show
 from tkinter import *
 from tkinter import messagebox
 from tkinter import ttk
 from tkinter.filedialog import askopenfilename
-
-import requests
 
 class Application(tk.Frame):
     def __init__(self, parent):
@@ -695,7 +692,11 @@ class Application(tk.Frame):
 
             m = folium.Map(location, zoom_start=14, tiles='Stamen Terrain')
 
-            gdal.Warp("output.tif", self.filename, dstSRS='EPSG:3857')
+            #gdal.Warp("output.tif", self.filename, dstSRS='EPSG:3857')
+            #gdal.Warp(self.filename, "output.tif", dstSRS='EPSG:3857')
+        
+            #proj = osr.SpatialReference(wkt=gdal.Open(self.filename).GetProjection()).GetAttrValue('AUTHORITY',1)
+            #cmd1 = "gdal_translate -a_srs EPSG:" + str(proj) + " " + self.filename + " output.tif"
 
             if os.path.isfile('output.png'):
                 os.remove('output.png')
@@ -706,13 +707,15 @@ class Application(tk.Frame):
             f = open('output2.png', 'w')
             f.close()
 
-            cmd0 = "gdaldem hillshade output.tif output.png"
+            cmd0 = "gdaldem hillshade " + self.filename + " output.png"
+            #cmd0 = "gdaldem hillshade output.tif output.png"
             returned_value = os.system(cmd0)
             print('returned value:', returned_value)
             
             self.formatColorRelief(self.filename)
             
-            cmd1 = "gdaldem color-relief output.tif color-relief.txt output2.png"
+            cmd1 = "gdaldem color-relief " + self.filename + " color-relief.txt output2.png"
+            #cmd1 = "gdaldem color-relief output.tif color-relief.txt output2.png"
             returned_value = os.system(cmd1)
             print('returned value:', returned_value)
 

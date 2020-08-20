@@ -15,6 +15,7 @@ from matplotlib.backends.backend_tkagg import (
 from matplotlib.figure import Figure
 from osgeo import gdal, osr
 from PyQt5 import QtWidgets, QtWebEngineWidgets, QtCore
+from PyQt5.QtWidgets import QMessageBox
 from rasterio.plot import show
 from tkinter import *
 from tkinter import messagebox
@@ -51,13 +52,9 @@ class Application(tk.Frame):
         self.frame2.bind_all("<MouseWheel>", self.on_mousewheel)
 
         self.tabControl.add(self.tab1, text="Input DEM")
-        #self.tabControl.add(self.tab2, text="Parameters")
-        #self.tabControl.add(self.tab3, text="View Output")
         self.tabControl.pack(expand=1, fill="both")
 
         self.populate1()
-        # self.populate2()
-        # self.populate3()
               
        
     def on_mousewheel(self, event):
@@ -562,20 +559,15 @@ class Application(tk.Frame):
         cmd0 = "awk '{print $3}' output_tin.asc > topo.txt"
         os.system(cmd0)
         cmd1 = "awk '{print $1, $2}' output_tin.asc > xy.txt"
-        #awk 'BEGIN{ OFS="\t"}{ print $1, $2, $3 }' xy_tau.txt > xy_tau_out.txt 
         os.system(cmd1)
         cmd2 = "docker run -it -v ${PWD}:/data tswetnam/rillgen2d:latest"
         returned_value = os.system(cmd2)
         print('returned value:', returned_value)
         cmd3 = "paste xy.txt tau.txt > xy_tau.txt"
         os.system(cmd3)
-        # cmd4 = "awk '{print $1, $2, $3}' xy_tau.txt > xy_tau_out.txt"
-        # os.system(cmd4)
         cmd5 = "paste xy.txt f.txt > xy_f.txt"
         returned_value = os.system(cmd5)
         print('returned value:', returned_value)
-        # cmd6 = "awk '{print $1, $2, $3}' xy_f.txt > xy_f_out.txt"
-        # os.system(cmd6)
 
         self.set_georeferencing(self.filename)
 
@@ -626,13 +618,13 @@ class Application(tk.Frame):
             if os.path.isfile(elem.split(sep='.')[0] + ".png"):
                 os.remove(elem.split(sep='.')[0] + ".png")
             
-            cmd2 = "gdal_translate -ot Byte -of PNG " + elem.split(sep='.')[0] + ".tif " + elem.split(sep='.')[0] + ".png"
+            if elem == "tau.tif":
+                cmd2 = "gdal_translate -ot Byte -of PNG " + elem.split(sep='.')[0] + ".tif " + elem.split(sep='.')[0] + ".png"
+            else:
+                cmd2 = "gdal_translate -ot Byte -scale 0 0.1 -of PNG " + elem.split(sep='.')[0] + ".tif " + elem.split(sep='.')[0] + ".png"
             os.system(cmd2)
 
             ds2 = None
-        for elem in ['f.png.aux.xml', 'tau.png.aux.xml']:
-            if os.path.isfile(elem):
-                os.remove(elem)
         ds = None
         
 
@@ -675,7 +667,6 @@ class Application(tk.Frame):
 
     def generatemap(self):
         if self.filename != None and os.path.isfile(self.filename):
-            app = QtWidgets.QApplication(sys.argv)
             GdalInfo = subprocess.check_output('gdalinfo {}'.format(self.filename), shell=True)
             GdalInfo = str(GdalInfo)
             GdalInfo = GdalInfo.split(r'\n')
@@ -692,12 +683,6 @@ class Application(tk.Frame):
 
             m = folium.Map(location, zoom_start=14, tiles='Stamen Terrain')
 
-            #gdal.Warp("output.tif", self.filename, dstSRS='EPSG:3857')
-            #gdal.Warp(self.filename, "output.tif", dstSRS='EPSG:3857')
-        
-            #proj = osr.SpatialReference(wkt=gdal.Open(self.filename).GetProjection()).GetAttrValue('AUTHORITY',1)
-            #cmd1 = "gdal_translate -a_srs EPSG:" + str(proj) + " " + self.filename + " output.tif"
-
             if os.path.isfile('output.png'):
                 os.remove('output.png')
             f = open('output.png', 'w')
@@ -708,32 +693,62 @@ class Application(tk.Frame):
             f.close()
 
             cmd0 = "gdaldem hillshade " + self.filename + " output.png"
-            #cmd0 = "gdaldem hillshade output.tif output.png"
             returned_value = os.system(cmd0)
             print('returned value:', returned_value)
             
             self.formatColorRelief(self.filename)
             
             cmd1 = "gdaldem color-relief " + self.filename + " color-relief.txt output2.png"
-            #cmd1 = "gdaldem color-relief output.tif color-relief.txt output2.png"
             returned_value = os.system(cmd1)
             print('returned value:', returned_value)
 
-            img = folium.raster_layers.ImageOverlay(image="output.png", bounds=[location_ll,location_ur], opacity=1.0, interactive=True, name="hillshade")
-            img2 = folium.raster_layers.ImageOverlay(image="output2.png", bounds=[location_ll,location_ur], opacity=0.5, interactive=True, name="color-relief")
+            img1 = folium.raster_layers.ImageOverlay(image="tau.png", bounds=[location_ll,location_ur], opacity=0.4, interactive=True, name="tau")
+            img2 = folium.raster_layers.ImageOverlay(image="output.png", bounds=[location_ll,location_ur], opacity=0.7, interactive=True, name="hillshade")
+            img3 = folium.raster_layers.ImageOverlay(image="output2.png", bounds=[location_ll,location_ur], opacity=1.0, interactive=True, name="color-relief")
             
-            img.add_to(m)
+
+            for elem in ['output.png.aux.xml', 'output2.png.aux.xml', 'f.png.aux.xml', 'tau.png.aux.xml']:
+                if os.path.isfile(elem):
+                    os.remove(elem)
+
+            img1.add_to(m)
             img2.add_to(m)
+            img3.add_to(m)
             folium.LayerControl().add_to(m)
             m.save("map.html", close_file=False)
 
             mapfile = QtCore.QUrl.fromLocalFile(os.path.abspath("map.html"))
-            self.w = QtWebEngineWidgets.QWebEngineView()
+            
+            print("args are: " + str(sys.argv))
+            app = QtWidgets.QApplication([])
+            class SubWindow(QtWebEngineWidgets.QWebEngineView):
+                def __init__(self):
+                    super().__init__()
+
+                def closeEvent(self, event):
+                    reply = QMessageBox.question(self, "Window Close", "Are you sure you want to close the window?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+                    if reply == QMessageBox.Yes:
+                        event.accept()
+                        try:
+                            self.destroy()
+                            # if (app != None):
+                            #     sys.exit(app.exec_())
+                        except Exception as e:
+                            print("exception reached")
+                            print(str(e))
+                        #sys.exit(app.exec_())
+                    else: 
+                        event.ignore()
+            # import qt
+
+            # self.w = qt.SubWindow(app)
+            #self.w = QtWebEngineWidgets.QWebEngineView()
+            
+            self.w = SubWindow()
             self.w.resize(640, 480)
             self.w.load(mapfile)
             self.w.show()
-
-            sys.exit(app.exec_())
+            
         else: 
             messagebox.showerror(title="FILE NOT FOUND", message="Please select a file in tab 1")
 
@@ -771,7 +786,6 @@ class Application(tk.Frame):
         # Get raster statistics
         stats = srcband.GetStatistics(True, True)
         # Print the min, max, mean, stdev based on stats index
-        #print("[STATS] = Minimum=%.3f," % stats[0] + " Maximum=%.3f," % stats[1] + " Mean=%.3f," % stats[2] + " StdDev=%.3f," % stats[3])
         if os.path.isfile('color-relief.txt'):
             os.remove('color-relief.txt')
         f = open('color-relief.txt', 'w')

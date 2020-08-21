@@ -15,7 +15,7 @@ from matplotlib.backends.backend_tkagg import (
 from matplotlib.figure import Figure
 from osgeo import gdal, osr
 from PyQt5 import QtWidgets, QtWebEngineWidgets, QtCore
-from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtWidgets import QApplication, QMessageBox, QMainWindow
 from rasterio.plot import show
 from tkinter import *
 from tkinter import messagebox
@@ -146,7 +146,6 @@ class Application(tk.Frame):
     def getimageaturl(self):
         try: 
             entry1 = str(self.entry1.get())
-            print("entry1 is: " + entry1[-3:])
             if (entry1[-3:] == '.gz'):
                 file_handler = urllib.urlopen(entry1)
                 tar = tarfile.open(fileobj=file_handler, mode="r|gz")
@@ -244,7 +243,6 @@ class Application(tk.Frame):
         band = ds.GetRasterBand(1)
         arr = band.ReadAsArray()
         [cols, rows] = arr.shape
-
         # LABELS
         Label(self.frame2, text='rillgen2d', font='Helvetica 40 bold italic underline').grid(row=1, column=1, sticky=(N), pady=20)
         Label(self.frame2, text='Inputs', font='Halvetica 20 bold underline').grid(row=2, column=0, sticky=(N,E,S,W), pady=20)
@@ -253,7 +251,6 @@ class Application(tk.Frame):
         self.parameterButton.grid(row=51, column=0)
         self.goButton = ttk.Button(self.frame2, text='Run Rillgen', command=self.runCommand)
         self.goButton.grid(row=51, column=2)
-
         # Flag for mask variable
         Label(self.frame2, text='Flag for mask.txt:', font='Helvetica 25 bold').grid(row=3, column=0, pady=20)
         Label(self.frame2, text='Should be checked if the user provides a raster (mask.txt) that restricts the model to certain portions of the input DEM.', font='Helvetica 20',justify=CENTER, wraplength=750).grid(row=3, column=2, pady=20)
@@ -261,7 +258,7 @@ class Application(tk.Frame):
         Checkbutton(self.frame2, variable=self.flagformaskVar, width=5).grid(row=3, column=1, pady=20)
 
         Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=4, column=0, columnspan=3, padx=0)
-        
+ 
         #Flag for rain variable
         Label(self.frame2, text='Flag for rain.txt:', font='Helvetica 25 bold').grid(row=5, column=0, pady=20)
         Label(self.frame2, text='Should be checked if the user provides a raster (rain.txt) that maps the peak 5 minute rainfall intensity.\nIf unchecked, a fixed value equal to rainfixed will be used.', font='Helvetica 20',justify=CENTER, wraplength=750).grid(row = 5, column=2, pady=20)
@@ -279,7 +276,7 @@ class Application(tk.Frame):
         # Should be 1 if the user provides a raster of the shear strength of the soil and vegetation (taucsoilandveg.txt) equal to in size and resolution to the input DEM.
 
         Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=8, column=0, columnspan=3)
-
+   
         # Flag for d50 variable
         Label(self.frame2, text='Flag for d50.txt:', font='Helvetica 25 bold').grid(row=9, column=0, pady=20)
         Label(self.frame2, text='Should be checked if the user provides a raster of median rock armor particle diameter (d50.txt)\nequal in size and resolution to the input DEM.', font='Helvetica 20',justify=CENTER, wraplength=750).grid(row = 9, column=2, pady=20)
@@ -329,7 +326,7 @@ class Application(tk.Frame):
         # This value (in meters) is used to fill in pits and flats for hydrologic correction. 0.01 is a reasonable default value.
 
         Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=18, column=0, columnspan=3)
-
+    
         # Threshslope variable
         Label(self.frame2, text='threshslope:', font='Helvetica 25 bold').grid(row=19, column=0, pady=20)
         Label(self.frame2, text='This value (unitless) is used to halt runoff from areas below a threshold slope steepness. Setting this value larger than 0 is useful for eliminating runoff from portions of the landscape that the user expects are too flat to produce significant runoff.', font='Helvetica 20', justify=CENTER, wraplength=750).grid(row=19, column=2, pady=20)
@@ -349,7 +346,7 @@ class Application(tk.Frame):
         # This value (in number of pixels) is used to expand the zones where rills are predicted in the output raster. This is useful for making the areas where rilling is predicted easier to see in the model output.
 
         Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=22, column=0, columnspan=3)
-
+    
         # Yellowthreshold variable
         Label(self.frame2, text='yellowthreshold:', font='Helvetica 25 bold').grid(row=23, column=0, pady=20)
         Label(self.frame2, text='This is a threshold value of f used to indicate an area that is close to but less than the threshold for generating rills. The model will visualize any location with a f value between this value and\n1 as potentially prone to rill generation(any area with a f value larger than 1 is considered prone to rill generation and is colored red).', font='Helvetica 20',justify=CENTER, wraplength=750).grid(row=23, column=2, pady=20)
@@ -359,7 +356,7 @@ class Application(tk.Frame):
         # This is a threshold value of f used to indicate an area that is close to but less than the threshold for generating rills. The model will visualize any location with a f value between this value and 1 as potentially prone to rill generation (any area with a f value larger than 1 is considered prone to rill generation and is colored red)
 
         Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=24, column=0, columnspan=3)
-
+    
         # Lattice_size_x variable
         Label(self.frame2, text='lattice_size_x:', font='Helvetica 25 bold').grid(row=25, column=0, pady=20)
         Label(self.frame2, text='The number of pixels along the east-west direction in the DEM.', font='Helvetica 20',justify=CENTER, wraplength=750).grid(row=25, column=2, pady=20)
@@ -385,6 +382,7 @@ class Application(tk.Frame):
         Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=28, column=0, columnspan=3)
         f.readline()
         f.readline()
+  
         # Deltax variable
         Label(self.frame2, text='deltax:', font='Helvetica 25 bold').grid(row=29, column=0, pady=20)
         Label(self.frame2, text='The resolution (in meters/pixel) of the DEM and additional optional raster inputs.', font='Helvetica 20', justify=CENTER, wraplength=750).grid(row=29, column=2, pady=20)
@@ -492,6 +490,7 @@ class Application(tk.Frame):
         self.rillwidthInput.grid(row=49, column=1, pady=20)
 
         Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=50, column=0, columnspan=3)
+
         # The width of rills (in m) as they begin to form. This value is used to localize water flow to a width less than the width of a pixel. 
         # For example, if deltax = 1 m and rillwidth = 20 cm then the flow entering each pixel is assumed, for the purposes of rill development, to be localized in a width equal to one fifth of the pixel width.
         ########################### ^MAIN TAB^ ###########################
@@ -628,9 +627,6 @@ class Application(tk.Frame):
         ds = None
         
 
-        
-
-
     def onFrameConfigure(self, event):
         '''Reset the scroll region to encompass the inner frame'''
         self.canvas2.configure(scrollregion=self.canvas2.bbox("all"))
@@ -641,8 +637,6 @@ class Application(tk.Frame):
         self.prompt.grid(row=0, column=0)
         self.button1 = ttk.Button(self.tab3, text="Generate Map", command=self.generatemap)
         self.button1.grid(row=1, column=0)
-        self.button3 = ttk.Button(self.tab3, text="Close Map", command=self.closeMap)
-        self.button3.grid(row=2, column=0)
 
         self.img3 = Label(self.tab3)
         self.fig3 = Figure(figsize=(5, 5), dpi=100)
@@ -654,16 +648,13 @@ class Application(tk.Frame):
 
         self.canvas3._tkcanvas.pack(side=TOP, fill=BOTH, expand=1, padx=0, pady=0)
 
-        self.img3.grid(row=0, column=1, rowspan=3, sticky=N+S+E+W)
+        self.img3.grid(row=0, column=1, rowspan=2, sticky=N+S+E+W)
 
         self.tab3.columnconfigure(0, weight=3)
         self.tab3.columnconfigure(1, weight=1)
         self.tab3.rowconfigure(0,weight=1)
         self.tab3.rowconfigure(1,weight=1)
-        self.tab3.rowconfigure(2,weight=1)
 
-    def closeMap(self):
-        self.w.destroy()
 
     def generatemap(self):
         if self.filename != None and os.path.isfile(self.filename):
@@ -680,7 +671,6 @@ class Application(tk.Frame):
                     location_ll = self.GetLatLon(line)
                 if line[:11] == 'Upper Right':
                     location_ur = self.GetLatLon(line)
-
             m = folium.Map(location, zoom_start=14, tiles='Stamen Terrain')
 
             if os.path.isfile('output.png'):
@@ -691,21 +681,19 @@ class Application(tk.Frame):
                 os.remove('output2.png')
             f = open('output2.png', 'w')
             f.close()
-
             cmd0 = "gdaldem hillshade " + self.filename + " output.png"
             returned_value = os.system(cmd0)
             print('returned value:', returned_value)
             
             self.formatColorRelief(self.filename)
-            
             cmd1 = "gdaldem color-relief " + self.filename + " color-relief.txt output2.png"
             returned_value = os.system(cmd1)
             print('returned value:', returned_value)
 
-            img1 = folium.raster_layers.ImageOverlay(image="tau.png", bounds=[location_ll,location_ur], opacity=0.4, interactive=True, name="tau")
-            img2 = folium.raster_layers.ImageOverlay(image="output.png", bounds=[location_ll,location_ur], opacity=0.7, interactive=True, name="hillshade")
-            img3 = folium.raster_layers.ImageOverlay(image="output2.png", bounds=[location_ll,location_ur], opacity=1.0, interactive=True, name="color-relief")
-            
+            img1 = folium.raster_layers.ImageOverlay(image="tau.png", bounds=[location_ll,location_ur], opacity=0.8, interactive=True, name="tau")
+            img2 = folium.raster_layers.ImageOverlay(image="output.png", bounds=[location_ll,location_ur], opacity=0.6, interactive=True, name="hillshade")
+            img3 = folium.raster_layers.ImageOverlay(image="output2.png", bounds=[location_ll,location_ur], opacity=0.4, interactive=True, name="color-relief")
+            img4 = folium.raster_layers.ImageOverlay(image="f.png", bounds=[location_ll,location_ur], opacity=0.8, interactive=True, show=False)
 
             for elem in ['output.png.aux.xml', 'output2.png.aux.xml', 'f.png.aux.xml', 'tau.png.aux.xml']:
                 if os.path.isfile(elem):
@@ -714,41 +702,50 @@ class Application(tk.Frame):
             img1.add_to(m)
             img2.add_to(m)
             img3.add_to(m)
+            img4.add_to(m)
+            print("REACHING BLOCK 5")
             folium.LayerControl().add_to(m)
-            m.save("map.html", close_file=False)
-
+            print("REACHING BLOCK 55")
+            if os.path.isfile("map.html"):
+                os.remove("map.html")
+                print("REACHING BLOCK 555")
+            m.save("map.html", close_file=True)
+            print("REACHING BLOCK 5555")
             mapfile = QtCore.QUrl.fromLocalFile(os.path.abspath("map.html"))
-            
-            print("args are: " + str(sys.argv))
-            app = QtWidgets.QApplication([])
-            class SubWindow(QtWebEngineWidgets.QWebEngineView):
-                def __init__(self):
-                    super().__init__()
+            print("REACHING BLOCK 6")
+
+            class MainWindow(QMainWindow):
+                def __init__(self, *args, **kwargs):
+                    super(MainWindow, self).__init__(*args, **kwargs)
+
+                    self.setWindowTitle("My Awesome App")
+
+                    w = QtWebEngineWidgets.QWebEngineView()
+                    w.load(mapfile)
+
+                    # The `Qt` namespace has a lot of attributes to customise
+                    # widgets. See: http://doc.qt.io/qt-5/qt.html
+
+                    # Set the central widget of the Window. Widget will expand
+                    # to take up all the space in the window by default.
+                    self.setCentralWidget(w)
 
                 def closeEvent(self, event):
                     reply = QMessageBox.question(self, "Window Close", "Are you sure you want to close the window?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
                     if reply == QMessageBox.Yes:
                         event.accept()
                         try:
-                            self.destroy()
-                            # if (app != None):
-                            #     sys.exit(app.exec_())
+                            app.quit()
                         except Exception as e:
                             print("exception reached")
                             print(str(e))
-                        #sys.exit(app.exec_())
                     else: 
                         event.ignore()
-            # import qt
 
-            # self.w = qt.SubWindow(app)
-            #self.w = QtWebEngineWidgets.QWebEngineView()
-            
-            self.w = SubWindow()
-            self.w.resize(640, 480)
-            self.w.load(mapfile)
-            self.w.show()
-            
+            app = QtWidgets.QApplication([])
+            main_window = MainWindow()
+            main_window.show()
+            app.exec_()
         else: 
             messagebox.showerror(title="FILE NOT FOUND", message="Please select a file in tab 1")
 

@@ -245,8 +245,8 @@ class Application(tk.Frame):
         [cols, rows] = arr.shape
         # LABELS
         Label(self.frame2, text='rillgen2d', font='Helvetica 40 bold italic underline').grid(row=1, column=1, sticky=(N), pady=20)
-        Label(self.frame2, text='Inputs', font='Halvetica 20 bold underline').grid(row=2, column=0, sticky=(N,E,S,W), pady=20)
-        Label(self.frame2, text='Input Descriptions', font='Halvetica 20 bold underline').grid(row=2, column=2, sticky=(N,E,S,W), pady=50)
+        Label(self.frame2, text='Inputs', font='Helvetica 20 bold underline').grid(row=2, column=0, sticky=(N,E,S,W), pady=20)
+        Label(self.frame2, text='Input Descriptions', font='Helvetica 20 bold underline').grid(row=2, column=2, sticky=(N,E,S,W), pady=50)
         self.parameterButton = ttk.Button(self.frame2, text='Generate Parameters', command=self.generateParameters)
         self.parameterButton.grid(row=51, column=0)
         self.goButton = ttk.Button(self.frame2, text='Run Rillgen', command=self.runCommand)

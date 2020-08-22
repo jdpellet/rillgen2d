@@ -121,4 +121,4 @@ dependencies:
     - pyqt5-sip==4.19.18
     - pyqtchart==5.12
     - pyqtwebengine==5.12.1
-prefix: /Users/jacobvanderleeuw/miniconda/envs/rillgen
+prefix: ~/miniconda/envs/rillgen

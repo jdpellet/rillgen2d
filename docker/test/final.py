@@ -1,6 +1,5 @@
 import io
 import os
-import shutil
 import subprocess
 import sys
 import tarfile
@@ -28,7 +27,8 @@ class Application(tk.Frame):
 
         tk.Frame.__init__(self, parent)
 
-        self.filename = ""
+        self.filename = None
+        self.creationname = None
         self.validurlfile = False
         self.dimensions = []
         self.src_ds = None
@@ -127,17 +127,17 @@ class Application(tk.Frame):
             self.validurlfile = False
         else:
             if (self.filename[-4:] == '.tif'):
-                self.ax = self.fig.add_subplot(111)
+                ax = self.fig.add_subplot(111)
                 self.fig.subplots_adjust(bottom=0, right=1, top=1, left=0, wspace=0, hspace=0)
 
                 with self.starterimg as src_plot:
-                    show(src_plot, ax=self.ax)
+                    show(src_plot, ax=ax)
                 plt.close()
-                self.ax.set(title="",xticks=[], yticks=[])
-                self.ax.spines["top"].set_visible(False)
-                self.ax.spines["right"].set_visible(False)
-                self.ax.spines["left"].set_visible(False)
-                self.ax.spines["bottom"].set_visible(False)
+                ax.set(title="",xticks=[], yticks=[])
+                ax.spines["top"].set_visible(False)
+                ax.spines["right"].set_visible(False)
+                ax.spines["left"].set_visible(False)
+                ax.spines["bottom"].set_visible(False)
                 self.canvas1.draw()
             else:
                 messagebox.showerror(title="ERROR", message="Invalid File Format. Supported files must be in TIFF format")
@@ -171,17 +171,17 @@ class Application(tk.Frame):
         else:
             try:
                 if (self.filename[-4:] == '.tif'):
-                    self.ax = self.fig.add_subplot(111)
+                    ax = self.fig.add_subplot(111)
                     self.fig.subplots_adjust(bottom=0, right=1, top=1, left=0, wspace=0, hspace=0)
 
                     with self.starterimg as src_plot:
-                        show(src_plot, ax=self.ax)
+                        show(src_plot, ax=ax)
                     plt.close()
-                    self.ax.set(title="",xticks=[], yticks=[])
-                    self.ax.spines["top"].set_visible(False)
-                    self.ax.spines["right"].set_visible(False)
-                    self.ax.spines["left"].set_visible(False)
-                    self.ax.spines["bottom"].set_visible(False)
+                    ax.set(title="",xticks=[], yticks=[])
+                    ax.spines["top"].set_visible(False)
+                    ax.spines["right"].set_visible(False)
+                    ax.spines["left"].set_visible(False)
+                    ax.spines["bottom"].set_visible(False)
                     self.canvas1.draw()
                     self.validurlfile = True
                 else:
@@ -190,7 +190,7 @@ class Application(tk.Frame):
                     messagebox.showerror(title="ERROR", message="The exception was: " + str(e))
 
     def saveimageastxt(self):
-        if (self.filename == ""):
+        if (self.filename == None):
             messagebox.showerror(title="NO FILENAME CHOSEN", message="Please choose a file on tab 1")
 
         else:
@@ -209,29 +209,6 @@ class Application(tk.Frame):
             format = "XYZ"
             driver = gdal.GetDriverByName( format )
 
-            # Make new directory with the file name as the directory name
-
-            dir_name = (self.filename.split(sep='.')[0]).split(sep="/")[-1]
-            print(dir_name)
-
-            if os.path.isdir(dir_name):
-                shutil.rmtree(dir_name)
-
-            cmd0 = "mkdir " + dir_name
-            os.system(cmd0)
-
-            if os.path.isfile("input.txt"):
-                cmd1 = "cp -R input.txt " + dir_name + "/input.txt"
-                os.system(cmd1)
-
-            if os.path.isfile("color-relief.txt"):
-                cmd2 = "cp -R color-relief.txt " + dir_name + "/color-relief.txt"
-                os.system(cmd2)
-            print("cwd before is: " + str(os.getcwd()))
-            os.chdir(os.getcwd() + "/" + dir_name)
-            print("cwd after is: " + str(os.getcwd()))
-            
-
             # Output to new format
             dst_ds = driver.CreateCopy( "input_dem.asc", self.src_ds, 0 )
 
@@ -240,18 +217,18 @@ class Application(tk.Frame):
 
             # Create the `.txt` with `awk` but in Python using `os` call:
         
-            cmd4 = "gdal_translate -ot Float32 -of XYZ " + self.filename + " output_tin.asc"
-            returned_value = os.system(cmd4)  # returns the exit code in unix
+            cmd0 = "gdal_translate -ot Float32 -of XYZ " + self.filename + " output_tin.asc"
+            returned_value = os.system(cmd0)  # returns the exit code in unix
             print('returned value:', returned_value)
 
-            cmd5 = "awk '{print $3}' input_dem.asc > input_dem.txt"
+            cmd1 = "awk '{print $3}' input_dem.asc > input_dem.txt"
 
-            returned_value = os.system(cmd5)  # returns the exit code in unix
+            returned_value = os.system(cmd1)  # returns the exit code in unix
             print('returned value:', returned_value)
 
             # remove temporary .asc file to save space
-            cmd6 = "rm input_dem.asc"
-            returned_value = os.system(cmd6)  # returns the exit code in unix
+            cmd2 = "rm input_dem.asc"
+            returned_value = os.system(cmd2)  # returns the exit code in unix
             print('returned value:', returned_value)
             
             self.tabControl.add(self.tab2, text="Parameters")
@@ -583,7 +560,8 @@ class Application(tk.Frame):
         cmd1 = "awk '{print $1, $2}' output_tin.asc > xy.txt"
         os.system(cmd1)
         cmd2 = "docker run -it -v ${PWD}:/data tswetnam/rillgen2d:latest"
-        os.system(cmd2)
+        returned_value = os.system(cmd2)
+        print('returned value:', returned_value)
         cmd3 = "paste xy.txt tau.txt > xy_tau.txt"
         os.system(cmd3)
         cmd5 = "paste xy.txt f.txt > xy_f.txt"
@@ -679,10 +657,7 @@ class Application(tk.Frame):
 
 
     def generatemap(self):
-        if os.getcwd().split(sep="/")[-1] != (self.filename.split(sep='.')[0]).split(sep="/")[-1]:
-            os.chdir(os.getcwd() + "/" + (self.filename.split(sep='.')[0]).split(sep="/")[-1])
-
-        if self.filename != "" and os.path.isfile(self.filename):
+        if self.filename != None and os.path.isfile(self.filename):
             GdalInfo = subprocess.check_output('gdalinfo {}'.format(self.filename), shell=True)
             GdalInfo = str(GdalInfo)
             GdalInfo = GdalInfo.split(r'\n')
@@ -708,19 +683,17 @@ class Application(tk.Frame):
             f.close()
             cmd0 = "gdaldem hillshade " + self.filename + " output.png"
             returned_value = os.system(cmd0)
-            print("REACHING HERE1")
             print('returned value:', returned_value)
             
             self.formatColorRelief(self.filename)
             cmd1 = "gdaldem color-relief " + self.filename + " color-relief.txt output2.png"
             returned_value = os.system(cmd1)
-            print("REACHING HERE2")
             print('returned value:', returned_value)
 
             img1 = folium.raster_layers.ImageOverlay(image="tau.png", bounds=[location_ll,location_ur], opacity=0.8, interactive=True, name="tau")
             img2 = folium.raster_layers.ImageOverlay(image="output.png", bounds=[location_ll,location_ur], opacity=0.6, interactive=True, name="hillshade")
             img3 = folium.raster_layers.ImageOverlay(image="output2.png", bounds=[location_ll,location_ur], opacity=0.4, interactive=True, name="color-relief")
-            img4 = folium.raster_layers.ImageOverlay(image="f.png", bounds=[location_ll,location_ur], opacity=0.8, interactive=True, show=False, name="f")
+            img4 = folium.raster_layers.ImageOverlay(image="f.png", bounds=[location_ll,location_ur], opacity=0.8, interactive=True, show=False)
 
             for elem in ['output.png.aux.xml', 'output2.png.aux.xml', 'f.png.aux.xml', 'tau.png.aux.xml']:
                 if os.path.isfile(elem):
@@ -734,34 +707,23 @@ class Application(tk.Frame):
             if os.path.isfile("map.html"):
                 os.remove("map.html")
             m.save("map.html", close_file=True)
-            mapfile = None
             mapfile = QtCore.QUrl.fromLocalFile(os.path.abspath("map.html"))
 
             class MainWindow(QMainWindow):
                 def __init__(self, *args, **kwargs):
                     super(MainWindow, self).__init__(*args, **kwargs)
 
-                    self.setWindowTitle("View Map")
+                    self.setWindowTitle("My Awesome App")
 
-                    from pyqtlet import L, MapWidget
-                    from PyQt5.QtWidgets import QApplication, QVBoxLayout, QWidget
-                    
-                    self.widget = QWidget()
-                    self.widget.mapWidget = MapWidget()
-                    self.widget.mapWidget.load(mapfile)
-                    self.widget.layout = QVBoxLayout()
-                    self.widget.layout.addWidget(self.widget.mapWidget)
-                    self.widget.setLayout(self.widget.layout)
-                    
-                    # w = QtWebEngineWidgets.QWebEngineView()
-                    # w.load(mapfile)
-                        #self.widget.map = L.map(self.widget.mapWidget)
+                    w = QtWebEngineWidgets.QWebEngineView()
+                    w.load(mapfile)
+
                     # The `Qt` namespace has a lot of attributes to customise
                     # widgets. See: http://doc.qt.io/qt-5/qt.html
 
                     # Set the central widget of the Window. Widget will expand
                     # to take up all the space in the window by default.
-                    self.setCentralWidget(self.widget)
+                    self.setCentralWidget(w)
 
                 def closeEvent(self, event):
                     reply = QMessageBox.question(self, "Window Close", "Are you sure you want to close the window?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
@@ -779,16 +741,6 @@ class Application(tk.Frame):
             main_window = MainWindow()
             main_window.show()
             app.exec_()
-
-            import gc
-            n = gc.collect()
-            print(gc.isenabled())
-            print("Number of unreachable objects collected by GC:", n)
-            #print("The objects are:", str(gc.get_objects()))
-            print("uncollectable: " + str(len(gc.garbage)))
-
-            os.chdir("..")
-            print(os.getcwd())
         else: 
             messagebox.showerror(title="FILE NOT FOUND", message="Please select a file in tab 1")
 

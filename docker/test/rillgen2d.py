@@ -31,7 +31,7 @@ class Application(tk.Frame):
         collector does not handle it correctly."""
         tk.Frame.__init__(self, parent)
 
-        self.app = QtWidgets.QApplication([])
+        self.app = None
         self.dimensions = None
         self.filename = None
         self.starterimg = None
@@ -48,7 +48,6 @@ class Application(tk.Frame):
         self.tabControl.pack(expand=1, fill="both")
         self.first_time_populating_parameters_tab = True
         self.populate_input_dem_tab()
-
 
     def populate_input_dem_tab(self):
         """This populates the first tab in the application with tkinter widgets.
@@ -122,7 +121,6 @@ class Application(tk.Frame):
     
     def display_geotiff_input_dem_tab(self, mode):
         """Display the geotiff on the canvas of the first tab"""
-        print("reaching, filename is: " + str(self.filename))
         try:
             self.starterimg = rasterio.open(self.filename)
             if (self.filename[-4:] == '.tif'):
@@ -611,6 +609,7 @@ class Application(tk.Frame):
         self.hillshade_and_color_relief()
         self.run_rillgen()
         self.set_georeferencing_information(self.filename)
+        self.tabControl.add(self.tab3, text="View Output")
         self.populate_view_output_tab()
 
 
@@ -654,10 +653,13 @@ class Application(tk.Frame):
         os.system(cmd0)
         cmd1 = "awk '{print $1, $2}' output_tin.asc > xy.txt"
         os.system(cmd1)
-        cmd2 = "docker run -it -v ${PWD}:/data tswetnam/rillgen2d:latest"
+        #cmd2 = "docker run -it -v ${PWD}:/data tswetnam/rillgen2d:latest"
+        cmd2 = "gcc rillgen2d.c"
         os.system(cmd2)
-        cmd3 = "paste xy.txt tau.txt > xy_tau.txt"
+        cmd3 = "./rillgen2d"
         os.system(cmd3)
+        cmd4 = "paste xy.txt tau.txt > xy_tau.txt"
+        os.system(cmd4)
         cmd5 = "paste xy.txt f.txt > xy_f.txt"
         returned_value = os.system(cmd5)
         print('returned value:', returned_value)
@@ -762,11 +764,12 @@ class Application(tk.Frame):
                     location_ur = self.GetLatLon(line)
             m = folium.Map(location, zoom_start=14, tiles='Stamen Terrain')
             img1 = folium.raster_layers.ImageOverlay(image="tau.png", bounds=[location_ll,location_ur], opacity=0.8, interactive=True, name="tau")
-            img2 = folium.raster_layers.ImageOverlay(image="output.png", bounds=[location_ll,location_ur], opacity=0.6, interactive=True, name="hillshade")
-            img3 = folium.raster_layers.ImageOverlay(image="output2.png", bounds=[location_ll,location_ur], opacity=0.4, interactive=True, name="color-relief")
+            img2 = folium.raster_layers.ImageOverlay(image="hillshade.png", bounds=[location_ll,location_ur], opacity=0.6, interactive=True, name="hillshade")
+            img3 = folium.raster_layers.ImageOverlay(image="color-relief.png", bounds=[location_ll,location_ur], opacity=0.4, interactive=True, name="color-relief")
             img4 = folium.raster_layers.ImageOverlay(image="f.png", bounds=[location_ll,location_ur], opacity=0.8, interactive=True, show=False, name="f")
 
-            for elem in ['output.png.aux.xml', 'output2.png.aux.xml', 'f.png.aux.xml', 'tau.png.aux.xml']:
+            for elem in ['hillshade.png.aux.xml', 'color-relief.png.aux.xml', 'f.png.aux.xml', 'tau.png.aux.xml',
+                'output.tin.tif.aux.xml']:
                 if os.path.isfile(elem):
                     os.remove(elem)
 
@@ -815,6 +818,8 @@ class Application(tk.Frame):
     def displayMap(self):
         
         mapfile = QtCore.QUrl.fromLocalFile(os.path.abspath("map.html"))
+        if self.app == None:
+            self.app = QtWidgets.QApplication([])
 
         class MainWindow(QMainWindow):
             def __init__(self, *args, **kwargs):
@@ -851,10 +856,11 @@ if __name__ == "__main__":
     root=tk.Tk()
     root.resizable(True, True)
     root.title("rillgen2D")
-    if os.path.isfile('input.txt'):
-        f = open('input.txt', 'r')
+    if os.path.isfile('../input.txt'):
+        f = open('../input.txt', 'r')
         example = Application(root)
         example.pack(side="top", fill="both", expand=True)
         root.mainloop()
     else:
         raise Exception("A file with the name input.txt was not found.")
+

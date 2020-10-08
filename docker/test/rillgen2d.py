@@ -263,12 +263,12 @@ class Application(tk.Frame):
         
         # LABELS
         Label(self.frame2, text='rillgen2d', font='Helvetica 40 bold italic underline').grid(row=1, column=1, sticky=(N), pady=20)
-        Label(self.frame2, text='Inputs', font='Halvetica 20 bold underline').grid(row=2, column=0, sticky=(N,E,S,W), pady=20)
-        Label(self.frame2, text='Input Descriptions', font='Halvetica 20 bold underline').grid(row=2, column=2, sticky=(N,E,S,W), pady=50)
-        self.parameterButton = ttk.Button(self.frame2, text='Generate Parameters', command=self.generate_parameters)
-        self.parameterButton.grid(row=55, column=0)
-        self.goButton = ttk.Button(self.frame2, text='Run Rillgen', command=self.generate_input_txt_file)
-        self.goButton.grid(row=55, column=2)
+        Label(self.frame2, text='Inputs', font='Helvetica 20 bold underline').grid(row=2, column=0, sticky=(N,E,S,W), pady=20)
+        Label(self.frame2, text='Input Descriptions', font='Helvetica 20 bold underline').grid(row=2, column=2, sticky=(N,E,S,W), pady=50)
+        self.parameterButton = ttk.Button(self.frame2, text='Generate Parameters', command=self.generateParameters)
+        self.parameterButton.grid(row=51, column=0)
+        self.goButton = ttk.Button(self.frame2, text='Run Rillgen', command=self.runCommand)
+        self.goButton.grid(row=51, column=2)
 
         # Flag for mask variable
         Label(self.frame2, text='Flag for mask.txt:', font='Helvetica 25 bold').grid(row=3, column=0, pady=20)
@@ -851,7 +851,6 @@ class Application(tk.Frame):
         main_window.show()
         app.exec_()
 
-
 if __name__ == "__main__":
     root=tk.Tk()
     root.resizable(True, True)
@@ -863,4 +862,3 @@ if __name__ == "__main__":
         root.mainloop()
     else:
         raise Exception("A file with the name input.txt was not found.")
-

@@ -47,6 +47,7 @@ class Application(tk.Frame):
         self.tabControl.add(self.tab1, text="Input DEM") 
         self.tabControl.pack(expand=1, fill="both")
         self.first_time_populating_parameters_tab = True
+        self.first_time_populating_view_output_tab = True
         self.populate_input_dem_tab()
 
     def populate_input_dem_tab(self):
@@ -220,8 +221,9 @@ class Application(tk.Frame):
             returned_value = os.system(cmd2)  # returns the exit code in unix
             print('returned value:', returned_value)
             
-            self.tabControl.add(self.tab2, text="Parameters")
-            self.tabControl.pack(expand=1, fill="both")
+            if self.first_time_populating_parameters_tab == True:
+                self.tabControl.add(self.tab2, text="Parameters")
+                self.tabControl.pack(expand=1, fill="both")
             self.populate_parameters_tab() # Populates the second tab since now the user has chosen a file
 
 
@@ -258,7 +260,6 @@ class Application(tk.Frame):
                                     height=root.winfo_screenheight()*3.5, width=root.winfo_screenwidth(), tags="self.frame")
             self.frame2.bind("<Configure>", self.onFrameConfigure)
             self.frame2.bind_all("<MouseWheel>", self.on_mousewheel)
-
         f = open('input.txt', 'r')
         
         # LABELS
@@ -609,8 +610,9 @@ class Application(tk.Frame):
         self.hillshade_and_color_relief()
         self.run_rillgen()
         self.set_georeferencing_information(self.filename)
-        self.tabControl.add(self.tab3, text="View Output")
-        self.populate_view_output_tab()
+        if self.first_time_populating_view_output_tab:
+            self.tabControl.add(self.tab3, text="View Output")
+            self.populate_view_output_tab()
 
 
     def hillshade_and_color_relief(self):
@@ -653,11 +655,12 @@ class Application(tk.Frame):
         os.system(cmd0)
         cmd1 = "awk '{print $1, $2}' output_tin.asc > xy.txt"
         os.system(cmd1)
-        #cmd2 = "docker run -it -v ${PWD}:/data tswetnam/rillgen2d:latest"
-        cmd2 = "gcc rillgen2d.c"
+        cmd2 = "docker run -it -v ${PWD}:/data 485urjnste8rdf/rillgen2d:experimental"
         os.system(cmd2)
-        cmd3 = "./rillgen2d"
-        os.system(cmd3)
+        # cmd2 = "gcc rillgen2d.c"
+        # os.system(cmd2)
+        # cmd3 = "./rillgen2d"
+        # os.system(cmd3)
         cmd4 = "paste xy.txt tau.txt > xy_tau.txt"
         os.system(cmd4)
         cmd5 = "paste xy.txt f.txt > xy_f.txt"
@@ -722,7 +725,6 @@ class Application(tk.Frame):
     def populate_view_output_tab(self):
         """Populate the third tab with tkinter widgets. The third tab allows
         the user to generate a folium map based on the rillgen output"""
-        
         self.prompt = Label(self.tab3, text='Here you can generate a leaflet map based on the file chosen in tab 1', font='Helvetica 40 bold', justify=CENTER, wraplength=500)
         self.prompt.grid(row=0, column=0)
         self.button1 = ttk.Button(self.tab3, text="Generate Map", command=self.generatemap)
@@ -744,6 +746,7 @@ class Application(tk.Frame):
         self.tab3.columnconfigure(1, weight=1)
         self.tab3.rowconfigure(0,weight=1)
         self.tab3.rowconfigure(1,weight=1)
+        self.first_time_populating_view_output_tab = False
   
 
     def generatemap(self):
@@ -816,7 +819,6 @@ class Application(tk.Frame):
 
     
     def displayMap(self):
-        
         mapfile = QtCore.QUrl.fromLocalFile(os.path.abspath("map.html"))
         if self.app == None:
             self.app = QtWidgets.QApplication([])
@@ -825,7 +827,7 @@ class Application(tk.Frame):
             def __init__(self, *args, **kwargs):
                 super(MainWindow, self).__init__(*args, **kwargs)
 
-                self.setWindowTitle("My Awesome App")
+                self.setWindowTitle("View Output")
 
                 w = QtWebEngineWidgets.QWebEngineView()
                 w.load(mapfile)
@@ -835,7 +837,7 @@ class Application(tk.Frame):
                 self.setCentralWidget(w)
 
             def closeEvent(self, event):
-                reply = QMessageBox.question(self, "Window Close", "Are you sure you want to close the window?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+                reply = QMessageBox.question(self, "Window Close", "Are you sure you want to close the window?", QMessageBox.No | QMessageBox.Yes, QMessageBox.Yes)
                 if reply == QMessageBox.Yes:
                     event.accept()
                     try:
@@ -856,8 +858,8 @@ if __name__ == "__main__":
     root=tk.Tk()
     root.resizable(True, True)
     root.title("rillgen2D")
-    if os.path.isfile('../input.txt'):
-        f = open('../input.txt', 'r')
+    if os.path.isfile('input.txt'):
+        f = open('input.txt', 'r')
         example = Application(root)
         example.pack(side="top", fill="both", expand=True)
         root.mainloop()

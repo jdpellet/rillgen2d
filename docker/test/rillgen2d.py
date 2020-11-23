@@ -17,6 +17,7 @@ from osgeo import gdal, osr
 from PyQt5 import QtWidgets, QtWebEngineWidgets, QtCore
 from PyQt5.QtWidgets import QApplication, QMessageBox, QMainWindow
 from rasterio.plot import show
+from threading import Thread
 from tkinter import *
 from tkinter import messagebox
 from tkinter import ttk
@@ -99,6 +100,19 @@ class Application(tk.Frame):
         self.tab1.rowconfigure(3, weight=1)
 
 
+    def get_image_locally(self):
+        """Given a geotiff image, either in .tar format or directly, extract the image and display
+        it on the canvas"""
+        try:
+            self.filename = askopenfilename()
+            if (str(self.filename)[-4:] == '.tar'):
+                self.extract_geotiff_from_tarfile(self.filename, mode=1)
+        except:
+            messagebox.showerror(title="ERROR", message="Invalid file type. Please select an image file")
+        else:
+            self.display_geotiff_input_dem_tab(mode=1)
+
+
     def extract_geotiff_from_tarfile(self, file_to_open, mode):
         """If the geotiff image is contained within a .tar file,
         extract the geotiff image from the file"""
@@ -147,19 +161,6 @@ class Application(tk.Frame):
         except Exception as e:
                 messagebox.showerror(title="ERROR", message="The exception was: " + str(e))
 
-
-    def get_image_locally(self):
-        """Given a geotiff image, either in .tar format or directly, extract the image and display
-        it on the canvas"""
-        try:
-            self.filename = askopenfilename()
-            if (str(self.filename)[-4:] == '.tar'):
-                self.extract_geotiff_from_tarfile(self.filename, mode=1)
-        except:
-            messagebox.showerror(title="ERROR", message="Invalid file type. Please select an image file")
-        else:
-            self.display_geotiff_input_dem_tab(mode=1)
-
     
     def get_image_from_url(self):
         """Given the url of an image when a raster is generated or located online, extract the geotiff image from the 
@@ -190,6 +191,12 @@ class Application(tk.Frame):
             band = self.src_ds.GetRasterBand(1)
             arr = band.ReadAsArray()
             self.dimensions = [arr.shape[0], arr.shape[1]]
+            t1 = Thread(target=self.populate_parameters_tab)
+            if self.first_time_populating_parameters_tab == True:
+                self.tabControl.add(self.tab2, text="Parameters")
+                self.tabControl.pack(expand=1, fill="both")
+            t1.start()  # Populates the second tab since now the user has chosen a file
+            # t1.join()
             if self.src_ds is None:
                 name = input
                 messagebox.showerror(title="ERROR", message="Unable to open" + name + "for writing")
@@ -221,10 +228,6 @@ class Application(tk.Frame):
             returned_value = os.system(cmd2)  # returns the exit code in unix
             print('returned value:', returned_value)
             
-            if self.first_time_populating_parameters_tab == True:
-                self.tabControl.add(self.tab2, text="Parameters")
-                self.tabControl.pack(expand=1, fill="both")
-            self.populate_parameters_tab() # Populates the second tab since now the user has chosen a file
 
 
     def onFrameConfigure(self, event):
@@ -607,8 +610,10 @@ class Application(tk.Frame):
         f.write(self.cInput.get().replace("\n", "")+'\n')
         f.write(self.rillwidthInput.get().replace("\n", "")+'\n')
         f.close()
-        self.hillshade_and_color_relief()
-        self.run_rillgen()
+        t1 = Thread(target=self.hillshade_and_color_relief)
+        t2 = Thread(target=self.run_rillgen)
+        t1.start()
+        t2.start()
         self.set_georeferencing_information(self.filename)
         if self.first_time_populating_view_output_tab:
             self.tabControl.add(self.tab3, text="View Output")

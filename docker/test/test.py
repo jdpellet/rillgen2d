@@ -1,9 +1,11 @@
 import io
 import os
 import subprocess
+import shutil
 import sys
 import tarfile
-import tkinter as tk
+import tk
+# import tkinter as tk
 import urllib.request as urllib
 
 import folium
@@ -17,6 +19,7 @@ from osgeo import gdal, osr
 from PyQt5 import QtWidgets, QtWebEngineWidgets, QtCore
 from PyQt5.QtWidgets import QApplication, QMessageBox, QMainWindow
 from rasterio.plot import show
+from threading import Thread
 from tkinter import *
 from tkinter import messagebox
 from tkinter import ttk
@@ -24,26 +27,22 @@ from tkinter.filedialog import askopenfilename
 
 class Application(tk.Frame):
     def __init__(self, parent):
-
         """Initializing the tkinter application and its tabs.
         The PyQt5 Application must go where it can be initialized
         only once in order to avoid bugs; otherwise the garbage
         collector does not handle it correctly."""
         tk.Frame.__init__(self, parent)
-
-        self.app = None
-        self.dimensions = None
-        self.filename = None
-        self.starterimg = None
-        self.valid_url_file = False
-
+        self.filename = None  #this is the name of the input file the user chooses
+        self.app = None  # This is the associated PyQt application that handles the map in View Output
+        self.dimensions = None  # These are the dimensions of the input file that the user chooses
+        self.starterimg = None  # This is the image to be displayed in the input_dem tab
         self.tabControl = ttk.Notebook(self)
         self.tab1 = ttk.Frame(self.tabControl)
         self.tab2 = ttk.Frame(self.tabControl)
         self.tab3 = ttk.Frame(self.tabControl)
 
-        # We only want the first tab for now; the others appear in order after the 
-        # process carried out in a previous tab are completed
+        """We only want the first tab for now; the others appear in order after the 
+        processes carried out in a previous tab are completed"""
         self.tabControl.add(self.tab1, text="Input DEM") 
         self.tabControl.pack(expand=1, fill="both")
         self.first_time_populating_parameters_tab = True
@@ -89,7 +88,6 @@ class Application(tk.Frame):
 
         self.save_image = ttk.Button(self.tab1, text="Save Image", style='W.TButton', command=self.saveimageastxt)
         self.save_image.grid(row=3, column=1)
-
         self.tab1.columnconfigure(0, weight=1)
         self.tab1.columnconfigure(1, weight=1)
         self.tab1.columnconfigure(2, weight=1)
@@ -97,6 +95,36 @@ class Application(tk.Frame):
         self.tab1.rowconfigure(1, weight=1)
         self.tab1.rowconfigure(2, weight=1)
         self.tab1.rowconfigure(3, weight=1)
+    
+
+    def get_image_locally(self):
+        """Given a geotiff image, either in .tar format or directly, extract the image and display
+        it on the canvas"""
+        try:
+            self.filename = askopenfilename()
+            if (str(self.filename)[-4:] == '.tar'):
+                self.extract_geotiff_from_tarfile(self.filename, mode=1)
+        except:
+            messagebox.showerror(title="ERROR", message="Invalid file type. Please select an image file")
+        else:
+            self.preview_geotiff(mode=1)
+
+
+    def get_image_from_url(self):
+        """Given the url of an image when a raster is generated or located online, extract the geotiff image from the 
+        url and display it on the canvas """
+        try: 
+            entry1 = str(self.entry1.get())
+            if (entry1[-3:] == '.gz'):
+                file_handler = urllib.urlopen(entry1)
+                self.extract_geotiff_from_tarfile(file_handler, mode=2)
+            else: # Given a geotiff image directly from url
+                raw_data = urllib.urlopen(entry1).read()
+                self.starterimg = rasterio.open(io.BytesIO(raw_data))
+        except Exception:
+            messagebox.showerror(title="ERROR", message="Invalid url. Please use the url for an image")
+        else:
+            self.preview_geotiff(mode=2)
 
 
     def extract_geotiff_from_tarfile(self, file_to_open, mode):
@@ -119,8 +147,8 @@ class Application(tk.Frame):
         tar.extract(nextfile)
         tar.close()
 
-    
-    def display_geotiff_input_dem_tab(self, mode):
+
+    def preview_geotiff(self, mode):
         """Display the geotiff on the canvas of the first tab"""
         try:
             self.starterimg = rasterio.open(self.filename)
@@ -137,46 +165,11 @@ class Application(tk.Frame):
                 ax.spines["left"].set_visible(False)
                 ax.spines["bottom"].set_visible(False)
                 self.canvas1.draw()
-
-                if mode == 1:
-                    self.valid_url_file = False
-                else:
-                    self.valid_url_file = True
             else:
                 messagebox.showerror(title="ERROR", message="Invalid File Format. Supported files must be in TIFF format")
         except Exception as e:
                 messagebox.showerror(title="ERROR", message="The exception was: " + str(e))
 
-
-    def get_image_locally(self):
-        """Given a geotiff image, either in .tar format or directly, extract the image and display
-        it on the canvas"""
-        try:
-            self.filename = askopenfilename()
-            if (str(self.filename)[-4:] == '.tar'):
-                self.extract_geotiff_from_tarfile(self.filename, mode=1)
-        except:
-            messagebox.showerror(title="ERROR", message="Invalid file type. Please select an image file")
-        else:
-            self.display_geotiff_input_dem_tab(mode=1)
-
-    
-    def get_image_from_url(self):
-        """Given the url of an image when a raster is generated or located online, extract the geotiff image from the 
-        url and display it on the canvas """
-        try: 
-            entry1 = str(self.entry1.get())
-            if (entry1[-3:] == '.gz'):
-                file_handler = urllib.urlopen(entry1)
-                self.extract_geotiff_from_tarfile(file_handler, mode=2)
-            else: # Given a geotiff image directly from url
-                raw_data = urllib.urlopen(entry1).read()
-                self.starterimg = rasterio.open(io.BytesIO(raw_data))
-        except Exception:
-            messagebox.showerror(title="ERROR", message="Invalid url. Please use the url for an image")
-        else:
-            self.display_geotiff_input_dem_tab(mode=2)
-    
 
     def saveimageastxt(self):
         """Prepares the geotiff file for the rillgen2D code by getting its dimensions (for the input.txt file) and converting it to
@@ -185,11 +178,16 @@ class Application(tk.Frame):
         if (self.filename == None or self.filename == ""):
             messagebox.showerror(title="NO FILENAME CHOSEN", message="Please choose a valid file")
         else:
+            for elem in os.listdir():
+                if not elem in ["input.txt", "map.html", "output.tin.tif", "rillgen2d.py", "test.py"]:
+                    os.remove(elem)
             # Open existing dataset
             self.src_ds = gdal.Open(self.filename)
             band = self.src_ds.GetRasterBand(1)
             arr = band.ReadAsArray()
             self.dimensions = [arr.shape[0], arr.shape[1]]
+            t1 = Thread(target=self.populate_parameters_tab)
+            t1.start()  # Populates the second tab since now the user has chosen a file
             if self.src_ds is None:
                 name = input
                 messagebox.showerror(title="ERROR", message="Unable to open" + name + "for writing")
@@ -220,25 +218,9 @@ class Application(tk.Frame):
             cmd2 = "rm input_dem.asc"
             returned_value = os.system(cmd2)  # returns the exit code in unix
             print('returned value:', returned_value)
-            
             if self.first_time_populating_parameters_tab == True:
                 self.tabControl.add(self.tab2, text="Parameters")
                 self.tabControl.pack(expand=1, fill="both")
-            self.populate_parameters_tab() # Populates the second tab since now the user has chosen a file
-
-
-    def onFrameConfigure(self, event):
-        '''Reset the scroll region to encompass the inner frame'''
-        self.canvas2.configure(scrollregion=self.canvas2.bbox("all"))
-    
-    def on_mousewheel(self, event):
-        """Binds scroll events to the second tab in the application"""
-        shift = (event.state & 0x1) != 0
-        scroll = -1 if event.delta > 0 else 1
-        if shift:
-            self.canvas2.xview_scroll(scroll, "units")
-        else:
-            self.canvas2.yview_scroll(scroll, "units")
 
 
     def populate_parameters_tab(self):
@@ -532,8 +514,23 @@ class Application(tk.Frame):
         # The width of rills (in m) as they begin to form. This value is used to localize water flow to a width less than the width of a pixel. 
         # For example, if deltax = 1 m and rillwidth = 20 cm then the flow entering each pixel is assumed, for the purposes of rill development, to be localized in a width equal to one fifth of the pixel width.
         ########################### ^MAIN TAB^ ###########################
+    
 
+    def onFrameConfigure(self, event):
+        '''Reset the scroll region to encompass the inner frame'''
+        self.canvas2.configure(scrollregion=self.canvas2.bbox("all"))
+    
 
+    def on_mousewheel(self, event):
+        """Binds scroll events to the second tab in the application"""
+        shift = (event.state & 0x1) != 0
+        scroll = -1 if event.delta > 0 else 1
+        if shift:
+            self.canvas2.xview_scroll(scroll, "units")
+        else:
+            self.canvas2.yview_scroll(scroll, "units")
+
+    
     def generate_parameters(self):
         """Generate the parameters.txt file using the flags from the second tab"""
 
@@ -607,66 +604,53 @@ class Application(tk.Frame):
         f.write(self.cInput.get().replace("\n", "")+'\n')
         f.write(self.rillwidthInput.get().replace("\n", "")+'\n')
         f.close()
-        self.hillshade_and_color_relief()
-        self.run_rillgen()
-        self.set_georeferencing_information(self.filename)
+        t1 = Thread(target=self.hillshade_and_color_relief)
+        t2 = Thread(target=self.run_rillgen)
+        t1.start()
+        t2.start()
         if self.first_time_populating_view_output_tab:
             self.tabControl.add(self.tab3, text="View Output")
             self.populate_view_output_tab()
-
+        t1.join()
+        t2.join()
+        self.set_georeferencing_information(self.filename)
+        
 
     def hillshade_and_color_relief(self):
         """Generates the hillshade and color-relief images from the original 
         geotiff image that will be available on the map"""
-
-        if os.path.isfile('hillshade.png'):
-            os.remove('hillshade.png')
-        f = open('hillshade.png', 'w')
-        f.close()
         cmd0 = "gdaldem hillshade " + self.filename + " hillshade.png"
         os.system(cmd0)
-        self.formatColorRelief(self.filename)
-
-        if os.path.isfile('color-relief.png'):
-            os.remove('color-relief.png')
-        f = open('color-relief.png', 'w')
+        # self.formatColorRelief(self.filename)
+        gtif = gdal.Open(self.filename)
+        srcband = gtif.GetRasterBand(1)
+        # Get raster statistics
+        stats = srcband.GetStatistics(True, True)
+        # Print the min, max, mean, stdev based on stats index
+        f = open('color-relief.txt', 'w')
+        f.writelines([str(stats[0]) + " 110 220 110\n", str(stats[2]-stats[3]) + " 240 250 160\n", str(stats[2]) + " 230 220 170\n", str(stats[2]+stats[3]) + " 220 220 220\n", str(stats[1]) + " 250 250 250\n"])
         f.close()
         cmd1 = "gdaldem color-relief " + self.filename + " color-relief.txt color-relief.png"
         os.system(cmd1)
 
-
-    def formatColorRelief(self, filename):
-        """Formats the color-relief.txt file to be used in generating color-relief.png"""
-        gtif = gdal.Open(filename)
-        srcband = gtif.GetRasterBand(1)
-
-        # Get raster statistics
-        stats = srcband.GetStatistics(True, True)
-        # Print the min, max, mean, stdev based on stats index
-        if os.path.isfile('color-relief.txt'):
-            os.remove('color-relief.txt')
-        f = open('color-relief.txt', 'w')
-        f.writelines([str(stats[0]) + " 110 220 110\n", str(stats[2]-stats[3]) + " 240 250 160\n", str(stats[2]) + " 230 220 170\n", str(stats[2]+stats[3]) + " 220 220 220\n", str(stats[1]) + " 250 250 250\n"])
-        f.close()
-
-
+    
     def run_rillgen(self):
         cmd0 = "awk '{print $3}' output_tin.asc > topo.txt"
         os.system(cmd0)
         cmd1 = "awk '{print $1, $2}' output_tin.asc > xy.txt"
         os.system(cmd1)
-        cmd2 = "docker run -it -v ${PWD}:/data 485urjnste8rdf/rillgen2d:experimental"
-        os.system(cmd2)
-        # cmd2 = "gcc rillgen2d.c"
+        # cmd2 = "docker run -it -v ${PWD}:/data 485urjnste8rdf/rillgen2d:experimental"
         # os.system(cmd2)
-        # cmd3 = "./rillgen2d"
-        # os.system(cmd3)
-
+        cmd2 = "gcc ../rillgen2d.c"
+        os.system(cmd2)
+        cmd3 = "../rillgen2d"
+        os.system(cmd3)
         cmd4 = "paste xy.txt tau.txt > xy_tau.txt"
         os.system(cmd4)
         cmd5 = "paste xy.txt f.txt > xy_f.txt"
         returned_value = os.system(cmd5)
         print('returned value:', returned_value)
+        
 
 
     def set_georeferencing_information(self, dem):
@@ -676,15 +660,15 @@ class Application(tk.Frame):
             print('Unable to open', str(dem), 'for reading')
             sys.exit(1)
         
-        proj = osr.SpatialReference(wkt=ds.GetProjection()).GetAttrValue('AUTHORITY',1)
+        projection = osr.SpatialReference(wkt=ds.GetProjection())
+        projection.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+        # proj = osr.SpatialReference(wkt=ds.GetProjection()).GetAttrValue('AUTHORITY',1)
+        proj = projection.GetAttrValue('AUTHORITY',1)
         
         cmd0 = "gdal_translate -a_srs EPSG:" + str(proj) + " xy_tau.txt tau.tif"
         os.system(cmd0)
         cmd1 = "gdal_translate -a_srs EPSG:" + str(proj) + " xy_f.txt f.tif"
         os.system(cmd1)
-        
-        for elem in ['xy.txt', 'xy_tau.txt', 'xy_f.txt', 'tau.txt', 'f.txt', 'topo.txt']:
-            os.remove(elem)
 
         projection = ds.GetProjection()
         geotransform = ds.GetGeoTransform()
@@ -708,11 +692,9 @@ class Application(tk.Frame):
             gcp_count = ds.GetGCPCount()
             if gcp_count != 0:
                 ds2.SetGCPs(ds.GetGCPs(), ds.GetGCPProjection())
-
-            if os.path.isfile(elem.split(sep='.')[0] + ".png"):
-                os.remove(elem.split(sep='.')[0] + ".png")
             
             if elem == "tau.tif":
+                # gdal.Translate(destName='tau.png', srcDS='tau.tif', outputType='Byte', format='PNG')
                 cmd2 = "gdal_translate -ot Byte -of PNG " + elem.split(sep='.')[0] + ".tif " + elem.split(sep='.')[0] + ".png"
             else:
                 cmd2 = "gdal_translate -ot Byte -scale 0 0.1 -of PNG " + elem.split(sep='.')[0] + ".tif " + elem.split(sep='.')[0] + ".png"
@@ -722,7 +704,7 @@ class Application(tk.Frame):
             ds2 = None
         ds = None
 
-    
+
     def populate_view_output_tab(self):
         """Populate the third tab with tkinter widgets. The third tab allows
         the user to generate a folium map based on the rillgen output"""
@@ -748,8 +730,8 @@ class Application(tk.Frame):
         self.tab3.rowconfigure(0,weight=1)
         self.tab3.rowconfigure(1,weight=1)
         self.first_time_populating_view_output_tab = False
-  
 
+    
     def generatemap(self):
         """Generates a folium map based on the bounds of the geotiff file"""
         if self.filename != None and os.path.isfile(self.filename):
@@ -853,7 +835,7 @@ class Application(tk.Frame):
         main_window = MainWindow()
         main_window.show()
         app.exec_()
-
+    
 
 if __name__ == "__main__":
     root=tk.Tk()

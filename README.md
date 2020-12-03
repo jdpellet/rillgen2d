@@ -12,11 +12,11 @@ cd rillgen2d
 
 ## Dependencies
 
-`rillgen2d` is written in [C](), but uses geospatial data input layers, such as [GeoTiff](). These require open-source geospatial software packages such as [GDAL](), [GEOS](), and [PROJ]() to manage their projection information. The Graphic User Inferface (GUI) is written in [Python3]() using [Tkinter]().
+`rillgen2d` is written in [C](https://en.wikipedia.org/wiki/C_(programming_language)), but uses geospatial data input layers, such as [GeoTiff](https://www.ogc.org/standards/geotiff). These require open-source geospatial software packages such as [GDAL](https://gdal.org/), [GEOS](https://trac.osgeo.org/geos), and [PROJ](https://proj.org/) to manage their projection information. The Graphic User Inferface (GUI) is written in [Python3](https://www.python.org/) using [Tkinter](https://docs.python.org/3/library/tkinter.html).
 
 ### Installing with Conda or mini-Conda
 
-We have provided a `environment.yml` file which can be used with [Conda]() to install the stack.
+We have provided a `environment.yml` file which can be used with [Conda](https://docs.conda.io/en/latest/) to install the stack.
 
 ```
 # update conda
@@ -37,4 +37,4 @@ python rillgen2d.py
 
 ## Docker
 
-Alternately, you can run the entire program with Docker
+Alternately, you can run the entire program with [Docker]()

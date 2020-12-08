@@ -177,15 +177,12 @@ class Application(tk.Frame):
         if (self.imagefile == None or self.imagefile == ""):
             messagebox.showerror(title="NO FILENAME CHOSEN", message="Please choose a valid file")
         else:
-            print("OOOOOOOO: " + os.getcwd().split("/")[-1])
             if (os.getcwd().split("/")[-1] == "tmp"):
                 os.chdir("..")
             if os.path.exists(os.getcwd() + "/tmp"):
                 shutil.rmtree(os.getcwd() + "/tmp")
-            print("WORKING DIRECTORY IS: " + os.getcwd())
             os.mkdir(os.getcwd() + "/tmp/")
             self.filename = os.getcwd() + "/tmp/" + self.imagefile.split("/")[-1]
-            print("new filename is: " + self.filename)
             shutil.copyfile(self.imagefile, self.filename)
             shutil.copyfile("template_input.txt", os.getcwd() + "/tmp/" + "input.txt")
             os.chdir(os.getcwd() + "/tmp")
@@ -780,7 +777,6 @@ class Application(tk.Frame):
         acceptable_files = [self.filename, "parameters.txt", "input.txt", "map.html", "rills.ppm"]
         for file_name in src_files:
             if file_name in acceptable_files or (file_name.endswith(".png") or file_name.endswith(".tif")):
-                print("FILE NAME IS: " + file_name)
                 shutil.copy(file_name, saveDir + "/" + file_name)
 
     def GetLatLon(self, line):

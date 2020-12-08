@@ -3,19 +3,38 @@ Predicts where rills/gullies will occur on a real or proposed landscape as a fun
 
 # Installation
 
+Clone this repository to your local computer
+
+```
+git clone https://github.com/jdpellet/rillgen2d
+cd rillgen2d
+```
+
 ## Dependencies
 
-Rillgen2D is written in C, but uses geospatial input layers, such as geoTiff files. These require open-source geospatial software packages such as GDAL, GEOS, and PROJ to manage their projection information. The Graphic User Inferface (GUI) is written in Python using Tkinter.
+`rillgen2d` is written in [C](https://en.wikipedia.org/wiki/C_(programming_language)), but uses geospatial data input layers, such as [GeoTiff](https://www.ogc.org/standards/geotiff). These require open-source geospatial software packages such as [GDAL](https://gdal.org/), [GEOS](https://trac.osgeo.org/geos), and [PROJ](https://proj.org/) to manage their projection information. The Graphic User Inferface (GUI) is written in [Python3](https://www.python.org/) using [Tkinter](https://docs.python.org/3/library/tkinter.html).
 
 ### Installing with Conda or mini-Conda
 
-We have provided a `requirements.txt` file which can be used with Conda to install the stack.
+We have provided a `environment.yml` file which can be used with [Conda](https://docs.conda.io/en/latest/) to install the stack.
 
 ```
-conda create --name rillgen2d_env pip
-pip install -r requirements.txt
+# update conda
+conda update -n base -c defaults conda
+# create environment for rillgen2d
+conda env create -f environment.yml
+# activate conda environment
+conda activate rillgen
+```
+
+### Starting the GUI
+
+Once the appropriate Python environment has been created, you can start the GUI
+
+```
+python rillgen2d.py
 ```
 
 ## Docker
 
-Alternately, you can run the entire program using Docker.
+Alternately, you can run the entire program with [Docker]()

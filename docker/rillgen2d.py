@@ -9,6 +9,7 @@ import urllib.request as urllib
 
 import folium
 import matplotlib.pyplot as plt
+import osgeo
 import rasterio
 
 from datetime import datetime
@@ -37,6 +38,7 @@ class Application(tk.Frame):
         self.app = None  # This is the associated PyQt application that handles the map in View Output
         self.dimensions = None  # These are the dimensions of the input file that the user chooses
         self.starterimg = None  # This is the image to be displayed in the input_dem tab
+        self.popup = None  # This is the popup that comes up during the hydrologic correction step 
         self.tabControl = ttk.Notebook(self)
         self.tab1 = ttk.Frame(self.tabControl)
         self.tab2 = ttk.Frame(self.tabControl)
@@ -610,15 +612,17 @@ class Application(tk.Frame):
         f.write(self.cInput.get().replace("\n", "")+'\n')
         f.write(self.rillwidthInput.get().replace("\n", "")+'\n')
         f.close()
+        
         t1 = Thread(target=self.hillshade_and_color_relief)
-        t2 = Thread(target=self.run_rillgen)
+        # t2 = Thread(target=self.run_rillgen)
         t1.start()
-        t2.start()
+        self.run_rillgen()
+        # t2.start()
         if self.first_time_populating_view_output_tab:
             self.tabControl.add(self.tab3, text="View Output")
             self.populate_view_output_tab()
         t1.join()
-        t2.join()
+        # t2.join()
         self.set_georeferencing_information(self.filename)
 
     
@@ -639,23 +643,44 @@ class Application(tk.Frame):
         cmd1 = "gdaldem color-relief " + self.filename + " color-relief.txt color-relief.png"
         os.system(cmd1)
 
-    
+    def make_popup(self):
+        self.popup = tk.Toplevel(root)
+        popupLabel = tk.Label(self.popup, text="hydrologic correction step in progress")
+        # popupLabel.grid(row=0, column=0)
+        popupLabel.pack(side=tk.TOP)
+        self.progress_bar = ttk.Progressbar(self.popup, orient=HORIZONTAL, length=300, mode='determinate', maximum=100)
+        # progress_bar.grid(row=1, column=0)
+        self.progress_bar.pack(fill=tk.X, expand=1, side=tk.BOTTOM)
+        root.update()
+
+    def update_progressbar(self, value):
+        self.progress_bar['value'] = value
+        root.update()
+
     def run_rillgen(self):
+        self.make_popup()
         cmd0 = "awk '{print $3}' output_tin.asc > topo.txt"
         os.system(cmd0)
+        self.update_progressbar(10)
         cmd1 = "awk '{print $1, $2}' output_tin.asc > xy.txt"
         os.system(cmd1)
+        self.update_progressbar(20)
         # cmd2 = "docker run -it -v ${PWD}:/data 485urjnste8rdf/rillgen2d:experimental"
         # os.system(cmd2)
         cmd2 = "gcc ../rillgen2d.c"
         os.system(cmd2)
+        self.update_progressbar(40)
         cmd3 = "../rillgen2d"
         os.system(cmd3)
+        self.update_progressbar(80)
         cmd4 = "paste xy.txt tau.txt > xy_tau.txt"
         os.system(cmd4)
+        self.update_progressbar(90)
         cmd5 = "paste xy.txt f.txt > xy_f.txt"
         returned_value = os.system(cmd5)
+        self.update_progressbar(100)
         print('returned value:', returned_value)
+        self.popup.destroy()
 
 
     def set_georeferencing_information(self, dem):
@@ -666,7 +691,10 @@ class Application(tk.Frame):
             sys.exit(1)
         
         projection = osr.SpatialReference(wkt=ds.GetProjection())
-        projection.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+        if int(osgeo.__version__[0]) >= 3:
+            # GDAL 3 changes axis order: https://github.com/OSGeo/gdal/issues/1546
+            # pylint: disable=no-member
+            projection.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
         # proj = osr.SpatialReference(wkt=ds.GetProjection()).GetAttrValue('AUTHORITY',1)
         proj = projection.GetAttrValue('AUTHORITY',1)
         

@@ -1,0 +1,26 @@
+0	 /* Flag for mask out */ 
+0	 /* Flag for slope out */ 
+0	 /* Flag for rain out */ 
+0	 /* Flag for taucsoilandveg out */ 
+0	 /* Flag for d50 out */ 
+0	 /* Flag for cu out */ 
+0	 /* Flag for thickness out */ 
+0	 /* Flag for rockcover out */ 
+0.01	 /* Fillincrement out */ 
+0.02	 /* Threshslope out */ 
+5	 /* Expansion out */ 
+0.75	 /* Yellow threshold out */ 
+1043	 /* Lattice Size X out */ 
+1087	 /* Lattice Size Y out */ 
+0.5	 /* Delta X out */ 
+143	 /* Rain out */ 
+30	 /* tauc soil and vege out */ 
+100	 /* d50 out */ 
+2	 /* cu out */ 
+3	 /* thickness out */ 
+1	 /* rock cover out */ 
+0.6	 /* tangent of the angle of internal friction out*/ 
+1.65	 /* reduced specific gravity out */ 
+1.5	 /* b out */ 
+0.61	 /* c out */ 
+0.2	 /* rill width out */ 

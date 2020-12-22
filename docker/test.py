@@ -1,7 +1,9 @@
+#!/usr/local/bin/python3
 import io
 import os
 import subprocess
 import shutil
+import socket
 import sys
 import tarfile
 import tkinter as tk
@@ -26,56 +28,6 @@ from tkinter import *
 from tkinter import messagebox
 from tkinter import ttk
 from tkinter.filedialog import askopenfilename
-from tkinter.scrolledtext import ScrolledText
-
-PROCESS = ['python3', 'test.py']
-class Console(tk.Frame):
-
-    """Simple console that can execute bash commands"""
-
-    def __init__(self, master, *args, **kwargs):
-        tk.Frame.__init__(self, master, *args, **kwargs)
-
-        self.text_options = {"state": "disabled",
-                             "bg": "black",
-                             "fg": "#08c614",
-                             "insertbackground": "#08c614",
-                             "selectbackground": "#f01c1c"}
-
-        self.text = ScrolledText(self, **self.text_options)
-        self.text.pack(expand=True, fill="both")
-        t = Thread(target=self.execute)
-        t.daemon = True
-        t.start()
-
-    # def display_text(self, p):
-    #     while True:
-    #         out = p.stdout.readline()
-    #         if out == '' and p.poll() is not None:
-    #             break
-    #         print("out is: " + out)
-    #         self.show(out)
-        # lines_iterator = iter(p.stdout.readline, b"")
-        # for line in lines_iterator:
-        #     self.text.update()
-        #     self.show(line) 
-            
-
-    def show(self, message):
-        """Inserts message into the Text wiget"""
-        self.text.config(state="normal")
-        self.text.insert("end", message)
-        self.text.see("end")
-        self.text.config(state="disabled")
-        self.text.update_idletasks()
-
-    def execute(self):
-        p = Popen(PROCESS,  universal_newlines=True,
-                stdout=PIPE, stderr=STDOUT)
-        print('process created with pid: {}'.format(p.pid))
-        # self.display_text(p)
-
-
 
 class Application(tk.Frame):
     def __init__(self, parent):
@@ -88,19 +40,17 @@ class Application(tk.Frame):
         self.filename = None  #this is the name of the input file the user chooses
         self.app = None  # This is the associated PyQt application that handles the map in View Output
         self.dimensions = None  # These are the dimensions of the input file that the user chooses
+        self.socket = None
         self.starterimg = None  # This is the image to be displayed in the input_dem tab
         self.popup = None  # This is the popup that comes up during the hydrologic correction step 
         self.tabControl = ttk.Notebook(self)
         self.tab1 = ttk.Frame(self.tabControl)
         self.tab2 = ttk.Frame(self.tabControl)
         self.tab3 = ttk.Frame(self.tabControl)
-        self.win = tk.Toplevel(self)
-        self.win.title("Console Output")
-        self.text = None
-        self.Console = Console(self.win)
-        self.Console.pack(expand=True, fill="both")
-        self.win.update()
-
+        self.t = Thread(target=self.network_function)
+        
+        self.t.daemon = True
+        self.t.start()
 
         """We only want the first tab for now; the others appear in order after the 
         processes carried out in a previous tab are completed"""
@@ -109,6 +59,12 @@ class Application(tk.Frame):
         self.first_time_populating_parameters_tab = True
         self.first_time_populating_view_output_tab = True
         self.populate_input_dem_tab()
+
+    def network_function(self):
+        host = socket.gethostname()  # get local machine name
+        port = 8080  # Make sure it's within the > 1024 $$ <65535 range
+        self.socket = socket.socket()
+        self.socket.connect((host, port))
 
     def populate_input_dem_tab(self):
         """This populates the first tab in the application with tkinter widgets.
@@ -247,6 +203,8 @@ class Application(tk.Frame):
             os.chdir(os.getcwd() + "/tmp")
             
         # Open existing dataset
+            self.socket.send(("Saving the image as .txt...\n\n").encode('utf-8'))
+
             self.src_ds = gdal.Open(self.filename)
             band = self.src_ds.GetRasterBand(1)
             arr = band.ReadAsArray()
@@ -271,21 +229,14 @@ class Application(tk.Frame):
 
             # Create the `.txt` with `awk` but in Python using `os` call:
             cmd0 = "gdal_translate -ot Float32 -of XYZ " + self.filename + " output_tin.asc"
-            self.Console.show(subprocess.check_output(cmd0, shell=True))
-            # returned_value = os.system(cmd0)  # returns the exit code in unix
-            # print('returned value:', returned_value)
+            self.socket.send(subprocess.check_output(cmd0, shell=True) + ('\n\n').encode('utf-8'))
 
             cmd1 = "awk '{print $3}' input_dem.asc > input_dem.txt"
-            self.Console.show(subprocess.check_output(cmd1, shell=True))
-            # returned_value = os.system(cmd1)  # returns the exit code in unix
-            # print('returned value:', returned_value)
+            self.socket.send(subprocess.check_output(cmd1, shell=True) + ('\n').encode('utf-8'))
 
             # remove temporary .asc file to save space
             cmd2 = "rm input_dem.asc"
-            self.Console.show(subprocess.check_output(cmd2, shell=True))
-
-            # returned_value = os.system(cmd2)  # returns the exit code in unix
-            # print('returned value:', returned_value)
+            self.socket.send(subprocess.check_output(cmd2, shell=True) + ('\n').encode('utf-8'))
             if self.first_time_populating_parameters_tab == True:
                 self.tabControl.add(self.tab2, text="Parameters")
                 self.tabControl.pack(expand=1, fill="both")
@@ -687,12 +638,11 @@ class Application(tk.Frame):
 
     
     def hillshade_and_color_relief(self):
+        self.socket.send(("Generating hillshade and color relief...\n\n").encode('utf-8'))
         """Generates the hillshade and color-relief images from the original 
         geotiff image that will be available on the map"""
         cmd0 = "gdaldem hillshade " + self.filename + " hillshade.png"
-        self.Console.show(subprocess.check_output(cmd0, shell=True))
-        # os.system(cmd0)
-        # self.formatColorRelief(self.filename)
+        self.socket.send(subprocess.check_output(cmd0, shell=True) + ('\n').encode('utf-8'))
         gtif = gdal.Open(self.filename)
         srcband = gtif.GetRasterBand(1)
         # Get raster statistics
@@ -702,8 +652,7 @@ class Application(tk.Frame):
         f.writelines([str(stats[0]) + " 110 220 110\n", str(stats[2]-stats[3]) + " 240 250 160\n", str(stats[2]) + " 230 220 170\n", str(stats[2]+stats[3]) + " 220 220 220\n", str(stats[1]) + " 250 250 250\n"])
         f.close()
         cmd1 = "gdaldem color-relief " + self.filename + " color-relief.txt color-relief.png"
-        self.Console.show(subprocess.check_output(cmd1, shell=True))
-        # os.system(cmd1)
+        self.socket.send(subprocess.check_output(cmd1, shell=True) + ('\n').encode('utf-8'))
 
     def make_popup(self):
         self.popup = tk.Toplevel(root)
@@ -720,34 +669,27 @@ class Application(tk.Frame):
         root.update()
 
     def run_rillgen(self):
+        self.socket.send(("Running rillgen.c...\n\n").encode('utf-8'))
         self.make_popup()
         cmd0 = "awk '{print $3}' output_tin.asc > topo.txt"
-        # os.system(cmd0)
-        self.Console.show(subprocess.check_output(cmd0, shell=True))
+        self.socket.send(subprocess.check_output(cmd0, shell=True) + ('\n').encode('utf-8'))
         self.update_progressbar(10)
         cmd1 = "awk '{print $1, $2}' output_tin.asc > xy.txt"
-        # os.system(cmd1)
-        self.Console.show(subprocess.check_output(cmd1, shell=True))
+        self.socket.send(subprocess.check_output(cmd1, shell=True) + ('\n').encode('utf-8'))
         self.update_progressbar(20)
         # cmd2 = "docker run -it -v ${PWD}:/data 485urjnste8rdf/rillgen2d:experimental"
-        # os.system(cmd2)
         cmd2 = "gcc ../rillgen2d.c"
-        # os.system(cmd2)
-        self.Console.show(subprocess.check_output(cmd2, shell=True))
+        self.socket.send(subprocess.check_output(cmd2, shell=True) + ('\n').encode('utf-8'))
         self.update_progressbar(40)
         cmd3 = "../rillgen2d"
-        # os.system(cmd3)
-        self.Console.show(subprocess.check_output(cmd3, shell=True))
+        self.socket.send(subprocess.check_output(cmd3, shell=True) + ('\n').encode('utf-8'))
         self.update_progressbar(80)
         cmd4 = "paste xy.txt tau.txt > xy_tau.txt"
-        # os.system(cmd4)
-        self.Console.show(subprocess.check_output(cmd4, shell=True))
+        self.socket.send(subprocess.check_output(cmd4, shell=True) + ('\n').encode('utf-8'))
         self.update_progressbar(90)
         cmd5 = "paste xy.txt f.txt > xy_f.txt"
-        # returned_value = os.system(cmd5)
-        self.Console.show(subprocess.check_output(cmd5, shell=True))
+        self.socket.send(subprocess.check_output(cmd5, shell=True) + ('\n\n').encode('utf-8'))
         self.update_progressbar(100)
-        # print('returned value:', returned_value)
         self.popup.destroy()
 
 
@@ -767,11 +709,9 @@ class Application(tk.Frame):
         proj = projection.GetAttrValue('AUTHORITY',1)
         
         cmd0 = "gdal_translate -a_srs EPSG:" + str(proj) + " xy_tau.txt tau.tif"
-        # os.system(cmd0)
-        self.Console.show(subprocess.check_output(cmd0, shell=True))
+        self.socket.send(subprocess.check_output(cmd0, shell=True) + ('\n').encode('utf-8'))
         cmd1 = "gdal_translate -a_srs EPSG:" + str(proj) + " xy_f.txt f.tif"
-        # os.system(cmd1)
-        self.Console.show(subprocess.check_output(cmd1, shell=True))
+        self.socket.send(subprocess.check_output(cmd1, shell=True) + ('\n').encode('utf-8'))
 
         projection = ds.GetProjection()
         geotransform = ds.GetGeoTransform()
@@ -800,9 +740,7 @@ class Application(tk.Frame):
                 cmd2 = "gdal_translate -ot Byte -of PNG " + elem.split(sep='.')[0] + ".tif " + elem.split(sep='.')[0] + ".png"
             else:
                 cmd2 = "gdal_translate -ot Byte -scale 0 0.1 -of PNG " + elem.split(sep='.')[0] + ".tif " + elem.split(sep='.')[0] + ".png"
-            # returned_value = os.system(cmd2)
-            # print('returned value:', returned_value)
-            self.Console.show(subprocess.check_output(cmd2, shell=True))
+            self.socket.send(subprocess.check_output(cmd2, shell=True) + ('\n').encode('utf-8'))
 
             ds2 = None
         ds = None
@@ -837,6 +775,7 @@ class Application(tk.Frame):
 
     def generatemap(self):
         """Generates a folium map based on the bounds of the geotiff file"""
+        self.socket.send(("Generating map\n\n").encode('utf-8'))
         if self.filename != None and os.path.isfile(self.filename):
             GdalInfo = subprocess.check_output('gdalinfo {}'.format(self.filename), shell=True)
             GdalInfo = str(GdalInfo)
@@ -877,7 +816,7 @@ class Application(tk.Frame):
         for file_name in src_files:
             if file_name in acceptable_files or (file_name.endswith(".png") or file_name.endswith(".tif")):
                 shutil.copy(file_name, saveDir + "/" + file_name)
-
+        shutil.copy(self.filename, saveDir + "/" + self.filename)
     def GetLatLon(self, line):
         """Gets the latitude and longitude coordinates of a corner or center of the geotiff file
         (whichever is specified) using gdalinfo"""
@@ -942,6 +881,8 @@ class Application(tk.Frame):
         main_window.show()
         app.exec_()
         
+
+
 
 if __name__ == "__main__":
     root=tk.Tk()

@@ -292,11 +292,14 @@ class Application(tk.Frame):
         self.parameterButton.grid(row=55, column=0)
         self.goButton = ttk.Button(self.frame2, text='Run Rillgen', command=self.generate_input_txt_file)
         self.goButton.grid(row=55, column=2)
+        Label(self.frame2, text='NOTE: The hydrologic correction step can take a long time if there are lots of depressions in the input DEM and/or if the'
+        + 'landscape is very steep. RILLGEN2D can be sped up by increasing the value of fillincrement or by performing the hydrologic correction step in a'
+        + 'different program (e.g., ArcGIS or TauDEM) prior to input into RILLGEN2D.', justify=CENTER, wraplength=600).grid(row=56, column=0, sticky=(N,E,S,W), pady=30, columnspan=3)
 
 
         # Flag for mask variable
         Label(self.frame2, text='Flag for mask.txt:', font='Helvetica 25 bold').grid(row=3, column=0, pady=20)
-        Label(self.frame2, text='Should be checked if the user provides a raster (mask.txt) that restricts the model to certain portions of the input DEM.', font='Helvetica 20',justify=CENTER, wraplength=750).grid(row=3, column=2, pady=20)
+        Label(self.frame2, text='Should be checked if the user provides a raster (mask.txt) that restricts the model to certain portions of the input DEM.', font='Helvetica 20', justify=CENTER, wraplength=750).grid(row=3, column=2, pady=20)
         
         self.flagformaskVar = IntVar(value=int(f.readline()))
         Checkbutton(self.frame2, variable=self.flagformaskVar, width=5).grid(row=3, column=1, pady=20)
@@ -716,9 +719,11 @@ class Application(tk.Frame):
                 time.sleep(0.5)
             else:
                 self.update_progressbar(100)
+                self.client_socket.send(("Hydrologic correction step completed\n\n").encode('utf-8'))
+                self.popup.destroy()
                 still_update = False
         t1.join()
-        self.popup.destroy()
+        
 
     def run_rillgen(self):
         self.rillgen.main()

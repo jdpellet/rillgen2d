@@ -5,6 +5,7 @@ import subprocess
 import shutil
 import sys
 import tarfile
+import time
 import tkinter as tk
 import urllib.request as urllib
 
@@ -29,6 +30,8 @@ from tkinter import messagebox
 from tkinter import ttk
 from tkinter.filedialog import askopenfilename
 
+from ctypes import *
+
 class Application(tk.Frame):
     def __init__(self, parent):
         """Initializing the tkinter application and its tabs.
@@ -49,10 +52,9 @@ class Application(tk.Frame):
         self.tab2 = ttk.Frame(self.tabControl)
         self.tab3 = ttk.Frame(self.tabControl)
         self.t = Thread(target=self.network_function)
-        
         self.t.daemon = True
         self.t.start()
-
+        self.t1 = None
         """We only want the first tab for now; the others appear in order after the 
         processes carried out in a previous tab are completed"""
         self.tabControl.add(self.tab1, text="Input DEM") 
@@ -208,6 +210,9 @@ class Application(tk.Frame):
         else:
             if (os.getcwd().split("/")[-1] == "tmp"):
                 os.chdir("..")
+            """This portion compiles the rillgen2d.c file in order to import it as a module"""
+            cmd = "gcc -shared -Wl,-install_name,rillgen.so -o rillgen.so -fPIC rillgen2d.c" # compile the c file so that it will be useable later
+            self.client_socket.send(subprocess.check_output(cmd, shell=True) + ('\n').encode('utf-8'))
             if os.path.exists(os.getcwd() + "/tmp"):
                 shutil.rmtree(os.getcwd() + "/tmp")
             os.mkdir(os.getcwd() + "/tmp/")
@@ -216,15 +221,17 @@ class Application(tk.Frame):
             shutil.copyfile("template_input.txt", os.getcwd() + "/tmp/" + "input.txt")
             os.chdir(os.getcwd() + "/tmp")
             
-        # Open existing dataset
+            # Open existing dataset
+            self.filename.split("/")[-1]
+            self.client_socket.send(("Filename is: " + self.filename.split("/")[-1] + "\n\n").encode('utf-8'))
             self.client_socket.send(("Saving the image as .txt...\n\n").encode('utf-8'))
 
             self.src_ds = gdal.Open(self.filename)
             band = self.src_ds.GetRasterBand(1)
             arr = band.ReadAsArray()
             self.dimensions = [arr.shape[0], arr.shape[1]]
-            t1 = Thread(target=self.populate_parameters_tab)
-            t1.start()  # Populates the second tab since now the user has chosen a file
+            self.t1 = Thread(target=self.populate_parameters_tab)
+            self.t1.start()  # Populates the second tab since now the user has chosen a file
             if self.src_ds is None:
                 name = input
                 messagebox.showerror(title="ERROR", message="Unable to open" + name + "for writing")
@@ -607,7 +614,9 @@ class Application(tk.Frame):
 
         The second helper function then sets the georeferencing information from the original
         geotiff file to xy_f.txt and xy_tau.txt in order to generate f.tif and tau.tif"""
-
+        if self.t1 != None:
+            self.t1.join()
+            self.t1 = None
         if os.path.isfile('input.txt'):
             os.remove('input.txt')
         f = open('input.txt', 'w')
@@ -642,11 +651,12 @@ class Application(tk.Frame):
         
         t1 = Thread(target=self.hillshade_and_color_relief)
         t1.start()
-        self.run_rillgen()
+        self.setup_rillgen()
         if self.first_time_populating_view_output_tab:
             self.tabControl.add(self.tab3, text="View Output")
             self.populate_view_output_tab()
         t1.join()
+        # time.sleep(3)
         self.set_georeferencing_information(self.filename)
 
     
@@ -670,41 +680,53 @@ class Application(tk.Frame):
     def make_popup(self):
         self.popup = tk.Toplevel(root)
         popupLabel = tk.Label(self.popup, text="hydrologic correction step in progress")
-        # popupLabel.grid(row=0, column=0)
         popupLabel.pack(side=tk.TOP)
         self.progress_bar = ttk.Progressbar(self.popup, orient=HORIZONTAL, length=300, mode='determinate', maximum=100)
-        # progress_bar.grid(row=1, column=0)
+        # get screen width and height
+        ws = root.winfo_screenwidth()
+        hs = root.winfo_screenheight()
+        # calculate position x, y
+        x = (ws/2) - (350/2)    
+        y = (hs/2) - (75/2)
+        self.popup.geometry('%dx%d+%d+%d' % (350, 75, x, y))
         self.progress_bar.pack(fill=tk.X, expand=1, side=tk.BOTTOM)
-        root.update()
 
     def update_progressbar(self, value):
         self.progress_bar['value'] = value
         root.update()
 
-    def run_rillgen(self):
+    def setup_rillgen(self):
         self.client_socket.send(("Running rillgen.c...\n\n").encode('utf-8'))
         self.make_popup()
         cmd0 = "awk '{print $3}' output_tin.asc > topo.txt"
         self.client_socket.send(subprocess.check_output(cmd0, shell=True) + ('\n').encode('utf-8'))
-        self.update_progressbar(10)
         cmd1 = "awk '{print $1, $2}' output_tin.asc > xy.txt"
         self.client_socket.send(subprocess.check_output(cmd1, shell=True) + ('\n').encode('utf-8'))
-        self.update_progressbar(20)
-        # cmd2 = "docker run -it -v ${PWD}:/data 485urjnste8rdf/rillgen2d:experimental"
-        cmd2 = "gcc ../rillgen2d.c"
-        self.client_socket.send(subprocess.check_output(cmd2, shell=True) + ('\n').encode('utf-8'))
-        self.update_progressbar(40)
-        cmd3 = "../rillgen2d"
-        self.client_socket.send(subprocess.check_output(cmd3, shell=True) + ('\n').encode('utf-8'))
-        self.update_progressbar(80)
-        cmd4 = "paste xy.txt tau.txt > xy_tau.txt"
-        self.client_socket.send(subprocess.check_output(cmd4, shell=True) + ('\n').encode('utf-8'))
-        self.update_progressbar(90)
-        cmd5 = "paste xy.txt f.txt > xy_f.txt"
-        self.client_socket.send(subprocess.check_output(cmd5, shell=True) + ('\n').encode('utf-8'))
-        self.update_progressbar(100)
+        self.rillgen = CDLL('../rillgen.so')
+        t1 = Thread(target=self.run_rillgen)
+        t1.start()
+        still_update = True
+        while still_update:
+            currentPercentage = self.rillgen.percentage()
+            print("currentPercentage is: " + str(currentPercentage))
+            if currentPercentage == 0:
+                time.sleep(0.5)
+            elif currentPercentage < 100:
+                self.update_progressbar(currentPercentage)
+                time.sleep(0.5)
+            else:
+                self.update_progressbar(100)
+                still_update = False
+        t1.join()
         self.popup.destroy()
 
+    def run_rillgen(self):
+        self.rillgen.main()
+        cmd4 = "paste xy.txt tau.txt > xy_tau.txt"
+        self.client_socket.send(subprocess.check_output(cmd4, shell=True) + ('\n').encode('utf-8'))
+        cmd5 = "paste xy.txt f.txt > xy_f.txt"
+        self.client_socket.send(subprocess.check_output(cmd5, shell=True) + ('\n').encode('utf-8'))
+        
 
     def set_georeferencing_information(self, dem):
         ds = gdal.Open(dem)
@@ -817,6 +839,7 @@ class Application(tk.Frame):
             t1 = Thread(target=self.saveOutput)
             t1.start()
             self.displayMap()
+            t1.join()
             
         else: 
             messagebox.showerror(title="FILE NOT FOUND", message="Please select a file in tab 1")
@@ -825,11 +848,12 @@ class Application(tk.Frame):
         saveDir = "../outputs(save-" + str(datetime.now()).replace(" ", "") + ")"
         os.mkdir(saveDir)
         src_files = os.listdir(os.getcwd())
-        acceptable_files = [self.filename, "parameters.txt", "input.txt", "map.html", "rills.ppm"]
+        acceptable_files = ["parameters.txt", "input.txt", "map.html", "rills.ppm"]
         for file_name in src_files:
             if file_name in acceptable_files or (file_name.endswith(".png") or file_name.endswith(".tif")):
                 shutil.copy(file_name, saveDir + "/" + file_name)
-        shutil.copy(self.filename, saveDir + "/output.tin.tif")
+        shutil.copy(self.filename, saveDir + "/" + self.filename.split("/")[-1])
+
     def GetLatLon(self, line):
         """Gets the latitude and longitude coordinates of a corner or center of the geotiff file
         (whichever is specified) using gdalinfo"""

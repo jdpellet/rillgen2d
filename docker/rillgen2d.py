@@ -659,7 +659,6 @@ class Application(tk.Frame):
             self.tabControl.add(self.tab3, text="View Output")
             self.populate_view_output_tab()
         t1.join()
-        # time.sleep(3)
         self.set_georeferencing_information(self.filename)
 
     

@@ -293,8 +293,8 @@ class Application(tk.Frame):
         self.goButton = ttk.Button(self.frame2, text='Run Rillgen', command=self.generate_input_txt_file)
         self.goButton.grid(row=55, column=2)
         Label(self.frame2, text='NOTE: The hydrologic correction step can take a long time if there are lots of depressions in the input DEM and/or if the'
-        + 'landscape is very steep. RILLGEN2D can be sped up by increasing the value of fillincrement or by performing the hydrologic correction step in a'
-        + 'different program (e.g., ArcGIS or TauDEM) prior to input into RILLGEN2D.', justify=CENTER, wraplength=600).grid(row=56, column=0, sticky=(N,E,S,W), pady=30, columnspan=3)
+        + ' landscape is very steep. RILLGEN2D can be sped up by increasing the value of fillincrement or by performing the hydrologic correction step in a'
+        + ' different program (e.g., ArcGIS or TauDEM) prior to input into RILLGEN2D.', justify=CENTER, wraplength=600).grid(row=56, column=0, sticky=(N,E,S,W), pady=30, columnspan=3)
 
 
         # Flag for mask variable
@@ -739,41 +739,33 @@ class Application(tk.Frame):
             print('Unable to open', str(dem), 'for reading')
             sys.exit(1)
         
-        projection = osr.SpatialReference(wkt=ds.GetProjection())
-        if int(osgeo.__version__[0]) >= 3:
-            # GDAL 3 changes axis order: https://github.com/OSGeo/gdal/issues/1546
-            # pylint: disable=no-member
-            projection.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
-        # proj = osr.SpatialReference(wkt=ds.GetProjection()).GetAttrValue('AUTHORITY',1)
-        proj = projection.GetAttrValue('AUTHORITY',1)
-        
-        cmd0 = "gdal_translate -a_srs EPSG:" + str(proj) + " xy_tau.txt tau.tif"
+        cmd0 = "gdal_translate xy_tau.txt tau.tif"
         self.client_socket.send(subprocess.check_output(cmd0, shell=True) + ('\n').encode('utf-8'))
-        cmd1 = "gdal_translate -a_srs EPSG:" + str(proj) + " xy_f.txt f.tif"
+        cmd1 = "gdal_translate xy_f.txt f.tif"
         self.client_socket.send(subprocess.check_output(cmd1, shell=True) + ('\n').encode('utf-8'))
 
-        projection = ds.GetProjection()
-        geotransform = ds.GetGeoTransform()
+        # projection = ds.GetProjection()
+        # geotransform = ds.GetGeoTransform()
 
-        if projection is None and geotransform is None:
-            print('No projection or geotransform found on file' + str(self.filename))
-            sys.exit(1)
+        # if projection is None and geotransform is None:
+        #     print('No projection or geotransform found on file' + str(self.filename))
+        #     sys.exit(1)
 
         for elem in ["tau.tif", "f.tif"]:
-            ds2 = gdal.Open(elem, gdal.GA_Update)
-            if ds2 is None:
-                print('Unable to open', elem, 'for writing')
-                sys.exit(1)
+            # ds2 = gdal.Open(elem, gdal.GA_Update)
+            # if ds2 is None:
+            #     print('Unable to open', elem, 'for writing')
+            #     sys.exit(1)
             
-            if geotransform is not None and geotransform != (0, 1, 0, 0, 0, 1):
-                ds2.SetGeoTransform(geotransform)
+            # if geotransform is not None and geotransform != (0, 1, 0, 0, 0, 1):
+            #     ds2.SetGeoTransform(geotransform)
 
-            if projection is not None and projection != '':
-                ds2.SetProjection(projection)
+            # if projection is not None and projection != '':
+            #     ds2.SetProjection(projection)
 
-            gcp_count = ds.GetGCPCount()
-            if gcp_count != 0:
-                ds2.SetGCPs(ds.GetGCPs(), ds.GetGCPProjection())
+            # gcp_count = ds.GetGCPCount()
+            # if gcp_count != 0:
+            #     ds2.SetGCPs(ds.GetGCPs(), ds.GetGCPProjection())
             
             if elem == "tau.tif":
                 cmd2 = "gdal_translate -ot Byte -of PNG " + elem.split(sep='.')[0] + ".tif " + elem.split(sep='.')[0] + ".png"
@@ -781,7 +773,7 @@ class Application(tk.Frame):
                 cmd2 = "gdal_translate -ot Byte -scale 0 0.1 -of PNG " + elem.split(sep='.')[0] + ".tif " + elem.split(sep='.')[0] + ".png"
             self.client_socket.send(subprocess.check_output(cmd2, shell=True) + ('\n').encode('utf-8'))
 
-            ds2 = None
+            # ds2 = None
         ds = None
 
     

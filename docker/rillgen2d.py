@@ -41,6 +41,7 @@ class Application(tk.Frame):
         tk.Frame.__init__(self, parent)
         self.imagefile = None # This is the image file that will be used
         self.filename = None  #this is the name of the input file the user chooses
+        self.geo_ext = None
         self.app = None  # This is the associated PyQt application that handles the map in View Output
         self.dimensions = None  # These are the dimensions of the input file that the user chooses
         self.socket = None
@@ -218,6 +219,8 @@ class Application(tk.Frame):
             os.mkdir(os.getcwd() + "/tmp/")
             self.filename = os.getcwd() + "/tmp/" + self.imagefile.split("/")[-1]
             shutil.copyfile(self.imagefile, self.filename)
+            if os.path.exists(self.imagefile + ".aux.xml"):
+                shutil.copyfile(self.imagefile + ".aux.xml", os.getcwd() + "/tmp/" + self.imagefile.split("/")[-1] + ".aux.xml")
             shutil.copyfile("template_input.txt", os.getcwd() + "/tmp/" + "input.txt")
             os.chdir(os.getcwd() + "/tmp")
             
@@ -249,7 +252,7 @@ class Application(tk.Frame):
             dst_ds = None
 
             # Create the `.txt` with `awk` but in Python using `os` call:
-            cmd0 = "gdal_translate -ot Float32 -of XYZ " + self.filename + " output_tin.asc"
+            cmd0 = "gdal_translate -of XYZ " + self.filename + " output_tin.asc"
             self.client_socket.send(subprocess.check_output(cmd0, shell=True) + ('\n').encode('utf-8'))
 
             cmd1 = "awk '{print $3}' input_dem.asc > input_dem.txt"
@@ -415,7 +418,7 @@ class Application(tk.Frame):
         # Lattice_size_x variable
         Label(self.frame2, text='lattice_size_x:', font='Helvetica 25 bold').grid(row=27, column=0, pady=20)
         Label(self.frame2, text='The number of pixels along the east-west direction in the DEM.', font='Helvetica 20',justify=CENTER, wraplength=750).grid(row=27, column=2, pady=20)
-        lattice_size_xVar = StringVar(value=self.dimensions[0])
+        lattice_size_xVar = StringVar(value=self.dimensions[1])
         self.lattice_size_xInput = Entry(self.frame2, textvariable=lattice_size_xVar, width=5)
         self.lattice_size_xInput.grid(row=27, column=1, pady=20)
         self.lattice_size_xInput.config(state=DISABLED)
@@ -426,7 +429,7 @@ class Application(tk.Frame):
         # Lattice_size_y variable
         Label(self.frame2, text='lattice_size_y:', font='Helvetica 25 bold').grid(row=29, column=0, pady=20)
         Label(self.frame2, text='The number of pixels along the east-west direction in the DEM.', font='Helvetica 20', justify=CENTER, wraplength=750).grid(row=29, column=2, pady=20)
-        lattice_size_yVar = StringVar(value=self.dimensions[1])
+        lattice_size_yVar = StringVar(value=self.dimensions[0])
         self.lattice_size_yInput = Entry(self.frame2, textvariable=lattice_size_yVar, width=5)
         self.lattice_size_yInput.grid(row=29, column=1, pady=20)
         self.lattice_size_yInput.config(state=DISABLED)
@@ -659,7 +662,7 @@ class Application(tk.Frame):
             self.tabControl.add(self.tab3, text="View Output")
             self.populate_view_output_tab()
         t1.join()
-        self.set_georeferencing_information(self.filename)
+        self.set_georeferencing_information()
 
     
     def hillshade_and_color_relief(self):
@@ -732,51 +735,6 @@ class Application(tk.Frame):
         self.client_socket.send(subprocess.check_output(cmd5, shell=True) + ('\n').encode('utf-8'))
         
 
-    def set_georeferencing_information(self, dem):
-        ds = gdal.Open(dem)
-
-        if ds is None:
-            print('Unable to open', str(dem), 'for reading')
-            sys.exit(1)
-        
-        cmd0 = "gdal_translate xy_tau.txt tau.tif"
-        self.client_socket.send(subprocess.check_output(cmd0, shell=True) + ('\n').encode('utf-8'))
-        cmd1 = "gdal_translate xy_f.txt f.tif"
-        self.client_socket.send(subprocess.check_output(cmd1, shell=True) + ('\n').encode('utf-8'))
-
-        # projection = ds.GetProjection()
-        # geotransform = ds.GetGeoTransform()
-
-        # if projection is None and geotransform is None:
-        #     print('No projection or geotransform found on file' + str(self.filename))
-        #     sys.exit(1)
-
-        for elem in ["tau.tif", "f.tif"]:
-            # ds2 = gdal.Open(elem, gdal.GA_Update)
-            # if ds2 is None:
-            #     print('Unable to open', elem, 'for writing')
-            #     sys.exit(1)
-            
-            # if geotransform is not None and geotransform != (0, 1, 0, 0, 0, 1):
-            #     ds2.SetGeoTransform(geotransform)
-
-            # if projection is not None and projection != '':
-            #     ds2.SetProjection(projection)
-
-            # gcp_count = ds.GetGCPCount()
-            # if gcp_count != 0:
-            #     ds2.SetGCPs(ds.GetGCPs(), ds.GetGCPProjection())
-            
-            if elem == "tau.tif":
-                cmd2 = "gdal_translate -ot Byte -of PNG " + elem.split(sep='.')[0] + ".tif " + elem.split(sep='.')[0] + ".png"
-            else:
-                cmd2 = "gdal_translate -ot Byte -scale 0 0.1 -of PNG " + elem.split(sep='.')[0] + ".tif " + elem.split(sep='.')[0] + ".png"
-            self.client_socket.send(subprocess.check_output(cmd2, shell=True) + ('\n').encode('utf-8'))
-
-            # ds2 = None
-        ds = None
-
-    
     def populate_view_output_tab(self):
         """Populate the third tab with tkinter widgets. The third tab allows
         the user to generate a folium map based on the rillgen output"""
@@ -804,41 +762,174 @@ class Application(tk.Frame):
         self.first_time_populating_view_output_tab = False
 
 
-    def generatemap(self):
-        """Generates a folium map based on the bounds of the geotiff file"""
-        self.client_socket.send(("Generating map\n\n").encode('utf-8'))
+    def set_georeferencing_information(self):
+        self.client_socket.send(("Setting georeferencing information\n\n").encode('utf-8'))
         if self.filename != None and os.path.isfile(self.filename):
-            GdalInfo = subprocess.check_output('gdalinfo {}'.format(self.filename), shell=True)
-            GdalInfo = str(GdalInfo)
-            GdalInfo = GdalInfo.split(r'\n')
-            location = []
-            location_ll = []
-            location_ur = []
-            for line in GdalInfo:
-                if line[:6] == 'Center':
-                    location = self.GetLatLon(line)
-                if line[:10] == 'Lower Left':
-                    location_ll = self.GetLatLon(line)
-                if line[:11] == 'Upper Right':
-                    location_ur = self.GetLatLon(line)
-            m = folium.Map(location, zoom_start=14, tiles='Stamen Terrain')
-            img1 = folium.raster_layers.ImageOverlay(image="tau.png", bounds=[location_ll,location_ur], opacity=0.8, interactive=True, name="tau")
-            img2 = folium.raster_layers.ImageOverlay(image="hillshade.png", bounds=[location_ll,location_ur], opacity=0.6, interactive=True, name="hillshade")
-            img3 = folium.raster_layers.ImageOverlay(image="color-relief.png", bounds=[location_ll,location_ur], opacity=0.4, interactive=True, name="color-relief")
-            img4 = folium.raster_layers.ImageOverlay(image="f.png", bounds=[location_ll,location_ur], opacity=0.8, interactive=True, show=False, name="f")
-            img1.add_to(m)
-            img2.add_to(m)
-            img3.add_to(m)
-            img4.add_to(m)
-            folium.LayerControl().add_to(m)
-            m.save("map.html", close_file=True)
-            t1 = Thread(target=self.saveOutput)
-            t1.start()
-            self.displayMap()
-            t1.join()
-            
+            ds = gdal.Open(self.filename)
+            gt=ds.GetGeoTransform()
+            cols = ds.RasterXSize
+            rows = ds.RasterYSize
+            ext=self.GetExtent(gt,cols,rows)
+            src_srs=osr.SpatialReference()
+            if int(osgeo.__version__[0]) >= 3:
+                # GDAL 3 changes axis order: https://github.com/OSGeo/gdal/issues/1546
+                src_srs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+            proj = ds.GetProjection()
+            src_srs.ImportFromWkt(proj)
+            #tgt_srs=osr.SpatialReference()
+            #tgt_srs.ImportFromEPSG(4326)
+            tgt_srs = src_srs.CloneGeogCS()
+
+            self.geo_ext=self.ReprojectCoords(ext,src_srs,tgt_srs)
         else: 
             messagebox.showerror(title="FILE NOT FOUND", message="Please select a file in tab 1")
+
+        # ds = gdal.Open(dem)
+
+        # if ds is None:
+        #     print('Unable to open', str(dem), 'for reading')
+        #     sys.exit(1)
+        
+        cmd0 = "gdal_translate xy_tau.txt tau.tif"
+        self.client_socket.send(subprocess.check_output(cmd0, shell=True) + ('\n').encode('utf-8'))
+        cmd1 = "gdal_translate xy_f.txt f.tif"
+        self.client_socket.send(subprocess.check_output(cmd1, shell=True) + ('\n').encode('utf-8'))
+
+        projection = ds.GetProjection()
+        geotransform = ds.GetGeoTransform()
+
+        if projection is None and geotransform is None:
+            print('No projection or geotransform found on file' + str(self.filename))
+            sys.exit(1)
+
+        for elem in ["tau.tif", "f.tif"]:
+            ds2 = gdal.Open(elem, gdal.GA_Update)
+            if ds2 is None:
+                print('Unable to open', elem, 'for writing')
+                sys.exit(1)
+            
+            if geotransform is not None and geotransform != (0, 1, 0, 0, 0, 1):
+                ds2.SetGeoTransform(geotransform)
+
+            if projection is not None and projection != '':
+                ds2.SetProjection(projection)
+
+            gcp_count = ds.GetGCPCount()
+            if gcp_count != 0:
+                ds2.SetGCPs(ds.GetGCPs(), ds.GetGCPProjection())
+            
+            if elem == "tau.tif":
+                cmd2 = "gdal_translate -ot Byte -of PNG " + elem.split(sep='.')[0] + ".tif " + elem.split(sep='.')[0] + ".png"
+            else:
+                cmd2 = "gdal_translate -ot Byte -scale 0 0.1 -of PNG " + elem.split(sep='.')[0] + ".tif " + elem.split(sep='.')[0] + ".png"
+            self.client_socket.send(subprocess.check_output(cmd2, shell=True) + ('\n').encode('utf-8'))
+
+            # ds2 = None
+        ds = None
+
+
+    def GetExtent(self,gt,cols,rows):
+        ''' Return list of corner coordinates from a geotransform
+
+            @type gt:   C{tuple/list}
+            @param gt: geotransform
+            @type cols:   C{int}
+            @param cols: number of columns in the dataset
+            @type rows:   C{int}
+            @param rows: number of rows in the dataset
+            @rtype:    C{[float,...,float]}
+            @return:   coordinates of each corner
+        '''
+        ext=[]
+        xarr=[0,cols]
+        yarr=[0,rows]
+
+        for px in xarr:
+            for py in yarr:
+                x=gt[0]+(px*gt[1])+(py*gt[2])
+                y=gt[3]+(px*gt[4])+(py*gt[5])
+                ext.append([x,y])
+                print(x,y)
+            yarr.reverse()
+        return ext
+
+    def ReprojectCoords(self, coords,src_srs,tgt_srs):
+        ''' Reproject a list of x,y coordinates.
+
+            @type geom:     C{tuple/list}
+            @param geom:    List of [[x,y],...[x,y]] coordinates
+            @type src_srs:  C{osr.SpatialReference}
+            @param src_srs: OSR SpatialReference object
+            @type tgt_srs:  C{osr.SpatialReference}
+            @param tgt_srs: OSR SpatialReference object
+            @rtype:         C{tuple/list}
+            @return:        List of transformed [[x,y],...[x,y]] coordinates
+        '''
+        trans_coords=[]
+        transform = osr.CoordinateTransformation( src_srs, tgt_srs)
+        for x,y in coords:
+            x,y,z = transform.TransformPoint(x,y)
+            trans_coords.append([x,y])
+        return trans_coords
+
+
+    def generatemap(self):
+        """Generates a folium map based on the bounds of the geotiff file"""
+        # self.client_socket.send(("Generating map\n\n").encode('utf-8'))
+        # if self.filename != None and os.path.isfile(self.filename):
+        #     ds = gdal.Open(self.filename)
+        #     gt=ds.GetGeoTransform()
+        #     cols = ds.RasterXSize
+        #     rows = ds.RasterYSize
+        #     ext=self.GetExtent(gt,cols,rows)
+        #     src_srs=osr.SpatialReference()
+        #     proj = ds.GetProjection()
+        #     if proj != "":
+        #         src_srs.ImportFromWkt(proj)
+        #     else:
+        #         src_srs.ImportFromEPSG(26913)
+        #     #tgt_srs=osr.SpatialReference()
+        #     #tgt_srs.ImportFromEPSG(4326)
+        #     tgt_srs = src_srs.CloneGeogCS()
+
+        # geo_ext=self.ReprojectCoords(ext,src_srs,tgt_srs)
+            # GdalInfo = subprocess.check_output('gdalinfo {}'.format(self.filename), shell=True)
+            # GdalInfo = str(GdalInfo)
+            # GdalInfo = GdalInfo.split(r'\n')
+            # location = []
+            # location_ll = []
+            # location_ur = []
+            # for line in GdalInfo:
+            #     if line[:6] == 'Center':
+            #         location = self.GetLatLon(line)
+            #     if line[:10] == 'Lower Left':
+            #         location_ll = self.GetLatLon(line)
+            #     if line[:11] == 'Upper Right':
+            #         location_ur = self.GetLatLon(line)
+        print(self.geo_ext)
+        m = folium.Map(location=[(self.geo_ext[1][1]+self.geo_ext[3][1])/2, (self.geo_ext[1][0]+self.geo_ext[3][0])/2], zoom_start=14, tiles='Stamen Terrain')
+        # img1 = folium.raster_layers.ImageOverlay(image="tau.png", bounds=[location_ll,location_ur], opacity=0.8, interactive=True, name="tau")
+        # img2 = folium.raster_layers.ImageOverlay(image="hillshade.png", bounds=[location_ll,location_ur], opacity=0.6, interactive=True, name="hillshade")
+        # img3 = folium.raster_layers.ImageOverlay(image="color-relief.png", bounds=[location_ll,location_ur], opacity=0.4, interactive=True, name="color-relief")
+        # img4 = folium.raster_layers.ImageOverlay(image="f.png", bounds=[location_ll,location_ur], opacity=0.8, interactive=True, show=False, name="f")
+
+        img1 = folium.raster_layers.ImageOverlay(image="tau.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.8, interactive=True, name="tau")
+        img2 = folium.raster_layers.ImageOverlay(image="hillshade.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.6, interactive=True, name="hillshade")
+        img3 = folium.raster_layers.ImageOverlay(image="color-relief.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.4, interactive=True, name="color-relief")
+        img4 = folium.raster_layers.ImageOverlay(image="f.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.8, interactive=True, show=False, name="f")
+        print("image bounds: " + str([[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]]))
+        img1.add_to(m)
+        img2.add_to(m)
+        img3.add_to(m)
+        img4.add_to(m)
+        folium.LayerControl().add_to(m)
+        m.save("map.html", close_file=True)
+        t1 = Thread(target=self.saveOutput)
+        t1.start()
+        self.displayMap()
+        t1.join()
+            
+        
 
     def saveOutput(self):
         saveDir = "../outputs(save-" + str(datetime.now()).replace(" ", "") + ")"
@@ -850,33 +941,33 @@ class Application(tk.Frame):
                 shutil.copy(file_name, saveDir + "/" + file_name)
         shutil.copy(self.filename, saveDir + "/" + self.filename.split("/")[-1])
 
-    def GetLatLon(self, line):
-        """Gets the latitude and longitude coordinates of a corner or center of the geotiff file
-        (whichever is specified) using gdalinfo"""
-        coords = line.split(') (')[1]
-        coords = coords[:-1]
-        LonStr, LatStr = coords.split(',')
-        # Longitude
-        LonStr = LonStr.split('d')    # Get the degrees, and the rest
-        LonD = int(LonStr[0])
-        LonStr = LonStr[1].split(r'\'')# Get the arc-m, and the rest
-        LonM = int(LonStr[0])
-        LonStr = LonStr[1].split('"') # Get the arc-s, and the rest
-        LonS = float(LonStr[0])
-        Lon = LonD + LonM/60. + LonS/3600.
-        if LonStr[1] in ['W', 'w']:
-            Lon = -1*Lon
-        # Same for Latitude
-        LatStr = LatStr.split('d')
-        LatD = int(LatStr[0])
-        LatStr = LatStr[1].split(r'\'')
-        LatM = int(LatStr[0])
-        LatStr = LatStr[1].split('"')
-        LatS = float(LatStr[0])
-        Lat = LatD + LatM/60. + LatS/3600.
-        if LatStr[1] in ['S', 's']:
-            Lat = -1*Lat
-        return [Lat, Lon]
+    # def GetLatLon(self, line):
+    #     """Gets the latitude and longitude coordinates of a corner or center of the geotiff file
+    #     (whichever is specified) using gdalinfo"""
+    #     coords = line.split(') (')[1]
+    #     coords = coords[:-1]
+    #     LonStr, LatStr = coords.split(',')
+    #     # Longitude
+    #     LonStr = LonStr.split('d')    # Get the degrees, and the rest
+    #     LonD = int(LonStr[0])
+    #     LonStr = LonStr[1].split(r'\'')# Get the arc-m, and the rest
+    #     LonM = int(LonStr[0])
+    #     LonStr = LonStr[1].split('"') # Get the arc-s, and the rest
+    #     LonS = float(LonStr[0])
+    #     Lon = LonD + LonM/60. + LonS/3600.
+    #     if LonStr[1] in ['W', 'w']:
+    #         Lon = -1*Lon
+    #     # Same for Latitude
+    #     LatStr = LatStr.split('d')
+    #     LatD = int(LatStr[0])
+    #     LatStr = LatStr[1].split(r'\'')
+    #     LatM = int(LatStr[0])
+    #     LatStr = LatStr[1].split('"')
+    #     LatS = float(LatStr[0])
+    #     Lat = LatD + LatM/60. + LatS/3600.
+    #     if LatStr[1] in ['S', 's']:
+    #         Lat = -1*Lat
+    #     return [Lat, Lon]
 
     
     def displayMap(self):

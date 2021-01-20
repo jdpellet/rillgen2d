@@ -5,9 +5,9 @@
 """
 import os
 import sys
+
 from itertools import islice
 from subprocess import Popen, PIPE, STDOUT
-
 from socket import *
 from textwrap import dedent
 from threading import Thread
@@ -22,7 +22,7 @@ except ImportError:
 
 
 class Console(tk.Frame):
-    """Simple console that can execute bash commands"""
+    """Console that displays the output of bash commands"""
 
     def __init__(self, master, *args, **kwargs):
         tk.Frame.__init__(self, master, *args, **kwargs)
@@ -41,7 +41,8 @@ class Console(tk.Frame):
             
 
     def show(self, message):
-        """Inserts message into the Text wiget"""
+        """Inserts message into the Text wiget based on the host/client
+        connection between rillgen2d.py and console.py"""
         self.text.config(state="normal")
         self.text.insert("end", message)
         self.text.see("end")
@@ -49,6 +50,8 @@ class Console(tk.Frame):
         self.text.update_idletasks()
 
     def network_function(self):
+        """Handles the connection between rillgen2d.py and console.py in a host/client
+        structure with rillgen2d.py as the host and console.py as the client"""
         host = gethostname()  # as both code is running on same pc
         port = 5000  # socket server port number
 

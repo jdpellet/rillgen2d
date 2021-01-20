@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 import osgeo
 import rasterio
 
+from ctypes import *
 from datetime import datetime
 from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg)
@@ -29,8 +30,6 @@ from tkinter import *
 from tkinter import messagebox
 from tkinter import ttk
 from tkinter.filedialog import askopenfilename
-
-from ctypes import *
 
 class Application(tk.Frame):
     def __init__(self, parent):
@@ -770,6 +769,8 @@ class Application(tk.Frame):
 
 
     def set_georeferencing_information(self):
+        """Sets the georeferencing information for f.tif and tau.tif to be the same as that
+        from the original geotiff file"""
         self.client_socket.send(("Setting georeferencing information\n\n").encode('utf-8'))
         if self.filename != None and os.path.isfile(self.filename):
             ds = gdal.Open(self.filename)
@@ -830,16 +831,8 @@ class Application(tk.Frame):
 
 
     def GetExtent(self,gt,cols,rows):
-        ''' Return list of corner coordinates from a geotransform
-
-            @type gt:   C{tuple/list}
-            @param gt: geotransform
-            @type cols:   C{int}
-            @param cols: number of columns in the dataset
-            @type rows:   C{int}
-            @param rows: number of rows in the dataset
-            @rtype:    C{[float,...,float]}
-            @return:   coordinates of each corner
+        ''' Return list of corner coordinates from a geotransform given the number
+        of columns and the number of rows in the dataset
         '''
         ext=[]
         xarr=[0,cols]
@@ -854,16 +847,7 @@ class Application(tk.Frame):
         return ext
 
     def ReprojectCoords(self, coords,src_srs,tgt_srs):
-        ''' Reproject a list of x,y coordinates.
-
-            @type geom:     C{tuple/list}
-            @param geom:    List of [[x,y],...[x,y]] coordinates
-            @type src_srs:  C{osr.SpatialReference}
-            @param src_srs: OSR SpatialReference object
-            @type tgt_srs:  C{osr.SpatialReference}
-            @param tgt_srs: OSR SpatialReference object
-            @rtype:         C{tuple/list}
-            @return:        List of transformed [[x,y],...[x,y]] coordinates
+        ''' Reproject a list of x,y coordinates. From srs_srs to tgt_srs
         '''
         trans_coords=[]
         transform = osr.CoordinateTransformation( src_srs, tgt_srs)

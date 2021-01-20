@@ -41,6 +41,8 @@ class Application(tk.Frame):
         tk.Frame.__init__(self, parent)
         self.imagefile = None # This is the image file that will be used
         self.filename = None  #this is the name of the input file the user chooses
+        self.ax = None # tkinter widget for the canvas for the first figure, this is needed in order to preview the
+        # image in the canvas rather than in an external widget
         self.geo_ext = None
         self.app = None  # This is the associated PyQt application that handles the map in View Output
         self.dimensions = None  # These are the dimensions of the input file that the user chooses
@@ -52,6 +54,7 @@ class Application(tk.Frame):
         self.tab1 = ttk.Frame(self.tabControl)
         self.tab2 = ttk.Frame(self.tabControl)
         self.tab3 = ttk.Frame(self.tabControl)
+        self.fig = Figure(figsize=(5, 5), dpi=100) # figure that will preview the image via rasterio
         self.t = Thread(target=self.network_function)
         self.t.daemon = True
         self.t.start()
@@ -65,6 +68,9 @@ class Application(tk.Frame):
         self.populate_input_dem_tab()
 
     def network_function(self):
+        """Handles the connection between rillgen2d.py and console.py by making a
+        host/client structure with rillgen2d.py as the host and console.py as the
+        client"""
         PROCESS = ['./console.py']
         Popen(PROCESS,  universal_newlines=True, stdin=PIPE,
                 stdout=PIPE, stderr=STDOUT)
@@ -73,7 +79,7 @@ class Application(tk.Frame):
 
         self.socket = socket()  # get instance
         self.socket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1) # allows for a port to be used
-        #even if it was previously being used
+        # even if it was previously being used
         # look closely. The bind() function takes tuple as argument
         self.socket.bind((host, port))  # bind host address and port together
 
@@ -86,7 +92,7 @@ class Application(tk.Frame):
     def populate_input_dem_tab(self):
         """This populates the first tab in the application with tkinter widgets.
         The first tab allows a user to select an geotiff image from either their 
-        local filesystem or from a url. """
+        local filesystem or from a url."""
         
         self.button1 = ttk.Button(self.tab1, text="Choose DEM (.tif) locally", command=self.get_image_locally)
         self.button1.grid(row=0, column=0)
@@ -107,10 +113,8 @@ class Application(tk.Frame):
         self.button2.grid(row=2, column=0)
 
         self.img1 = Label(self.tab1)
-
-        self.fig = Figure(figsize=(5, 5), dpi=100)
-
         self.canvas1 = FigureCanvasTkAgg(self.fig, master=self.img1)
+        self.canvas1.get_tk_widget().place_forget()
         self.canvas1.draw()
         self.canvas1.get_tk_widget().pack(side=TOP, fill=BOTH, expand=1, padx=0, pady=0)
         self.canvas1._tkcanvas.pack(side=TOP, fill=BOTH, expand=1, padx=0, pady=0)
@@ -145,8 +149,8 @@ class Application(tk.Frame):
 
     
     def get_image_from_url(self):
-        """Given the url of an image when a raster is generated or located online, extract the geotiff image from the 
-        url and display it on the canvas """
+        """Given the url of an image when a raster is generated or located online,
+        extract the geotiff image from the url and display it on the canvas """
         try: 
             entry1 = str(self.entry1.get())
             if (entry1[-3:] == '.gz'):
@@ -186,17 +190,20 @@ class Application(tk.Frame):
         try:
             self.starterimg = rasterio.open(self.imagefile)
             if (self.imagefile[-4:] == '.tif'):
-                ax = self.fig.add_subplot(111)
+                if self.ax:
+                    self.ax.clear()
+                else:
+                    self.ax = self.fig.add_subplot(111)
+                self.ax.set(title="",xticks=[], yticks=[])
+                self.ax.spines["top"].set_visible(False)
+                self.ax.spines["right"].set_visible(False)
+                self.ax.spines["left"].set_visible(False)
+                self.ax.spines["bottom"].set_visible(False)
                 self.fig.subplots_adjust(bottom=0, right=1, top=1, left=0, wspace=0, hspace=0)
-
                 with self.starterimg as src_plot:
-                    show(src_plot, ax=ax)
+                    show(src_plot, ax=self.ax)
                 plt.close()
-                ax.set(title="",xticks=[], yticks=[])
-                ax.spines["top"].set_visible(False)
-                ax.spines["right"].set_visible(False)
-                ax.spines["left"].set_visible(False)
-                ax.spines["bottom"].set_visible(False)
+                
                 self.canvas1.draw()
             else:
                 messagebox.showerror(title="ERROR", message="Invalid File Format. Supported files must be in TIFF format")
@@ -783,12 +790,6 @@ class Application(tk.Frame):
             self.geo_ext=self.ReprojectCoords(ext,src_srs,tgt_srs)
         else: 
             messagebox.showerror(title="FILE NOT FOUND", message="Please select a file in tab 1")
-
-        # ds = gdal.Open(dem)
-
-        # if ds is None:
-        #     print('Unable to open', str(dem), 'for reading')
-        #     sys.exit(1)
         
         cmd0 = "gdal_translate xy_tau.txt tau.tif"
         self.client_socket.send(subprocess.check_output(cmd0, shell=True) + ('\n').encode('utf-8'))
@@ -824,7 +825,7 @@ class Application(tk.Frame):
                 cmd2 = "gdal_translate -ot Byte -scale 0 0.1 -of PNG " + elem.split(sep='.')[0] + ".tif " + elem.split(sep='.')[0] + ".png"
             self.client_socket.send(subprocess.check_output(cmd2, shell=True) + ('\n').encode('utf-8'))
 
-            # ds2 = None
+            ds2 = None
         ds = None
 
 
@@ -849,7 +850,6 @@ class Application(tk.Frame):
                 x=gt[0]+(px*gt[1])+(py*gt[2])
                 y=gt[3]+(px*gt[4])+(py*gt[5])
                 ext.append([x,y])
-                print(x,y)
             yarr.reverse()
         return ext
 
@@ -875,49 +875,12 @@ class Application(tk.Frame):
 
     def generatemap(self):
         """Generates a folium map based on the bounds of the geotiff file"""
-        # self.client_socket.send(("Generating map\n\n").encode('utf-8'))
-        # if self.filename != None and os.path.isfile(self.filename):
-        #     ds = gdal.Open(self.filename)
-        #     gt=ds.GetGeoTransform()
-        #     cols = ds.RasterXSize
-        #     rows = ds.RasterYSize
-        #     ext=self.GetExtent(gt,cols,rows)
-        #     src_srs=osr.SpatialReference()
-        #     proj = ds.GetProjection()
-        #     if proj != "":
-        #         src_srs.ImportFromWkt(proj)
-        #     else:
-        #         src_srs.ImportFromEPSG(26913)
-        #     #tgt_srs=osr.SpatialReference()
-        #     #tgt_srs.ImportFromEPSG(4326)
-        #     tgt_srs = src_srs.CloneGeogCS()
-
-        # geo_ext=self.ReprojectCoords(ext,src_srs,tgt_srs)
-            # GdalInfo = subprocess.check_output('gdalinfo {}'.format(self.filename), shell=True)
-            # GdalInfo = str(GdalInfo)
-            # GdalInfo = GdalInfo.split(r'\n')
-            # location = []
-            # location_ll = []
-            # location_ur = []
-            # for line in GdalInfo:
-            #     if line[:6] == 'Center':
-            #         location = self.GetLatLon(line)
-            #     if line[:10] == 'Lower Left':
-            #         location_ll = self.GetLatLon(line)
-            #     if line[:11] == 'Upper Right':
-            #         location_ur = self.GetLatLon(line)
-        print(self.geo_ext)
         m = folium.Map(location=[(self.geo_ext[1][1]+self.geo_ext[3][1])/2, (self.geo_ext[1][0]+self.geo_ext[3][0])/2], zoom_start=14, tiles='Stamen Terrain')
-        # img1 = folium.raster_layers.ImageOverlay(image="tau.png", bounds=[location_ll,location_ur], opacity=0.8, interactive=True, name="tau")
-        # img2 = folium.raster_layers.ImageOverlay(image="hillshade.png", bounds=[location_ll,location_ur], opacity=0.6, interactive=True, name="hillshade")
-        # img3 = folium.raster_layers.ImageOverlay(image="color-relief.png", bounds=[location_ll,location_ur], opacity=0.4, interactive=True, name="color-relief")
-        # img4 = folium.raster_layers.ImageOverlay(image="f.png", bounds=[location_ll,location_ur], opacity=0.8, interactive=True, show=False, name="f")
 
         img1 = folium.raster_layers.ImageOverlay(image="tau.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.8, interactive=True, name="tau")
         img2 = folium.raster_layers.ImageOverlay(image="hillshade.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.6, interactive=True, name="hillshade")
         img3 = folium.raster_layers.ImageOverlay(image="color-relief.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.4, interactive=True, name="color-relief")
-        img4 = folium.raster_layers.ImageOverlay(image="f.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.8, interactive=True, show=False, name="f")
-        print("image bounds: " + str([[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]]))
+        img4 = folium.raster_layers.ImageOverlay(image="f.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.7, interactive=True, show=True, name="f")
         img1.add_to(m)
         img2.add_to(m)
         img3.add_to(m)
@@ -929,7 +892,6 @@ class Application(tk.Frame):
         self.displayMap()
         t1.join()
             
-        
 
     def saveOutput(self):
         saveDir = "../outputs(save-" + str(datetime.now()).replace(" ", "") + ")"
@@ -940,34 +902,6 @@ class Application(tk.Frame):
             if file_name in acceptable_files or (file_name.endswith(".png") or file_name.endswith(".tif")):
                 shutil.copy(file_name, saveDir + "/" + file_name)
         shutil.copy(self.filename, saveDir + "/" + self.filename.split("/")[-1])
-
-    # def GetLatLon(self, line):
-    #     """Gets the latitude and longitude coordinates of a corner or center of the geotiff file
-    #     (whichever is specified) using gdalinfo"""
-    #     coords = line.split(') (')[1]
-    #     coords = coords[:-1]
-    #     LonStr, LatStr = coords.split(',')
-    #     # Longitude
-    #     LonStr = LonStr.split('d')    # Get the degrees, and the rest
-    #     LonD = int(LonStr[0])
-    #     LonStr = LonStr[1].split(r'\'')# Get the arc-m, and the rest
-    #     LonM = int(LonStr[0])
-    #     LonStr = LonStr[1].split('"') # Get the arc-s, and the rest
-    #     LonS = float(LonStr[0])
-    #     Lon = LonD + LonM/60. + LonS/3600.
-    #     if LonStr[1] in ['W', 'w']:
-    #         Lon = -1*Lon
-    #     # Same for Latitude
-    #     LatStr = LatStr.split('d')
-    #     LatD = int(LatStr[0])
-    #     LatStr = LatStr[1].split(r'\'')
-    #     LatM = int(LatStr[0])
-    #     LatStr = LatStr[1].split('"')
-    #     LatS = float(LatStr[0])
-    #     Lat = LatD + LatM/60. + LatS/3600.
-    #     if LatStr[1] in ['S', 's']:
-    #         Lat = -1*Lat
-    #     return [Lat, Lon]
 
     
     def displayMap(self):

@@ -31,6 +31,9 @@ from tkinter import messagebox
 from tkinter import ttk
 from tkinter.filedialog import askopenfilename
 
+"""This is the main rillgen2d file which handles the gui and communicates with console.py
+and rillgen.c in order to perform the rillgen calculations"""
+
 class Application(tk.Frame):
     def __init__(self, parent):
         """Initializing the tkinter application and its tabs.
@@ -42,11 +45,11 @@ class Application(tk.Frame):
         self.filename = None  #this is the name of the input file the user chooses
         self.ax = None # tkinter widget for the canvas for the first figure, this is needed in order to preview the
         # image in the canvas rather than in an external widget
-        self.geo_ext = None
+        self.geo_ext = None  # used to get corner coordinates for the projection
         self.app = None  # This is the associated PyQt application that handles the map in View Output
         self.dimensions = None  # These are the dimensions of the input file that the user chooses
-        self.socket = None
-        self.client_socket = None
+        self.socket = None  # socket for the connection between rillgen2d.py and console.py; host socket
+        self.client_socket = None # socket for the connection between rillgen2d.py and console.py; client socket
         self.starterimg = None  # This is the image to be displayed in the input_dem tab
         self.popup = None  # This is the popup that comes up during the hydrologic correction step 
         self.tabControl = ttk.Notebook(self)
@@ -75,7 +78,6 @@ class Application(tk.Frame):
                 stdout=PIPE, stderr=STDOUT)
         host = gethostname()
         port = 5000  # initiate port no above 1024
-
         self.socket = socket()  # get instance
         self.socket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1) # allows for a port to be used
         # even if it was previously being used
@@ -683,7 +685,9 @@ class Application(tk.Frame):
         stats = srcband.GetStatistics(True, True)
         # Print the min, max, mean, stdev based on stats index
         f = open('color-relief.txt', 'w')
-        f.writelines([str(stats[0]) + " 110 220 110\n", str(stats[2]-stats[3]) + " 240 250 160\n", str(stats[2]) + " 230 220 170\n", str(stats[2]+stats[3]) + " 220 220 220\n", str(stats[1]) + " 250 250 250\n"])
+        f.writelines([str(stats[0]) + ", 0, 0, 0\n", str(stats[0]+(stats[2]-stats[0])/4) + ", 167, 30, 66\n", str(stats[0]+(stats[2]-stats[0])/2) + ", 51, 69, 131\n", 
+        str(stats[0]+3*(stats[2]-stats[0])/4) + ", 101, 94, 190\n", str(stats[2]) + ", 130, 125, 253\n", str(stats[2]+(stats[1]-stats[2])/4) + ", 159, 158, 128\n",
+        str(stats[2]+(stats[1]-stats[2])/2) + ", 193, 192, 16\n", str(stats[2]+3*(stats[1]-stats[2])/4) + ", 224, 222, 137\n", str(stats[1]) + ", 255, 255, 255\n"])
         f.close()
         cmd1 = "gdaldem color-relief " + self.filename + " color-relief.txt color-relief.png"
         self.client_socket.send(subprocess.check_output(cmd1, shell=True) + ('\n').encode('utf-8'))
@@ -784,8 +788,6 @@ class Application(tk.Frame):
                 src_srs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
             proj = ds.GetProjection()
             src_srs.ImportFromWkt(proj)
-            #tgt_srs=osr.SpatialReference()
-            #tgt_srs.ImportFromEPSG(4326)
             tgt_srs = src_srs.CloneGeogCS()
 
             self.geo_ext=self.ReprojectCoords(ext,src_srs,tgt_srs)

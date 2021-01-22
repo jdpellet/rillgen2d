@@ -225,10 +225,10 @@ class Application(tk.Frame):
             cmd = "gcc -shared -Wl,-install_name,rillgen.so -o rillgen.so -fPIC rillgen2d.c" # compile the c file so that it will be useable later
             self.client_socket.send(subprocess.check_output(cmd, shell=True) + ('\n').encode('utf-8'))
             if os.path.exists(os.getcwd() + "/tmp"):
+                for filename in os.listdir(os.getcwd() + "/tmp"):
+                    if os.path.isfile(filename):
+                        os.remove(filename)
                 shutil.rmtree(os.getcwd() + "/tmp")
-            for filename in os.listdir():
-                print(filename)
-                # if not filename in ['console.py', 'Dockerfile', 'parameters.txt', 'README.md', 'requirements.txt', 'rillgen.so', 'rillgen2d.c','rillgen2d.py']
             os.mkdir(os.getcwd() + "/tmp/")
             self.filename = os.getcwd() + "/tmp/" + self.imagefile.split("/")[-1]
             shutil.copyfile(self.imagefile, self.filename)
@@ -825,8 +825,10 @@ class Application(tk.Frame):
                     ds2.SetGCPs(ds.GetGCPs(), ds.GetGCPProjection())
                 
                 if elem == "tau.tif":
+                    self.client_socket.send(("Translating tau.tif to .png\n\n").encode('utf-8'))
                     cmd2 = "gdal_translate -ot Byte -of PNG " + elem.split(sep='.')[0] + ".tif " + elem.split(sep='.')[0] + ".png"
                 else:
+                    self.client_socket.send(("Translating f.tif to .png\n\n").encode('utf-8'))
                     cmd2 = "gdal_translate -ot Byte -scale 0 0.1 -of PNG " + elem.split(sep='.')[0] + ".tif " + elem.split(sep='.')[0] + ".png"
                 self.client_socket.send(subprocess.check_output(cmd2, shell=True) + ('\n').encode('utf-8'))
 
@@ -839,11 +841,12 @@ class Application(tk.Frame):
     def convert_ppm(self):
         if not os.path.isfile("rills.ppm"):
             print('Unable to open rills.ppm for writing')
-        with im(filename="rills.ppm") as img:
-            img.save(filename="P6.ppm")
-        image = pilimg.open("P6.ppm")
-        image.save("rills.png")
-
+        else:
+            self.client_socket.send(("Translating rills.ppm to .png\n\n").encode('utf-8'))
+            with im(filename="rills.ppm") as img:
+                img.save(filename="P6.ppm")
+            cmd = "gdal_translate -of PNG -a_nodata 255 P6.ppm rills.png"
+            self.client_socket.send(subprocess.check_output(cmd, shell=True) + ('\n').encode('utf-8'))
 
     def GetExtent(self,gt,cols,rows):
         ''' Return list of corner coordinates from a geotransform given the number
@@ -880,7 +883,7 @@ class Application(tk.Frame):
         img2 = folium.raster_layers.ImageOverlay(image="hillshade.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.6, interactive=True, name="hillshade")
         img3 = folium.raster_layers.ImageOverlay(image="color-relief.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.4, interactive=True, name="color-relief")
         img4 = folium.raster_layers.ImageOverlay(image="f.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.7, interactive=True, show=True, name="f")
-        img5 = folium.raster_layers.ImageOverlay(image="rills.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.8, interactive=True, show=False, name="rills")
+        img5 = folium.raster_layers.ImageOverlay(image="rills.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.7, interactive=True, show=False, name="rills")
         img1.add_to(m)
         img2.add_to(m)
         img3.add_to(m)

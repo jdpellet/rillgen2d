@@ -20,7 +20,6 @@ from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg)
 from matplotlib.figure import Figure
 from osgeo import gdal, osr
-from PIL import Image as pilimg
 from PyQt5 import QtWidgets, QtWebEngineWidgets, QtCore
 from PyQt5.QtWidgets import QApplication, QMessageBox, QMainWindow
 from rasterio.plot import show

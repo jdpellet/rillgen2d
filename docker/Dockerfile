@@ -1,12 +1,20 @@
-FROM gcc:4.9
-
-COPY rillgen2d.c /usr/src/rillgen2d/rillgen2d.c
- 
-RUN cd /usr/src/rillgen2d && \
-    gcc rillgen2d.c -o rillgen2d -lm -g 
-
-ENV PATH=/usr/src/rillgen2d/:$PATH
-
-WORKDIR /data
-
-CMD ["rillgen2d"]
+FROM continuumio/miniconda3:4.9.2
+ENV TZ=US/Phoenix
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
+    echo $TZ > /etc/timezone
+# Install applications we need
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        python3-gdal \
+        gdal-bin   \
+        libgdal-dev  \
+        gcc \
+        g++    
+COPY . /root/
+RUN conda update -n base -c defaults conda && \
+    cd && \
+    conda env create -f environment.yml
+# Make RUN commands use the new environment:
+SHELL ["conda", "run", "-n", "rillgen", "/bin/bash", "-c"]
+WORKDIR /root
+ENTRYPOINT ["conda", "run", "-n", "rillgen", "python", "rillgen2d.py"]

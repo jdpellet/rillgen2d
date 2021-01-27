@@ -21,10 +21,15 @@ We have provided a `environment.yml` file which can be used with [Conda](https:/
 ```
 # update conda
 conda update -n base -c defaults conda
+
 # create environment for rillgen2d
 conda env create -f environment.yml
+
 # activate conda environment
 conda activate rillgen
+
+# update conda environment 
+conda env update --prefix ./env --file environment.yml  --prune
 ```
 
 ### Starting the GUI
@@ -32,6 +37,10 @@ conda activate rillgen
 Once the appropriate Python environment has been created, you can start the GUI
 
 ```
+# check your python version (should be 3.7.*)
+python --version
+
+# start the UI
 python rillgen2d.py
 ```
 

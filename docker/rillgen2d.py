@@ -1,4 +1,3 @@
-#!/usr/local/bin/python3
 import io
 import os
 import subprocess
@@ -74,9 +73,7 @@ class Application(tk.Frame):
         """Handles the connection between rillgen2d.py and console.py by making a
         host/client structure with rillgen2d.py as the host and console.py as the
         client"""
-        PROCESS = ['./console.py']
-        Popen(PROCESS,  universal_newlines=True, stdin=PIPE,
-                stdout=PIPE, stderr=STDOUT)
+        Popen([sys.executable, "console.py"], universal_newlines=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
         host = gethostname()
         port = 5000  # initiate port no above 1024
         self.socket = socket()  # get instance

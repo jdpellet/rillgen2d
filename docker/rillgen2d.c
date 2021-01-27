@@ -14,7 +14,7 @@
 #define small 1.e-12
 #define mfdweight 1.1
 
-long count,*topovecind,*slopevecind,*lakeis,*lakejs,*iup,*idown,*jup,*jdown,lattice_size_x,lattice_size_y,ic,jc;
+long count,numprocesses,*topovecind,*slopevecind,*lakeis,*lakejs,*iup,*idown,*jup,*jdown,lattice_size_x,lattice_size_y,ic,jc;
 int expansion,flagformask,flagforslope,flagford50,flagfortaucsoilandveg,flagforrain,flagforcu,flagforthickness,flagforrockcover,**mask;
 float threshslope,**rain,**d50,**cu,**thickness,**rockcover,**taucsoilandveg,**tau,**angle,**topo,**topo2,**slope,**area,flow1,flow2,flow3,flow4,flow5,flow6,flow7,flow8,*slopevec,*topovec;
 float fillincrement,**f,**f2,slopex,slopey,deltax,yellowthreshold,rillwidth,reducedspecificgravity,rainfixed,b,c,d50fixed,rockcoverfixed,cufixed,thicknessfixed;
@@ -263,12 +263,17 @@ void hydrologiccorrection()
 {    long i,j;
      float max;
 
+	 int x = 0;
+	 
      count=0;
+
      for (j=1;j<=lattice_size_y;j++)
       for (i=1;i<=lattice_size_x;i++)
 	   {push(i,j);
+	    numprocesses++;
 	    while (count>0) 
-		 {pop();
+		 {
+		  pop();
 		  max=topo[ic][jc];
           if (topo[iup[ic]][jc]<max) max=topo[iup[ic]][jc];
           if (topo[idown[ic]][jc]<max) max=topo[idown[ic]][jc];
@@ -335,11 +340,19 @@ void computecontributingarea()
 	  mfdflowroute(i,j);}
 }
 
+long percentage()
+{
+	if (lattice_size_x*lattice_size_y != 0) {
+		return (long)((float)numprocesses/(lattice_size_x*lattice_size_y)*100);
+	}
+	return 0;
+} 
+
 int main()
 {
      FILE *fpin,*fp0,*fp1,*fp2,*fp3,*fp4;
 	 long i,j,m;
-     
+	 numprocesses = 0;
 	 fpin=fopen("./input.txt","r");
 	 fp0=fopen("./topo.txt","r");
 	 fp1=fopen("./f.txt","w");
@@ -481,7 +494,8 @@ int main()
 		 f[i][j]=tau[i][j]/taucarmor[i][j];}
      for (j=1;j<=lattice_size_y;j++)
       for (i=1;i<=lattice_size_x;i++)
-	   {if ((f[i][j]>0)&&(f[i][j]<=2)) fprintf(fp1,"%f\n",f[i][j]); else fprintf(fp1,"0.0\n"); 
+	   {
+        if ((f[i][j]>0)&&(f[i][j]<=2)) fprintf(fp1,"%f\n",f[i][j]); else fprintf(fp1,"0.0\n"); 
 		if (mask[i][j]==1) fprintf(fp3,"%f\n",tau[i][j]); else  fprintf(fp3,"0.0\n");}
      fprintf(fp2,"P3\n%ld %ld\n255\n",lattice_size_x,lattice_size_y);
 	 for (m=1;m<=expansion;m++)
@@ -502,4 +516,7 @@ int main()
       for (i=1;i<=lattice_size_x;i++)
 	   if (mask[i][j]==0) fprintf(fp2,"0 0 0\n");
 		else {if (f[i][j]>1) fprintf(fp2,"255 0 0\n"); else if (f[i][j]>yellowthreshold) fprintf(fp2,"255 255 0\n"); else fprintf(fp2,"255 255 255\n");}
+	 fclose(fp1);
+	 fclose(fp2);
+	 fclose(fp3);
 }	   

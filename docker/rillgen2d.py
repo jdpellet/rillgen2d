@@ -1,16 +1,20 @@
+#!/usr/local/bin/python3
 import io
 import os
 import subprocess
 import shutil
 import sys
 import tarfile
+import time
 import tkinter as tk
 import urllib.request as urllib
 
 import folium
 import matplotlib.pyplot as plt
+import osgeo
 import rasterio
 
+from ctypes import *
 from datetime import datetime
 from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg)
@@ -19,11 +23,17 @@ from osgeo import gdal, osr
 from PyQt5 import QtWidgets, QtWebEngineWidgets, QtCore
 from PyQt5.QtWidgets import QApplication, QMessageBox, QMainWindow
 from rasterio.plot import show
+from socket import *
+from subprocess import Popen, PIPE, STDOUT
 from threading import Thread
 from tkinter import *
 from tkinter import messagebox
 from tkinter import ttk
 from tkinter.filedialog import askopenfilename
+from wand.image import Image as im
+
+"""This is the main rillgen2d file which handles the gui and communicates with console.py
+and rillgen.c in order to perform the rillgen calculations"""
 
 class Application(tk.Frame):
     def __init__(self, parent):
@@ -34,14 +44,24 @@ class Application(tk.Frame):
         tk.Frame.__init__(self, parent)
         self.imagefile = None # This is the image file that will be used
         self.filename = None  #this is the name of the input file the user chooses
+        self.ax = None # tkinter widget for the canvas for the first figure, this is needed in order to preview the
+        # image in the canvas rather than in an external widget
+        self.geo_ext = None  # used to get corner coordinates for the projection
         self.app = None  # This is the associated PyQt application that handles the map in View Output
         self.dimensions = None  # These are the dimensions of the input file that the user chooses
+        self.socket = None  # socket for the connection between rillgen2d.py and console.py; host socket
+        self.client_socket = None # socket for the connection between rillgen2d.py and console.py; client socket
         self.starterimg = None  # This is the image to be displayed in the input_dem tab
+        self.popup = None  # This is the popup that comes up during the hydrologic correction step 
         self.tabControl = ttk.Notebook(self)
         self.tab1 = ttk.Frame(self.tabControl)
         self.tab2 = ttk.Frame(self.tabControl)
         self.tab3 = ttk.Frame(self.tabControl)
-
+        self.fig = Figure(figsize=(5, 5), dpi=100) # figure that will preview the image via rasterio
+        self.t = Thread(target=self.network_function)
+        self.t.daemon = True
+        self.t.start()
+        self.t1 = None
         """We only want the first tab for now; the others appear in order after the 
         processes carried out in a previous tab are completed"""
         self.tabControl.add(self.tab1, text="Input DEM") 
@@ -50,11 +70,31 @@ class Application(tk.Frame):
         self.first_time_populating_view_output_tab = True
         self.populate_input_dem_tab()
 
+    def network_function(self):
+        """Handles the connection between rillgen2d.py and console.py by making a
+        host/client structure with rillgen2d.py as the host and console.py as the
+        client"""
+        PROCESS = ['./console.py']
+        Popen(PROCESS,  universal_newlines=True, stdin=PIPE,
+                stdout=PIPE, stderr=STDOUT)
+        host = gethostname()
+        port = 5000  # initiate port no above 1024
+        self.socket = socket()  # get instance
+        self.socket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1) # allows for a port to be used
+        # even if it was previously being used
+        # look closely. The bind() function takes tuple as argument
+        self.socket.bind((host, port))  # bind host address and port together
+
+        # configure how many client the server can listen simultaneously
+        self.socket.listen(3)
+        self.client_socket, address = self.socket.accept()  # accept new connection
+        print("Connection from: " + str(address))
+
 
     def populate_input_dem_tab(self):
         """This populates the first tab in the application with tkinter widgets.
         The first tab allows a user to select an geotiff image from either their 
-        local filesystem or from a url. """
+        local filesystem or from a url."""
         
         self.button1 = ttk.Button(self.tab1, text="Choose DEM (.tif) locally", command=self.get_image_locally)
         self.button1.grid(row=0, column=0)
@@ -75,10 +115,8 @@ class Application(tk.Frame):
         self.button2.grid(row=2, column=0)
 
         self.img1 = Label(self.tab1)
-
-        self.fig = Figure(figsize=(5, 5), dpi=100)
-
         self.canvas1 = FigureCanvasTkAgg(self.fig, master=self.img1)
+        self.canvas1.get_tk_widget().place_forget()
         self.canvas1.draw()
         self.canvas1.get_tk_widget().pack(side=TOP, fill=BOTH, expand=1, padx=0, pady=0)
         self.canvas1._tkcanvas.pack(side=TOP, fill=BOTH, expand=1, padx=0, pady=0)
@@ -113,8 +151,8 @@ class Application(tk.Frame):
 
     
     def get_image_from_url(self):
-        """Given the url of an image when a raster is generated or located online, extract the geotiff image from the 
-        url and display it on the canvas """
+        """Given the url of an image when a raster is generated or located online,
+        extract the geotiff image from the url and display it on the canvas """
         try: 
             entry1 = str(self.entry1.get())
             if (entry1[-3:] == '.gz'):
@@ -154,17 +192,20 @@ class Application(tk.Frame):
         try:
             self.starterimg = rasterio.open(self.imagefile)
             if (self.imagefile[-4:] == '.tif'):
-                ax = self.fig.add_subplot(111)
+                if self.ax:
+                    self.ax.clear()
+                else:
+                    self.ax = self.fig.add_subplot(111)
+                self.ax.set(title="",xticks=[], yticks=[])
+                self.ax.spines["top"].set_visible(False)
+                self.ax.spines["right"].set_visible(False)
+                self.ax.spines["left"].set_visible(False)
+                self.ax.spines["bottom"].set_visible(False)
                 self.fig.subplots_adjust(bottom=0, right=1, top=1, left=0, wspace=0, hspace=0)
-
                 with self.starterimg as src_plot:
-                    show(src_plot, ax=ax)
+                    show(src_plot, ax=self.ax)
                 plt.close()
-                ax.set(title="",xticks=[], yticks=[])
-                ax.spines["top"].set_visible(False)
-                ax.spines["right"].set_visible(False)
-                ax.spines["left"].set_visible(False)
-                ax.spines["bottom"].set_visible(False)
+                
                 self.canvas1.draw()
             else:
                 messagebox.showerror(title="ERROR", message="Invalid File Format. Supported files must be in TIFF format")
@@ -179,21 +220,33 @@ class Application(tk.Frame):
         else:
             if (os.getcwd().split("/")[-1] == "tmp"):
                 os.chdir("..")
+            """This portion compiles the rillgen2d.c file in order to import it as a module"""
+            cmd = "gcc -shared -Wl,-install_name,rillgen.so -o rillgen.so -fPIC rillgen2d.c" # compile the c file so that it will be useable later
+            self.client_socket.send(subprocess.check_output(cmd, shell=True) + ('\n').encode('utf-8'))
             if os.path.exists(os.getcwd() + "/tmp"):
+                for filename in os.listdir(os.getcwd() + "/tmp"):
+                    if os.path.isfile(filename):
+                        os.remove(filename)
                 shutil.rmtree(os.getcwd() + "/tmp")
             os.mkdir(os.getcwd() + "/tmp/")
             self.filename = os.getcwd() + "/tmp/" + self.imagefile.split("/")[-1]
             shutil.copyfile(self.imagefile, self.filename)
+            if os.path.exists(self.imagefile + ".aux.xml"):
+                shutil.copyfile(self.imagefile + ".aux.xml", os.getcwd() + "/tmp/" + self.imagefile.split("/")[-1] + ".aux.xml")
             shutil.copyfile("template_input.txt", os.getcwd() + "/tmp/" + "input.txt")
             os.chdir(os.getcwd() + "/tmp")
             
-        # Open existing dataset
+            # Open existing dataset
+            self.filename.split("/")[-1]
+            self.client_socket.send(("Filename is: " + self.filename.split("/")[-1] + "\n\n").encode('utf-8'))
+            self.client_socket.send(("Saving the image as .txt...\n\n").encode('utf-8'))
+
             self.src_ds = gdal.Open(self.filename)
             band = self.src_ds.GetRasterBand(1)
             arr = band.ReadAsArray()
             self.dimensions = [arr.shape[0], arr.shape[1]]
-            t1 = Thread(target=self.populate_parameters_tab)
-            t1.start()  # Populates the second tab since now the user has chosen a file
+            self.t1 = Thread(target=self.populate_parameters_tab)
+            self.t1.start()  # Populates the second tab since now the user has chosen a file
             if self.src_ds is None:
                 name = input
                 messagebox.showerror(title="ERROR", message="Unable to open" + name + "for writing")
@@ -211,19 +264,15 @@ class Application(tk.Frame):
             dst_ds = None
 
             # Create the `.txt` with `awk` but in Python using `os` call:
-            cmd0 = "gdal_translate -ot Float32 -of XYZ " + self.filename + " output_tin.asc"
-            returned_value = os.system(cmd0)  # returns the exit code in unix
-            print('returned value:', returned_value)
+            cmd0 = "gdal_translate -of XYZ " + self.filename + " output_tin.asc"
+            self.client_socket.send(subprocess.check_output(cmd0, shell=True) + ('\n').encode('utf-8'))
 
             cmd1 = "awk '{print $3}' input_dem.asc > input_dem.txt"
-
-            returned_value = os.system(cmd1)  # returns the exit code in unix
-            print('returned value:', returned_value)
+            self.client_socket.send(subprocess.check_output(cmd1, shell=True) + ('\n').encode('utf-8'))
 
             # remove temporary .asc file to save space
             cmd2 = "rm input_dem.asc"
-            returned_value = os.system(cmd2)  # returns the exit code in unix
-            print('returned value:', returned_value)
+            self.client_socket.send(subprocess.check_output(cmd2, shell=True) + ('\n').encode('utf-8'))
             if self.first_time_populating_parameters_tab == True:
                 self.tabControl.add(self.tab2, text="Parameters")
                 self.tabControl.pack(expand=1, fill="both")
@@ -258,11 +307,14 @@ class Application(tk.Frame):
         self.parameterButton.grid(row=55, column=0)
         self.goButton = ttk.Button(self.frame2, text='Run Rillgen', command=self.generate_input_txt_file)
         self.goButton.grid(row=55, column=2)
+        Label(self.frame2, text='NOTE: The hydrologic correction step can take a long time if there are lots of depressions in the input DEM and/or if the'
+        + ' landscape is very steep. RILLGEN2D can be sped up by increasing the value of fillincrement or by performing the hydrologic correction step in a'
+        + ' different program (e.g., ArcGIS or TauDEM) prior to input into RILLGEN2D.', justify=CENTER, wraplength=600).grid(row=56, column=0, sticky=(N,E,S,W), pady=30, columnspan=3)
 
 
         # Flag for mask variable
         Label(self.frame2, text='Flag for mask.txt:', font='Helvetica 25 bold').grid(row=3, column=0, pady=20)
-        Label(self.frame2, text='Should be checked if the user provides a raster (mask.txt) that restricts the model to certain portions of the input DEM.', font='Helvetica 20',justify=CENTER, wraplength=750).grid(row=3, column=2, pady=20)
+        Label(self.frame2, text='Should be checked if the user provides a raster (mask.txt) that restricts the model to certain portions of the input DEM.', font='Helvetica 20', justify=CENTER, wraplength=750).grid(row=3, column=2, pady=20)
         
         self.flagformaskVar = IntVar(value=int(f.readline()))
         Checkbutton(self.frame2, variable=self.flagformaskVar, width=5).grid(row=3, column=1, pady=20)
@@ -378,7 +430,7 @@ class Application(tk.Frame):
         # Lattice_size_x variable
         Label(self.frame2, text='lattice_size_x:', font='Helvetica 25 bold').grid(row=27, column=0, pady=20)
         Label(self.frame2, text='The number of pixels along the east-west direction in the DEM.', font='Helvetica 20',justify=CENTER, wraplength=750).grid(row=27, column=2, pady=20)
-        lattice_size_xVar = StringVar(value=self.dimensions[0])
+        lattice_size_xVar = StringVar(value=self.dimensions[1])
         self.lattice_size_xInput = Entry(self.frame2, textvariable=lattice_size_xVar, width=5)
         self.lattice_size_xInput.grid(row=27, column=1, pady=20)
         self.lattice_size_xInput.config(state=DISABLED)
@@ -389,7 +441,7 @@ class Application(tk.Frame):
         # Lattice_size_y variable
         Label(self.frame2, text='lattice_size_y:', font='Helvetica 25 bold').grid(row=29, column=0, pady=20)
         Label(self.frame2, text='The number of pixels along the east-west direction in the DEM.', font='Helvetica 20', justify=CENTER, wraplength=750).grid(row=29, column=2, pady=20)
-        lattice_size_yVar = StringVar(value=self.dimensions[1])
+        lattice_size_yVar = StringVar(value=self.dimensions[0])
         self.lattice_size_yInput = Entry(self.frame2, textvariable=lattice_size_yVar, width=5)
         self.lattice_size_yInput.grid(row=29, column=1, pady=20)
         self.lattice_size_yInput.config(state=DISABLED)
@@ -569,6 +621,7 @@ class Application(tk.Frame):
         f.write(self.bInput.get().replace("\n", "") + '\t /* b out */ \n')
         f.write(self.cInput.get().replace("\n", "") + '\t /* c out */ \n')
         f.write(self.rillwidthInput.get().replace("\n", "") + '\t /* rill width out */ \n')
+        self.client_socket.send(("Generated parameters.txt\n\n").encode('utf-8'))
 
     
     def generate_input_txt_file(self):
@@ -579,7 +632,9 @@ class Application(tk.Frame):
 
         The second helper function then sets the georeferencing information from the original
         geotiff file to xy_f.txt and xy_tau.txt in order to generate f.tif and tau.tif"""
-
+        if self.t1 != None:
+            self.t1.join()
+            self.t1 = None
         if os.path.isfile('input.txt'):
             os.remove('input.txt')
         f = open('input.txt', 'w')
@@ -609,106 +664,91 @@ class Application(tk.Frame):
         f.write(self.bInput.get().replace("\n", "")+'\n')
         f.write(self.cInput.get().replace("\n", "")+'\n')
         f.write(self.rillwidthInput.get().replace("\n", "")+'\n')
+        self.client_socket.send(("Generated input.txt\n\n").encode('utf-8'))
         f.close()
+        
         t1 = Thread(target=self.hillshade_and_color_relief)
-        t2 = Thread(target=self.run_rillgen)
         t1.start()
-        t2.start()
+        self.setup_rillgen()
         if self.first_time_populating_view_output_tab:
             self.tabControl.add(self.tab3, text="View Output")
             self.populate_view_output_tab()
         t1.join()
-        t2.join()
-        self.set_georeferencing_information(self.filename)
+        self.set_georeferencing_information()
 
     
     def hillshade_and_color_relief(self):
+        self.client_socket.send(("Generating hillshade and color relief...\n\n").encode('utf-8'))
         """Generates the hillshade and color-relief images from the original 
         geotiff image that will be available on the map"""
         cmd0 = "gdaldem hillshade " + self.filename + " hillshade.png"
-        os.system(cmd0)
-        # self.formatColorRelief(self.filename)
+        self.client_socket.send(subprocess.check_output(cmd0, shell=True) + ('\n').encode('utf-8'))
         gtif = gdal.Open(self.filename)
         srcband = gtif.GetRasterBand(1)
         # Get raster statistics
         stats = srcband.GetStatistics(True, True)
         # Print the min, max, mean, stdev based on stats index
         f = open('color-relief.txt', 'w')
-        f.writelines([str(stats[0]) + " 110 220 110\n", str(stats[2]-stats[3]) + " 240 250 160\n", str(stats[2]) + " 230 220 170\n", str(stats[2]+stats[3]) + " 220 220 220\n", str(stats[1]) + " 250 250 250\n"])
+        f.writelines([str(stats[0]) + ", 0, 0, 0\n", str(stats[0]+(stats[2]-stats[0])/4) + ", 167, 30, 66\n", str(stats[0]+(stats[2]-stats[0])/2) + ", 51, 69, 131\n", 
+        str(stats[0]+3*(stats[2]-stats[0])/4) + ", 101, 94, 190\n", str(stats[2]) + ", 130, 125, 253\n", str(stats[2]+(stats[1]-stats[2])/4) + ", 159, 158, 128\n",
+        str(stats[2]+(stats[1]-stats[2])/2) + ", 193, 192, 16\n", str(stats[2]+3*(stats[1]-stats[2])/4) + ", 224, 222, 137\n", str(stats[1]) + ", 255, 255, 255\n"])
         f.close()
         cmd1 = "gdaldem color-relief " + self.filename + " color-relief.txt color-relief.png"
-        os.system(cmd1)
+        self.client_socket.send(subprocess.check_output(cmd1, shell=True) + ('\n').encode('utf-8'))
 
-    
-    def run_rillgen(self):
+    def make_popup(self):
+        self.popup = tk.Toplevel(root)
+        popupLabel = tk.Label(self.popup, text="hydrologic correction step in progress")
+        popupLabel.pack(side=tk.TOP)
+        self.progress_bar = ttk.Progressbar(self.popup, orient=HORIZONTAL, length=300, mode='determinate', maximum=100)
+        # get screen width and height
+        ws = root.winfo_screenwidth()
+        hs = root.winfo_screenheight()
+        # calculate position x, y
+        x = (ws/2) - (350/2)    
+        y = (hs/2) - (75/2)
+        self.popup.geometry('%dx%d+%d+%d' % (350, 75, x, y))
+        self.progress_bar.pack(fill=tk.X, expand=1, side=tk.BOTTOM)
+
+    def update_progressbar(self, value):
+        self.progress_bar['value'] = value
+        root.update()
+
+    def setup_rillgen(self):
+        self.client_socket.send(("Running rillgen.c...\n\n").encode('utf-8'))
+        self.make_popup()
         cmd0 = "awk '{print $3}' output_tin.asc > topo.txt"
-        os.system(cmd0)
+        self.client_socket.send(subprocess.check_output(cmd0, shell=True) + ('\n').encode('utf-8'))
         cmd1 = "awk '{print $1, $2}' output_tin.asc > xy.txt"
-        os.system(cmd1)
-        # cmd2 = "docker run -it -v ${PWD}:/data 485urjnste8rdf/rillgen2d:experimental"
-        # os.system(cmd2)
-        cmd2 = "gcc ../rillgen2d.c"
-        os.system(cmd2)
-        cmd3 = "../rillgen2d"
-        os.system(cmd3)
-        cmd4 = "paste xy.txt tau.txt > xy_tau.txt"
-        os.system(cmd4)
-        cmd5 = "paste xy.txt f.txt > xy_f.txt"
-        returned_value = os.system(cmd5)
-        print('returned value:', returned_value)
-
-
-    def set_georeferencing_information(self, dem):
-        ds = gdal.Open(dem)
-
-        if ds is None:
-            print('Unable to open', str(dem), 'for reading')
-            sys.exit(1)
-        
-        projection = osr.SpatialReference(wkt=ds.GetProjection())
-        projection.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
-        # proj = osr.SpatialReference(wkt=ds.GetProjection()).GetAttrValue('AUTHORITY',1)
-        proj = projection.GetAttrValue('AUTHORITY',1)
-        
-        cmd0 = "gdal_translate -a_srs EPSG:" + str(proj) + " xy_tau.txt tau.tif"
-        os.system(cmd0)
-        cmd1 = "gdal_translate -a_srs EPSG:" + str(proj) + " xy_f.txt f.tif"
-        os.system(cmd1)
-
-        projection = ds.GetProjection()
-        geotransform = ds.GetGeoTransform()
-
-        if projection is None and geotransform is None:
-            print('No projection or geotransform found on file' + str(self.filename))
-            sys.exit(1)
-
-        for elem in ["tau.tif", "f.tif"]:
-            ds2 = gdal.Open(elem, gdal.GA_Update)
-            if ds2 is None:
-                print('Unable to open', elem, 'for writing')
-                sys.exit(1)
-            
-            if geotransform is not None and geotransform != (0, 1, 0, 0, 0, 1):
-                ds2.SetGeoTransform(geotransform)
-
-            if projection is not None and projection != '':
-                ds2.SetProjection(projection)
-
-            gcp_count = ds.GetGCPCount()
-            if gcp_count != 0:
-                ds2.SetGCPs(ds.GetGCPs(), ds.GetGCPProjection())
-            
-            if elem == "tau.tif":
-                cmd2 = "gdal_translate -ot Byte -of PNG " + elem.split(sep='.')[0] + ".tif " + elem.split(sep='.')[0] + ".png"
+        self.client_socket.send(subprocess.check_output(cmd1, shell=True) + ('\n').encode('utf-8'))
+        self.rillgen = CDLL('../rillgen.so')
+        t1 = Thread(target=self.run_rillgen)
+        t1.start()
+        still_update = True
+        while still_update:
+            currentPercentage = self.rillgen.percentage()
+            print("currentPercentage is: " + str(currentPercentage))
+            if currentPercentage == 0:
+                time.sleep(0.5)
+            elif currentPercentage < 100:
+                self.update_progressbar(currentPercentage)
+                time.sleep(0.5)
             else:
-                cmd2 = "gdal_translate -ot Byte -scale 0 0.1 -of PNG " + elem.split(sep='.')[0] + ".tif " + elem.split(sep='.')[0] + ".png"
-            returned_value = os.system(cmd2)
-            print('returned value:', returned_value)
+                self.update_progressbar(100)
+                self.client_socket.send(("Hydrologic correction step completed\n\n").encode('utf-8'))
+                self.popup.destroy()
+                still_update = False
+        t1.join()
+        
 
-            ds2 = None
-        ds = None
+    def run_rillgen(self):
+        self.rillgen.main()
+        cmd4 = "paste xy.txt tau.txt > xy_tau.txt"
+        self.client_socket.send(subprocess.check_output(cmd4, shell=True) + ('\n').encode('utf-8'))
+        cmd5 = "paste xy.txt f.txt > xy_f.txt"
+        self.client_socket.send(subprocess.check_output(cmd5, shell=True) + ('\n').encode('utf-8'))
+        
 
-    
     def populate_view_output_tab(self):
         """Populate the third tab with tkinter widgets. The third tab allows
         the user to generate a folium map based on the rillgen output"""
@@ -736,76 +776,135 @@ class Application(tk.Frame):
         self.first_time_populating_view_output_tab = False
 
 
-    def generatemap(self):
-        """Generates a folium map based on the bounds of the geotiff file"""
+    def set_georeferencing_information(self):
+        """Sets the georeferencing information for f.tif and tau.tif to be the same as that
+        from the original geotiff file"""
+        self.client_socket.send(("Setting georeferencing information\n\n").encode('utf-8'))
         if self.filename != None and os.path.isfile(self.filename):
-            GdalInfo = subprocess.check_output('gdalinfo {}'.format(self.filename), shell=True)
-            GdalInfo = str(GdalInfo)
-            GdalInfo = GdalInfo.split(r'\n')
-            location = []
-            location_ll = []
-            location_ur = []
-            for line in GdalInfo:
-                if line[:6] == 'Center':
-                    location = self.GetLatLon(line)
-                if line[:10] == 'Lower Left':
-                    location_ll = self.GetLatLon(line)
-                if line[:11] == 'Upper Right':
-                    location_ur = self.GetLatLon(line)
-            m = folium.Map(location, zoom_start=14, tiles='Stamen Terrain')
-            img1 = folium.raster_layers.ImageOverlay(image="tau.png", bounds=[location_ll,location_ur], opacity=0.8, interactive=True, name="tau")
-            img2 = folium.raster_layers.ImageOverlay(image="hillshade.png", bounds=[location_ll,location_ur], opacity=0.6, interactive=True, name="hillshade")
-            img3 = folium.raster_layers.ImageOverlay(image="color-relief.png", bounds=[location_ll,location_ur], opacity=0.4, interactive=True, name="color-relief")
-            img4 = folium.raster_layers.ImageOverlay(image="f.png", bounds=[location_ll,location_ur], opacity=0.8, interactive=True, show=False, name="f")
-            img1.add_to(m)
-            img2.add_to(m)
-            img3.add_to(m)
-            img4.add_to(m)
-            folium.LayerControl().add_to(m)
-            m.save("map.html", close_file=True)
-            t1 = Thread(target=self.saveOutput)
-            t1.start()
-            self.displayMap()
-            
+            ds = gdal.Open(self.filename)
+            gt=ds.GetGeoTransform()
+            cols = ds.RasterXSize
+            rows = ds.RasterYSize
+            ext=self.GetExtent(gt,cols,rows)
+            src_srs=osr.SpatialReference()
+            if int(osgeo.__version__[0]) >= 3:
+                # GDAL 3 changes axis order: https://github.com/OSGeo/gdal/issues/1546
+                src_srs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+            proj = ds.GetProjection()
+            src_srs.ImportFromWkt(proj)
+            tgt_srs = src_srs.CloneGeogCS()
+
+            self.geo_ext=self.ReprojectCoords(ext,src_srs,tgt_srs)
+            cmd0 = "gdal_translate xy_tau.txt tau.tif"
+            self.client_socket.send(subprocess.check_output(cmd0, shell=True) + ('\n').encode('utf-8'))
+            cmd1 = "gdal_translate xy_f.txt f.tif"
+            self.client_socket.send(subprocess.check_output(cmd1, shell=True) + ('\n').encode('utf-8'))
+
+            projection = ds.GetProjection()
+            geotransform = ds.GetGeoTransform()
+
+            if projection is None and geotransform is None:
+                print('No projection or geotransform found on file' + str(self.filename))
+                sys.exit(1)
+
+            for elem in ["tau.tif", "f.tif"]:
+                ds2 = gdal.Open(elem, gdal.GA_Update)
+                if ds2 is None:
+                    print('Unable to open', elem, 'for writing')
+                    sys.exit(1)
+                
+                if geotransform is not None and geotransform != (0, 1, 0, 0, 0, 1):
+                    ds2.SetGeoTransform(geotransform)
+
+                if projection is not None and projection != '':
+                    ds2.SetProjection(projection)
+
+                gcp_count = ds.GetGCPCount()
+                if gcp_count != 0:
+                    ds2.SetGCPs(ds.GetGCPs(), ds.GetGCPProjection())
+                
+                if elem == "tau.tif":
+                    self.client_socket.send(("Translating tau.tif to .png\n\n").encode('utf-8'))
+                    cmd2 = "gdal_translate -ot Byte -of PNG " + elem.split(sep='.')[0] + ".tif " + elem.split(sep='.')[0] + ".png"
+                else:
+                    self.client_socket.send(("Translating f.tif to .png\n\n").encode('utf-8'))
+                    cmd2 = "gdal_translate -ot Byte -scale 0 0.1 -of PNG " + elem.split(sep='.')[0] + ".tif " + elem.split(sep='.')[0] + ".png"
+                self.client_socket.send(subprocess.check_output(cmd2, shell=True) + ('\n').encode('utf-8'))
+
+                ds2 = None
+            ds = None
         else: 
             messagebox.showerror(title="FILE NOT FOUND", message="Please select a file in tab 1")
+        self.convert_ppm()
+
+    def convert_ppm(self):
+        if not os.path.isfile("rills.ppm"):
+            print('Unable to open rills.ppm for writing')
+        else:
+            self.client_socket.send(("Translating rills.ppm to .png\n\n").encode('utf-8'))
+            with im(filename="rills.ppm") as img:
+                img.save(filename="P6.ppm")
+            cmd = "gdal_translate -of PNG -a_nodata 255 P6.ppm rills.png"
+            self.client_socket.send(subprocess.check_output(cmd, shell=True) + ('\n').encode('utf-8'))
+
+    def GetExtent(self,gt,cols,rows):
+        ''' Return list of corner coordinates from a geotransform given the number
+        of columns and the number of rows in the dataset
+        '''
+        ext=[]
+        xarr=[0,cols]
+        yarr=[0,rows]
+
+        for px in xarr:
+            for py in yarr:
+                x=gt[0]+(px*gt[1])+(py*gt[2])
+                y=gt[3]+(px*gt[4])+(py*gt[5])
+                ext.append([x,y])
+            yarr.reverse()
+        return ext
+
+    def ReprojectCoords(self, coords,src_srs,tgt_srs):
+        ''' Reproject a list of x,y coordinates. From srs_srs to tgt_srs
+        '''
+        trans_coords=[]
+        transform = osr.CoordinateTransformation( src_srs, tgt_srs)
+        for x,y in coords:
+            x,y,z = transform.TransformPoint(x,y)
+            trans_coords.append([x,y])
+        return trans_coords
+
+
+    def generatemap(self):
+        """Generates a folium map based on the bounds of the geotiff file"""
+        m = folium.Map(location=[(self.geo_ext[1][1]+self.geo_ext[3][1])/2, (self.geo_ext[1][0]+self.geo_ext[3][0])/2], zoom_start=14, tiles='Stamen Terrain')
+
+        img1 = folium.raster_layers.ImageOverlay(image="tau.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.8, interactive=True, name="tau")
+        img2 = folium.raster_layers.ImageOverlay(image="hillshade.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.6, interactive=True, name="hillshade")
+        img3 = folium.raster_layers.ImageOverlay(image="color-relief.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.4, interactive=True, name="color-relief")
+        img4 = folium.raster_layers.ImageOverlay(image="f.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.7, interactive=True, show=True, name="f")
+        img5 = folium.raster_layers.ImageOverlay(image="rills.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.7, interactive=True, show=True, name="rills")
+        img1.add_to(m)
+        img2.add_to(m)
+        img3.add_to(m)
+        img4.add_to(m)
+        img5.add_to(m)
+        folium.LayerControl().add_to(m)
+        m.save("map.html", close_file=True)
+        t1 = Thread(target=self.saveOutput)
+        t1.start()
+        self.displayMap()
+        t1.join()
+            
 
     def saveOutput(self):
         saveDir = "../outputs(save-" + str(datetime.now()).replace(" ", "") + ")"
         os.mkdir(saveDir)
         src_files = os.listdir(os.getcwd())
-        acceptable_files = [self.filename, "parameters.txt", "input.txt", "map.html", "rills.ppm"]
+        acceptable_files = ["parameters.txt", "input.txt", "map.html", "rills.ppm"]
         for file_name in src_files:
             if file_name in acceptable_files or (file_name.endswith(".png") or file_name.endswith(".tif")):
                 shutil.copy(file_name, saveDir + "/" + file_name)
-
-    def GetLatLon(self, line):
-        """Gets the latitude and longitude coordinates of a corner or center of the geotiff file
-        (whichever is specified) using gdalinfo"""
-        coords = line.split(') (')[1]
-        coords = coords[:-1]
-        LonStr, LatStr = coords.split(',')
-        # Longitude
-        LonStr = LonStr.split('d')    # Get the degrees, and the rest
-        LonD = int(LonStr[0])
-        LonStr = LonStr[1].split(r'\'')# Get the arc-m, and the rest
-        LonM = int(LonStr[0])
-        LonStr = LonStr[1].split('"') # Get the arc-s, and the rest
-        LonS = float(LonStr[0])
-        Lon = LonD + LonM/60. + LonS/3600.
-        if LonStr[1] in ['W', 'w']:
-            Lon = -1*Lon
-        # Same for Latitude
-        LatStr = LatStr.split('d')
-        LatD = int(LatStr[0])
-        LatStr = LatStr[1].split(r'\'')
-        LatM = int(LatStr[0])
-        LatStr = LatStr[1].split('"')
-        LatS = float(LatStr[0])
-        Lat = LatD + LatM/60. + LatS/3600.
-        if LatStr[1] in ['S', 's']:
-            Lat = -1*Lat
-        return [Lat, Lon]
+        shutil.copy(self.filename, saveDir + "/" + self.filename.split("/")[-1])
 
     
     def displayMap(self):
@@ -843,6 +942,8 @@ class Application(tk.Frame):
         main_window.show()
         app.exec_()
         
+
+
 
 if __name__ == "__main__":
     root=tk.Tk()

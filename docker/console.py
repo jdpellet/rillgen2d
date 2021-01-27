@@ -1,4 +1,3 @@
-#!/usr/local/bin/python3
 """
 - read output from a subprocess in a background thread
 - show the output in the GUI
@@ -7,7 +6,6 @@ import os
 import sys
 
 from itertools import islice
-from subprocess import Popen, PIPE, STDOUT
 from socket import *
 from textwrap import dedent
 from threading import Thread
@@ -64,8 +62,6 @@ class Console(tk.Frame):
                 break
             if data != '\n':
                 self.show(data)
-            print('Received from server: ' + data)  # show in terminal
-
         client_socket.close()  # close the connection
         root.destroy()
 

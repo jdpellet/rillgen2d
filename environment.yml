@@ -5,7 +5,9 @@ channels:
   - anaconda
 dependencies:
   - affine
+  - atk
   - attrs
+  - bidict
   - boost-cpp
   - branca
   - brotlipy
@@ -25,20 +27,37 @@ dependencies:
   - cycler
   - dbus
   - expat
+  - fftw
   - folium
+  - font-ttf-dejavu-sans-mono
+  - font-ttf-inconsolata
+  - font-ttf-source-code-pro
+  - font-ttf-ubuntu
   - fontconfig
+  - fonts-conda-ecosystem
+  - fonts-conda-forge
   - freetype
   - freexl
+  - fribidi
   - gdal
+  - gdk-pixbuf
   - geos
   - geotiff
   - gettext
+  - ghostscript
   - giflib
   - glib
+  - graphite2
+  - graphviz
+  - gtk2
+  - gts
+  - harfbuzz
   - hdf4
   - hdf5
   - icu
   - idna
+  - imagemagick
+  - jbig
   - jinja2
   - jpeg
   - json-c
@@ -57,27 +76,35 @@ dependencies:
   - libffi
   - libgdal
   - libgfortran
+  - libgfortran5
   - libglib
-  - libiconv 
+  - libiconv
   - libkml
   - liblapack
+  - libllvm10
   - libllvm9
   - libnetcdf
   - libnghttp2
   - libopenblas
   - libpng
   - libpq
+  - librsvg
   - libspatialite
   - libssh2
   - libtiff
   - libuuid
+  - libwebp
   - libwebp-base
+  - libxcb
   - libxml2
   - llvm-openmp
   - lz4-c
   - markupsafe
   - matplotlib
   - matplotlib-base
+  - mkl
+  - mysql-common
+  - mysql-libs
   - ncurses
   - nspr
   - nss
@@ -85,23 +112,32 @@ dependencies:
   - olefile
   - openjpeg
   - openssl
-  - pcre 
+  - pango
+  - pcre
+  - perl
   - pillow
   - pip
   - pixman
+  - pkg-config
   - poppler
   - poppler-data
   - postgresql
   - proj
+  - pthread-stubs
   - pycparser
   - pyopenssl
   - pyparsing
   - pyqt
-  - pysocks 
-  - python==3.7.*
+  - pyqt-impl
+  - pyqt5-sip
+  - pyqtchart
+  - pyqtwebengine
+  - pysocks
+  - python
   - python-dateutil
-  - python_abi
+  - python-engineio
   - python-socketio
+  - python_abi
   - qt
   - rasterio
   - readline
@@ -111,13 +147,26 @@ dependencies:
   - snuggs
   - sqlite
   - tbb
+  - tiledb
   - tk
   - tornado
   - tzcode
   - urllib3
+  - wand
   - wheel
   - xerces-c
+  - xorg-kbproto
+  - xorg-libice
+  - xorg-libsm
+  - xorg-libx11
+  - xorg-libxau
+  - xorg-libxdmcp
+  - xorg-libxext
+  - xorg-libxrender
+  - xorg-libxt
+  - xorg-renderproto
+  - xorg-xextproto
+  - xorg-xproto
   - xz
   - zlib
   - zstd
-prefix: ~/miniconda/envs/rillgen2d

@@ -74,13 +74,12 @@ class Application(tk.Frame):
         host/client structure with rillgen2d.py as the host and console.py as the
         client"""
         Popen([sys.executable, "console.py"], universal_newlines=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
-        host = gethostname()
         port = 5000  # initiate port no above 1024
         self.socket = socket()  # get instance
         self.socket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1) # allows for a port to be used
         # even if it was previously being used
         # look closely. The bind() function takes tuple as argument
-        self.socket.bind((host, port))  # bind host address and port together
+        self.socket.bind(('', port))  # bind host address and port together
 
         # configure how many client the server can listen simultaneously
         self.socket.listen(3)

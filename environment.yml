@@ -133,7 +133,7 @@ dependencies:
   - pyqtchart
   - pyqtwebengine
   - pysocks
-  - python
+  - python==3.7.*
   - python-dateutil
   - python-engineio
   - python-socketio

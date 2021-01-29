@@ -169,4 +169,3 @@ dependencies:
   - cffi
   - six
   - postgresql
-prefix: /Users/jacobvanderleeuw/miniconda3/envs/rillgen2d

@@ -217,7 +217,7 @@ class Application(tk.Frame):
             if (os.getcwd().split("/")[-1] == "tmp"):
                 os.chdir("..")
             """This portion compiles the rillgen2d.c file in order to import it as a module"""
-            cmd = "gcc -shared -Wl,-install_name,rillgen.so -o rillgen.so -fPIC rillgen2d.c" # compile the c file so that it will be useable later
+            cmd = "gcc -shared -fPIC rillgen2d.c -o rillgen.so" # compile the c file so that it will be useable later
             self.client_socket.send(subprocess.check_output(cmd, shell=True) + ('\n').encode('utf-8'))
             if os.path.exists(os.getcwd() + "/tmp"):
                 for filename in os.listdir(os.getcwd() + "/tmp"):
@@ -287,11 +287,9 @@ class Application(tk.Frame):
 
             self.hsb.pack(side="bottom", fill="x")
             self.vsb.pack(side="right", fill="y")
-            self.canvas2.pack(side="left", fill="both", expand=True)
-            self.canvas2.create_window((4,4), window=self.frame2, anchor="nw",
-                                    height=root.winfo_screenheight()*3.5, width=root.winfo_screenwidth(), tags="self.frame")
-            self.frame2.bind("<Configure>", self.onFrameConfigure)
-            self.frame2.bind_all("<MouseWheel>", self.on_mousewheel)
+            
+            item = self.canvas2.create_window((0,0), window=self.frame2, anchor="nw")
+        f = open('input.txt', 'r')
         
         f = open('input.txt', 'r')
 
@@ -569,6 +567,15 @@ class Application(tk.Frame):
         # The width of rills (in m) as they begin to form. This value is used to localize water flow to a width less than the width of a pixel. 
         # For example, if deltax = 1 m and rillwidth = 20 cm then the flow entering each pixel is assumed, for the purposes of rill development, to be localized in a width equal to one fifth of the pixel width.
         ########################### ^MAIN TAB^ ###########################
+        w = 0
+        h = 0
+        for child in self.frame2.winfo_children():
+            w += child.winfo_reqwidth()
+            h += child.winfo_reqheight()
+        self.frame2.bind("<Configure>", self.onFrameConfigure)
+        self.frame2.bind_all("<MouseWheel>", self.on_mousewheel)
+        self.canvas2.itemconfig(item, height = h)
+        self.canvas2.pack(side="left", fill="both", expand=True)
 
     def onFrameConfigure(self, event):
         '''Reset the scroll region to encompass the inner frame'''

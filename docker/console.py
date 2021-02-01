@@ -53,7 +53,7 @@ class Console(tk.Frame):
         port = 5000  # socket server port number
 
         client_socket = socket()  # instantiate
-        client_socket.connect(('', port))  # connect to the server
+        client_socket.connect(("127.0.0.1", port))  # connect to the server
 
         while True:
             data = client_socket.recv(1024).decode()  # receive response
@@ -64,10 +64,11 @@ class Console(tk.Frame):
         client_socket.close()  # close the connection
         root.destroy()
 
+print("reaching console.py")
 root = tk.Tk()
 root.title("rillgen2D Console")
 Console = Console(root)
 Console.pack(expand=True, fill="both")
 # center window
-root.eval('tk::PlaceWindow %s center' % root.winfo_pathname(root.winfo_id()))
+# root.eval('tk::PlaceWindow %s center' % root.winfo_pathname(root.winfo_id()))
 root.mainloop()

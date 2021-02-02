@@ -29,7 +29,7 @@ from tkinter import *
 from tkinter import messagebox
 from tkinter import ttk
 from tkinter.filedialog import askopenfilename
-# from wand.image import Image as im
+from wand.image import Image as im
 
 """This is the main rillgen2d file which handles the gui and communicates with console.py
 and rillgen.c in order to perform the rillgen calculations"""
@@ -85,7 +85,7 @@ class Application(tk.Frame):
         print("reaching3")
         # configure how many client the server can listen simultaneously
         # subprocess.run([sys.executable, "console.py"], check=True)
-        process = Popen([sys.executable, "console.py"], universal_newlines=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
+        Popen([sys.executable, "console.py"], universal_newlines=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
         self.socket.listen(3)
         print("reaching4")
         self.client_socket, address = self.socket.accept()  # accept new connection
@@ -906,7 +906,7 @@ class Application(tk.Frame):
             
 
     def saveOutput(self):
-        saveDir = "../outputs(save-" + str(datetime.now()).replace(" ", "") + ")"
+        saveDir = "../outputs(save-" + str(datetime.now()).replace(" ", "").replace(":", "").replace("-", "o").replace(".", "") + ")"
         os.mkdir(saveDir)
         src_files = os.listdir(os.getcwd())
         acceptable_files = ["parameters.txt", "input.txt", "map.html", "rills.ppm"]

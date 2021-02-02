@@ -64,7 +64,6 @@ class Console(tk.Frame):
         client_socket.close()  # close the connection
         root.destroy()
 
-print("reaching console.py")
 root = tk.Tk()
 root.title("rillgen2D Console")
 Console = Console(root)

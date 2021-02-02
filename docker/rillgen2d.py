@@ -73,23 +73,18 @@ class Application(tk.Frame):
         """Handles the connection between rillgen2d.py and console.py by making a
         host/client structure with rillgen2d.py as the host and console.py as the
         client"""
-        print("reaching1")
-        
+
         port = 5000  # initiate port no above 1024
         self.socket = socket()  # get instance
-        print("reaching2")
         self.socket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1) # allows for a port to be used
         # even if it was previously being used
         # look closely. The bind() function takes tuple as argument
         self.socket.bind(("", port))  # bind host address and port together
-        print("reaching3")
         # configure how many client the server can listen simultaneously
         # subprocess.run([sys.executable, "console.py"], check=True)
         Popen([sys.executable, "console.py"], universal_newlines=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
         self.socket.listen(3)
-        print("reaching4")
         self.client_socket, address = self.socket.accept()  # accept new connection
-        print("reaching5")
         print("Connection from: " + str(address))
 
 
@@ -951,8 +946,6 @@ class Application(tk.Frame):
         main_window.show()
         app.exec_()
         
-
-
 
 if __name__ == "__main__":
     root=tk.Tk()

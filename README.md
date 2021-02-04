@@ -22,11 +22,14 @@ We have provided a `environment.yml` file which can be used with [Conda](https:/
 # update conda
 conda update -n base -c defaults conda
 
-# create environment for rillgen2d
+# remove old rillgen2d environment
+conda remove --name rillgen2d --all
+
+# create new environment for rillgen2d
 conda env create -f environment.yml
 
 # activate conda environment
-conda activate rillgen
+conda activate rillgen2d
 
 # update conda environment 
 conda env update --prefix ./env --file environment.yml  --prune

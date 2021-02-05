@@ -698,6 +698,7 @@ class Application(tk.Frame):
         f.close()
         cmd1 = "gdaldem color-relief " + self.filename + " color-relief.txt color-relief.png"
         self.client_socket.send(subprocess.check_output(cmd1, shell=True) + ('\n').encode('utf-8'))
+        self.client_socket.send(("Hillshade and color relief generated\n\n").encode('utf-8'))
 
     def make_popup(self):
         self.popup = tk.Toplevel(root)
@@ -838,7 +839,9 @@ class Application(tk.Frame):
             ds = None
         else: 
             messagebox.showerror(title="FILE NOT FOUND", message="Please select a file in tab 1")
+        self.client_socket.send(("Georeferencing complete\n\n").encode('utf-8'))
         self.convert_ppm()
+        self.client_socket.send(("Outputs complete\n\n").encode('utf-8'))
 
     def convert_ppm(self):
         if not os.path.isfile("rills.ppm"):
@@ -883,7 +886,7 @@ class Application(tk.Frame):
 
         img1 = folium.raster_layers.ImageOverlay(image="tau.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.8, interactive=True, name="tau")
         img2 = folium.raster_layers.ImageOverlay(image="hillshade.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.6, interactive=True, name="hillshade")
-        img3 = folium.raster_layers.ImageOverlay(image="color-relief.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.4, interactive=True, name="color-relief")
+        img3 = folium.raster_layers.ImageOverlay(image="color-relief.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.6, interactive=True, name="color-relief")
         img4 = folium.raster_layers.ImageOverlay(image="f.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.7, interactive=True, show=True, name="f")
         img5 = folium.raster_layers.ImageOverlay(image="rills.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.7, interactive=True, show=True, name="rills")
         img1.add_to(m)

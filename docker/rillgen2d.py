@@ -753,6 +753,7 @@ class Application(tk.Frame):
         t1 = Thread(target=self.run_rillgen)
         t1.start()
         still_update = True
+        self.client_socket.send(("Starting hydrologic correction step...\n\n").encode('utf-8'))
         while still_update:
             currentPercentage = self.rillgen.percentage()
             if currentPercentage == 0:

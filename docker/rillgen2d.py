@@ -54,6 +54,7 @@ class Application(tk.Frame):
         self.client_socket = None # socket for the connection between rillgen2d.py and console.py; client socket
         self.starterimg = None  # This is the image to be displayed in the input_dem tab
         self.hydrologic_popup = None  # This is the popup that comes up during the hydrologic correction step 
+        self.can_redraw = None  # Used to redraw the canvas in the view_output tab
         self.style = ttk.Style(root)
         self.style.layout('text.Horizontal.TProgressbar',
                     [('Horizontal.Progressbar.trough',
@@ -773,7 +774,7 @@ class Application(tk.Frame):
         the user to generate a folium map based on the rillgen output"""
         if self.first_time_populating_view_output_tab:
             self.canvas3 = tk.Canvas(self.tab3, borderwidth=0, highlightthickness=0)
-            self.canvas3.bind("<Configure>", self.on_resize)
+            self.canvas3.bind("<Configure>", self.schedule_resize_canvas)
             self.canvas3.height = self.canvas3.winfo_reqheight()
             self.canvas3.width = self.canvas3.winfo_reqwidth()
             
@@ -807,24 +808,38 @@ class Application(tk.Frame):
             self.canvas3.itemconfig(self.view_output_window, height=self.canvas3.height, width=self.canvas3.width)
             self.canvas3.addtag_all("all")
             self.canvas3.pack(side="left", fill="both", expand=YES)
-            self.first_time_populating_view_output_tab = False
-        
         
         self.canvas3imlbl.configure(image=self.canvas3img)
+        
             
-
-    def on_resize(self,event):
-        # determine the ratio of old width/height to new width/height
-        wscale = float(event.width)/self.canvas3.width
-        hscale = float(event.height)/self.canvas3.height
+    def schedule_resize_canvas(self,event):
+        if self.can_redraw:
+            self.after_cancel(self.can_redraw)
+        # wscale = float(event.width)/self.canvas3.width
+        # hscale = float(event.height)/self.canvas3.height
         self.canvas3.width = event.width
         self.canvas3.height = event.height
         # resize the canvas 
         self.canvas3.config(width=self.canvas3.width, height=self.canvas3.height)
-        self.canvas3.itemconfig(self.view_output_window, height=self.canvas3.height, width=self.canvas3.width)
+        if self.first_time_populating_view_output_tab:
+            self.resize_canvas()
+            self.first_time_populating_view_output_tab = False
+        else:
+            self.can_redraw = self.after(500,self.resize_canvas)
+
+    def resize_canvas(self):
+        # determine the ratio of old width/height to new width/height
+        # wscale = float(event.width)/self.canvas3.width
+        # hscale = float(event.height)/self.canvas3.height
+        # self.canvas3.width = event.width
+        # self.canvas3.height = event.height
+        # # resize the canvas 
+        # self.canvas3.config(width=self.canvas3.width, height=self.canvas3.height)
+        # self.canvas3.itemconfig(self.view_output_window, height=self.canvas3.height, width=self.canvas3.width)
         
         # self.canvas3.image_copy = PIL.Image.open(os.getcwd() + "/background.jpg")
         # # self.canvas3 im(filename="rills.ppm")
+        self.canvas3.itemconfig(self.view_output_window, height=self.canvas3.height, width=self.canvas3.width)
         self.canvas3img = self.img3.resize((self.canvas3.width, self.canvas3.height))
         # # self.canvas3img = ImageTk.PhotoImage(self.canvas3img)
         self.canvas3img = ImageTk.PhotoImage(self.canvas3img)
@@ -835,7 +850,8 @@ class Application(tk.Frame):
 
         # self.canvas3.scale("below",0,0,wscale,hscale)
         # rescale all the objects tagged with the "all" tag
-        self.canvas3.scale("all",0,0,wscale,hscale)
+
+        # self.canvas3.scale("all",0,0,wscale,hscale)
 
     def set_georeferencing_information(self):
         """Sets the georeferencing information for f.tif and tau.tif to be the same as that

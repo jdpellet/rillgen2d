@@ -67,6 +67,7 @@ class Application(tk.Frame):
         self.tab1 = ttk.Frame(self.tabControl)
         self.tab2 = ttk.Frame(self.tabControl)
         self.tab3 = ttk.Frame(self.tabControl)
+        self.img1 = None 
         self.fig1 = Figure(figsize=(5, 5), dpi=100) # figure that will preview the image via rasterio
         self.canvas3imlbl = None
         self.t = Thread(target=self.network_function)
@@ -80,6 +81,7 @@ class Application(tk.Frame):
         self.first_time_populating_parameters_tab = True
         self.first_time_populating_view_output_tab = True
         self.populate_input_dem_tab()
+
 
     def network_function(self):
         """Handles the connection between rillgen2d.py and console.py by making a
@@ -96,7 +98,7 @@ class Application(tk.Frame):
         # configure how many client the server can listen simultaneously
         self.socket.listen(3)
         self.client_socket, address = self.socket.accept()  # accept new connection
-        print("Connection from: " + str(address))
+        self.client_socket.send(("Connection from: " + str(address) + "\n\n").encode('utf-8'))
 
 
     def populate_input_dem_tab(self):
@@ -130,6 +132,7 @@ class Application(tk.Frame):
         self.canvas1._tkcanvas.pack(side=TOP, fill=BOTH, expand=1, padx=0, pady=0)
 
         self.img1.grid(row=0, column=2, rowspan=3, sticky=N+S+E+W)
+        self.canvas1.get_tk_widget().configure(highlightbackground="red")
 
         style = ttk.Style()
         style.configure('W.TButton', font="Helvetica", foreground='red')
@@ -213,12 +216,11 @@ class Application(tk.Frame):
                 with self.starterimg as src_plot:
                     show(src_plot, ax=self.ax)
                 plt.close()
-                
                 self.canvas1.draw()
             else:
                 messagebox.showerror(title="ERROR", message="Invalid File Format. Supported files must be in TIFF format")
         except Exception as e:
-                messagebox.showerror(title="ERROR", message="The exception was: " + str(e))
+                messagebox.showerror(title="ERROR", message="Exception: " + str(e))
 
     def saveimageastxt(self):
         """Prepares the geotiff file for the rillgen2D code by getting its dimensions (for the input.txt file) and converting it to
@@ -695,9 +697,10 @@ class Application(tk.Frame):
 
     
     def hillshade_and_color_relief(self):
-        self.client_socket.send(("Generating hillshade and color relief...\n\n").encode('utf-8'))
         """Generates the hillshade and color-relief images from the original 
         geotiff image that will be available on the map"""
+
+        self.client_socket.send(("Generating hillshade and color relief...\n\n").encode('utf-8'))
         cmd0 = "gdaldem hillshade " + self.filename + " hillshade.png"
         self.client_socket.send(subprocess.check_output(cmd0, shell=True) + ('\n').encode('utf-8'))
         gtif = gdal.Open(self.filename)
@@ -729,12 +732,17 @@ class Application(tk.Frame):
         self.progress_bar.pack(fill=tk.X, expand=1, side=tk.BOTTOM)
 
     def update_progressbar(self, value):
+        """Updates the value on the progressbar as the 
+        hydrologic correction step is carried out"""
         self.progress_bar['value'] = value
         self.style.configure('text.Horizontal.TProgressbar',
                         text='{:g} %'.format(value))
         root.update()
 
+
     def setup_rillgen(self):
+        """Sets up files for the rillgen.c code by creating topo.txt and xy.txt, and
+        imports the rillgen.c code using the CDLL library"""
         self.client_socket.send(("Running rillgen.c...\n\n").encode('utf-8'))
         self.make_popup()
         cmd0 = "awk '{print $3}' output_tin.asc > topo.txt"
@@ -771,7 +779,8 @@ class Application(tk.Frame):
 
     def populate_view_output_tab(self):
         """Populate the third tab with tkinter widgets. The third tab allows
-        the user to generate a folium map based on the rillgen output"""
+        the user to generate a folium map based on the rillgen output
+        and also allows them to preview the image hillshade and color relief"""
         if self.first_time_populating_view_output_tab:
             self.canvas3 = tk.Canvas(self.tab3, borderwidth=0, highlightthickness=0)
             self.canvas3.bind("<Configure>", self.schedule_resize_canvas)
@@ -791,12 +800,12 @@ class Application(tk.Frame):
         self.canvas3.blended_image = PIL.Image.new("RGBA", self.alphablended.size)
         self.canvas3.blended_image.paste(self.alphablended)
         self.canvas3.blended_image.save("background.png")
-        cmd = "gdal_translate background.png background.jpg -of JPEG" # tkinter not supporting png for some reason
-        os.system(cmd)
+        cmd = "gdal_translate background.png background.jpg -of JPEG" # some tkinter versions do not support .png images
+        self.client_socket.send(subprocess.check_output(cmd, shell=True) + ('\n').encode('utf-8'))
         self.img3 = PIL.Image.open(os.getcwd() + "/background.jpg")
-        # self.img3cpy = self.img3.resize((self.winfo_screenwidth(), self.winfo_screenheight()))
         self.img3 = self.img3.resize((self.canvas3.width, self.canvas3.height))
         self.canvas3img = ImageTk.PhotoImage(self.img3)
+        self.client_socket.send(("Preview Complete\n\n").encode('utf-8'))
 
         if self.first_time_populating_view_output_tab:
             self.canvas3imlbl = Label(self.frame3, image=self.canvas3img)
@@ -806,17 +815,16 @@ class Application(tk.Frame):
             self.button3 = ttk.Button(self.frame3, text="Generate Map", command=self.generatemap)
             self.button3.place(relx=0.5, rely=0.67, anchor=CENTER)
             self.canvas3.itemconfig(self.view_output_window, height=self.canvas3.height, width=self.canvas3.width)
-            self.canvas3.addtag_all("all")
             self.canvas3.pack(side="left", fill="both", expand=YES)
         
         self.canvas3imlbl.configure(image=self.canvas3img)
         
             
     def schedule_resize_canvas(self,event):
+        """Schedule resizing the canvas for the view output tab on a user click/drag event.
+        The canvas cannot be continuously resized because rendering is too slow"""
         if self.can_redraw:
             self.after_cancel(self.can_redraw)
-        # wscale = float(event.width)/self.canvas3.width
-        # hscale = float(event.height)/self.canvas3.height
         self.canvas3.width = event.width
         self.canvas3.height = event.height
         # resize the canvas 
@@ -827,31 +835,14 @@ class Application(tk.Frame):
         else:
             self.can_redraw = self.after(500,self.resize_canvas)
 
+
     def resize_canvas(self):
-        # determine the ratio of old width/height to new width/height
-        # wscale = float(event.width)/self.canvas3.width
-        # hscale = float(event.height)/self.canvas3.height
-        # self.canvas3.width = event.width
-        # self.canvas3.height = event.height
-        # # resize the canvas 
-        # self.canvas3.config(width=self.canvas3.width, height=self.canvas3.height)
-        # self.canvas3.itemconfig(self.view_output_window, height=self.canvas3.height, width=self.canvas3.width)
-        
-        # self.canvas3.image_copy = PIL.Image.open(os.getcwd() + "/background.jpg")
-        # # self.canvas3 im(filename="rills.ppm")
+        """Resizes the canvas for the view output tab"""
         self.canvas3.itemconfig(self.view_output_window, height=self.canvas3.height, width=self.canvas3.width)
         self.canvas3img = self.img3.resize((self.canvas3.width, self.canvas3.height))
-        # # self.canvas3img = ImageTk.PhotoImage(self.canvas3img)
         self.canvas3img = ImageTk.PhotoImage(self.canvas3img)
         self.canvas3imlbl.configure(image=self.canvas3img)
-        # # self.canvas3img = ImageTk.PhotoImage(file="background.png")
-        
-        # self.canvas3imlbl.photo = image2
 
-        # self.canvas3.scale("below",0,0,wscale,hscale)
-        # rescale all the objects tagged with the "all" tag
-
-        # self.canvas3.scale("all",0,0,wscale,hscale)
 
     def set_georeferencing_information(self):
         """Sets the georeferencing information for f.tif and tau.tif to be the same as that
@@ -916,9 +907,11 @@ class Application(tk.Frame):
         self.convert_ppm()
         self.client_socket.send(("Outputs complete\n\n").encode('utf-8'))
 
+
     def convert_ppm(self):
+        """Convert the rills.ppm file to png so that it can be displayed on the map"""
         if not os.path.isfile("rills.ppm"):
-            print('Unable to open rills.ppm for writing')
+            self.client_socket.send(("Unable to open rills.ppm for writing\n\n").encode('utf-8'))
         else:
             self.client_socket.send(("Translating rills.ppm to .png\n\n").encode('utf-8'))
             with im(filename="rills.ppm") as img:
@@ -926,10 +919,10 @@ class Application(tk.Frame):
             cmd = "gdal_translate -of PNG -a_nodata 255 P6.ppm rills.png"
             self.client_socket.send(subprocess.check_output(cmd, shell=True) + ('\n').encode('utf-8'))
 
+
     def GetExtent(self,gt,cols,rows):
-        ''' Return list of corner coordinates from a geotransform given the number
-        of columns and the number of rows in the dataset
-        '''
+        """Return list of corner coordinates from a geotransform given the number
+        of columns and the number of rows in the dataset"""
         ext=[]
         xarr=[0,cols]
         yarr=[0,rows]
@@ -976,6 +969,7 @@ class Application(tk.Frame):
             
 
     def saveOutput(self):
+        """Save outputs from a run in a timestamp-marked folder"""
         saveDir = "../outputs(save-" + str(datetime.now()).replace(" ", "") + ")"
         os.mkdir(saveDir)
         src_files = os.listdir(os.getcwd())
@@ -987,6 +981,7 @@ class Application(tk.Frame):
 
     
     def displayMap(self):
+        """Uses the map.html file to generate a folium map using QtWidgets.QWebEngineView()"""
         mapfile = QtCore.QUrl.fromLocalFile(os.path.abspath("map.html"))
         if self.app == None:
             self.app = QtWidgets.QApplication([])

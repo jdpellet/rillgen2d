@@ -20,6 +20,7 @@ from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg)
 from matplotlib.figure import Figure
 from osgeo import gdal, osr
+from pathlib import Path
 from PIL import ImageTk
 from PyQt5 import QtWidgets, QtWebEngineWidgets, QtCore
 from PyQt5.QtWidgets import QApplication, QMessageBox, QMainWindow
@@ -152,8 +153,8 @@ class Application(tk.Frame):
         """Given a geotiff image, either in .tar format or directly, extract the image and display
         it on the canvas"""
         try:
-            self.imagefile = askopenfilename()
-            if (str(self.imagefile)[-4:] == '.tar'):
+            self.imagefile = Path(askopenfilename())
+            if (self.imagefile.suffix == '.tar'):
                 self.extract_geotiff_from_tarfile(self.imagefile, mode=1)
         except:
             messagebox.showerror(title="ERROR", message="Invalid file type. Please select an image file")
@@ -181,6 +182,7 @@ class Application(tk.Frame):
     def extract_geotiff_from_tarfile(self, file_to_open, mode):
         """If the geotiff image is contained within a .tar file,
         extract the geotiff image from the file"""
+        nextfile = None
         tar = None
         if mode == 1:
             tar = tarfile.open(file_to_open)
@@ -192,17 +194,19 @@ class Application(tk.Frame):
             if (nextfile == None):
                 endreached = True
             else:
-                if (nextfile.name[-4:] == '.tif'):
-                    self.imagefile = nextfile.name
+                if (nextfile.path.endswith('.tif')):
                     endreached = True
-        tar.extract(nextfile)
+        if os.path.isfile(str(Path(file_to_open).parent / nextfile.name)):
+            os.remove(str(Path(file_to_open).parent / nextfile.name))
+        tar.extract(nextfile, path=str(Path(file_to_open).parent))
         tar.close()
+        self.imagefile = Path(file_to_open).parent / nextfile.name
 
     def preview_geotiff(self, mode):
         """Display the geotiff on the canvas of the first tab"""
         try:
             self.starterimg = rasterio.open(self.imagefile)
-            if (self.imagefile[-4:] == '.tif'):
+            if (self.imagefile.suffix == '.tif'):
                 if self.ax:
                     self.ax.clear()
                 else:
@@ -228,23 +232,24 @@ class Application(tk.Frame):
         if (self.imagefile == None or self.imagefile == ""):
             messagebox.showerror(title="NO FILENAME CHOSEN", message="Please choose a valid file")
         else:
-            if (os.getcwd().split("/")[-1] == "tmp"):
+            if (Path(os.getcwd()).name == "tmp"):
                 os.chdir("..")
             """This portion compiles the rillgen2d.c file in order to import it as a module"""
             cmd = "gcc -shared -fPIC rillgen2d.c -o rillgen.so" # compile the c file so that it will be useable later
             self.client_socket.send(subprocess.check_output(cmd, shell=True) + ('\n').encode('utf-8'))
-            if os.path.exists(os.getcwd() + "/tmp"):
-                for filename in os.listdir(os.getcwd() + "/tmp"):
+            path = Path(os.getcwd() + "/tmp")
+            if os.path.exists(path):
+                for filename in os.listdir(path):
                     if os.path.isfile(filename):
                         os.remove(filename)
-                shutil.rmtree(os.getcwd() + "/tmp")
-            os.mkdir(os.getcwd() + "/tmp/")
-            self.filename = os.getcwd() + "/tmp/" + self.imagefile.split("/")[-1]
-            shutil.copyfile(self.imagefile, self.filename)
-            if os.path.exists(self.imagefile + ".aux.xml"):
-                shutil.copyfile(self.imagefile + ".aux.xml", os.getcwd() + "/tmp/" + self.imagefile.split("/")[-1] + ".aux.xml")
-            shutil.copyfile("template_input.txt", os.getcwd() + "/tmp/" + "input.txt")
-            os.chdir(os.getcwd() + "/tmp")
+                shutil.rmtree(path)
+            os.mkdir(path)
+            self.filename = str(path / self.imagefile.name)
+            shutil.copyfile(str(self.imagefile), self.filename)
+            if os.path.exists(str(self.imagefile) + ".aux.xml"):
+                shutil.copyfile(str(self.imagefile) + ".aux.xml", str(path / self.imagefile.stem) + ".aux.xml")
+            shutil.copyfile("template_input.txt", path / "input.txt")
+            os.chdir(str(path))
             
             # Open existing dataset
             self.filename.split("/")[-1]
@@ -749,7 +754,7 @@ class Application(tk.Frame):
         self.client_socket.send(subprocess.check_output(cmd0, shell=True) + ('\n').encode('utf-8'))
         cmd1 = "awk '{print $1, $2}' output_tin.asc > xy.txt"
         self.client_socket.send(subprocess.check_output(cmd1, shell=True) + ('\n').encode('utf-8'))
-        self.rillgen = CDLL('../rillgen.so')
+        self.rillgen = CDLL(str(Path('..') / 'rillgen.so'))
         t1 = Thread(target=self.run_rillgen)
         t1.start()
         still_update = True

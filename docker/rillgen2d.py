@@ -168,9 +168,11 @@ class Application(tk.Frame):
         try: 
             entry1 = str(self.entry1.get())
             if (entry1[-3:] == '.gz'):
+                print("reaching1")
                 file_handler = urllib.urlopen(entry1)
                 self.extract_geotiff_from_tarfile(file_handler, mode=2)
             else: # Given a geotiff image directly from url
+                print("reaching2")
                 raw_data = urllib.urlopen(entry1).read()
                 self.starterimg = rasterio.open(io.BytesIO(raw_data))
         except Exception:

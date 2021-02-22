@@ -155,7 +155,7 @@ class Application(tk.Frame):
         it on the canvas"""
         try:
             self.imagefile = Path(askopenfilename())
-            if (self.imagefile.suffix == '.tar'):
+            if self.imagefile.suffix == '.tar' or self.imagefile.suffix == '.gz':
                 self.extract_geotiff_from_tarfile(self.imagefile, mode=1)
         except:
             messagebox.showerror(title="ERROR", message="Invalid file type. Please select an image file")
@@ -168,12 +168,10 @@ class Application(tk.Frame):
         extract the geotiff image from the url and display it on the canvas """
         try: 
             entry1 = str(self.entry1.get())
-            if (entry1[-3:] == '.gz'):
-                print("reaching1")
+            if entry1.endswith(".gz"):
                 file_handler = urllib.urlopen(entry1)
                 self.extract_geotiff_from_tarfile(file_handler, mode=2)
             else: # Given a geotiff image directly from url
-                print("reaching2")
                 raw_data = urllib.urlopen(entry1).read()
                 self.starterimg = rasterio.open(io.BytesIO(raw_data))
         except Exception:
@@ -194,10 +192,10 @@ class Application(tk.Frame):
         endreached = False
         while(endreached == False):
             nextfile = tar.next()
-            if (nextfile == None):
+            if nextfile == None:
                 endreached = True
             else:
-                if (nextfile.path.endswith('.tif')):
+                if nextfile.path.endswith('.tif'):
                     endreached = True
         if Path(str(Path(file_to_open).parent / nextfile.name)).is_file():
             Path.unlink(Path(file_to_open).parent / nextfile.name)
@@ -209,7 +207,7 @@ class Application(tk.Frame):
         """Display the geotiff on the canvas of the first tab"""
         try:
             self.starterimg = rasterio.open(self.imagefile)
-            if (self.imagefile.suffix == '.tif'):
+            if self.imagefile.suffix == '.tif':
                 if self.ax:
                     self.ax.clear()
                 else:
@@ -232,10 +230,10 @@ class Application(tk.Frame):
     def saveimageastxt(self):
         """Prepares the geotiff file for the rillgen2D code by getting its dimensions (for the input.txt file) and converting it to
         .txt format"""
-        if (self.imagefile == None or self.imagefile == ""):
+        if self.imagefile == None or self.imagefile == "":
             messagebox.showerror(title="NO FILENAME CHOSEN", message="Please choose a valid file")
         else:
-            if (Path.cwd().name == "tmp"):
+            if Path.cwd().name == "tmp":
                 os.chdir("..")
             """This portion compiles the rillgen2d.c file in order to import it as a module"""
             cmd = "gcc -shared -fPIC rillgen2d.c -o rillgen.so" # compile the c file so that it will be useable later
@@ -975,7 +973,7 @@ class Application(tk.Frame):
 
     def saveOutput(self):
         """Save outputs from a run in a timestamp-marked folder"""
-        saveDir = "outputs(save-" + str(datetime.now()).replace(" ", "").replace(":",".") + ")"
+        saveDir = "outputs(save-" + str(datetime.now()).replace(" ", "").replace(":", ".") + ")"
         Path.mkdir(Path.cwd() / '..' / saveDir)
         saveDir = Path.cwd() / '..' / saveDir
         acceptable_files = ["parameters.txt", "input.txt", "map.html", "rills.ppm"]

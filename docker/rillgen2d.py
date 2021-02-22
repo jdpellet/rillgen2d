@@ -886,7 +886,6 @@ class Application(tk.Frame):
                 if ds2 is None:
                     print('Unable to open', elem, 'for writing')
                     sys.exit(1)
-                
                 if geotransform is not None and geotransform != (0, 1, 0, 0, 0, 1):
                     ds2.SetGeoTransform(geotransform)
 

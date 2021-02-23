@@ -69,5 +69,9 @@ root.title("rillgen2D Console")
 Console = Console(root)
 Console.pack(expand=True, fill="both")
 # center window
+<<<<<<< HEAD
 # root.eval('tk::PlaceWindow %s center' % root.winfo_pathname(root.winfo_id()))
+=======
+root.eval('tk::PlaceWindow %s center' % root.winfo_pathname(root.winfo_id()))
+>>>>>>> 2bc0645bdce89788bb1f6136f52bcf7bdf9b974c
 root.mainloop()

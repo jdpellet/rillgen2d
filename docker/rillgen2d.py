@@ -196,11 +196,18 @@ class Application(tk.Frame):
             else:
                 if nextfile.path.endswith('.tif'):
                     endreached = True
-        if Path(str(Path(file_to_open).parent / nextfile.name)).is_file():
-            Path.unlink(Path(file_to_open).parent / nextfile.name)
-        tar.extract(nextfile, path=str(Path(file_to_open).parent))
+        path = ""
+        if mode == 1:
+            path = Path(file_to_open).parent
+        else:
+            path = Path.cwd()
+            if path.as_posix().endswith('tmp'):
+                path = path.parent
+        if Path(str(path / nextfile.name)).is_file():
+            Path.unlink(path / nextfile.name)
+        tar.extract(nextfile, path=str(path))
         tar.close()
-        self.imagefile = Path(file_to_open).parent / nextfile.name
+        self.imagefile = path / nextfile.name
 
     def preview_geotiff(self, mode):
         """Display the geotiff on the canvas of the first tab"""
@@ -974,8 +981,8 @@ class Application(tk.Frame):
     def saveOutput(self):
         """Save outputs from a run in a timestamp-marked folder"""
         saveDir = "outputs(save-" + str(datetime.now()).replace(" ", "").replace(":", ".") + ")"
-        Path.mkdir(Path.cwd() / '..' / saveDir)
-        saveDir = Path.cwd() / '..' / saveDir
+        Path.mkdir(Path.cwd().parent / saveDir)
+        saveDir = Path.cwd().parent / saveDir
         acceptable_files = ["parameters.txt", "input.txt", "map.html", "rills.ppm"]
         for fname in Path.cwd().iterdir():
             file_name = fname.name

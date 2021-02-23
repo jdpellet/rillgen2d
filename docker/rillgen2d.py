@@ -1032,7 +1032,6 @@ class Application(tk.Frame):
         main_window = MainWindow()
         main_window.show()
         app.exec_()
-        
 
 if __name__ == "__main__":
     root=tk.Tk()

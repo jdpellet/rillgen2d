@@ -89,15 +89,15 @@ class Application(tk.Frame):
         host/client structure with rillgen2d.py as the host and console.py as the
         client"""
 
+        Popen([sys.executable, "console.py"], universal_newlines=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
         port = 5000  # initiate port no above 1024
         self.socket = socket()  # get instance
         self.socket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1) # allows for a port to be used
         # even if it was previously being used
         # look closely. The bind() function takes tuple as argument
-        self.socket.bind(("", port))  # bind host address and port together
+        self.socket.bind(('', port))  # bind host address and port together
+
         # configure how many client the server can listen simultaneously
-        # subprocess.run([sys.executable, "console.py"], check=True)
-        Popen([sys.executable, "console.py"], universal_newlines=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
         self.socket.listen(3)
         self.client_socket, address = self.socket.accept()  # accept new connection
         self.client_socket.send(("Connection from: " + str(address) + "\n\n").encode('utf-8'))
@@ -197,11 +197,18 @@ class Application(tk.Frame):
             else:
                 if nextfile.path.endswith('.tif'):
                     endreached = True
-        if Path(str(Path(file_to_open).parent / nextfile.name)).is_file():
-            Path.unlink(Path(file_to_open).parent / nextfile.name)
-        tar.extract(nextfile, path=str(Path(file_to_open).parent))
+        path = ""
+        if mode == 1:
+            path = Path(file_to_open).parent
+        else:
+            path = Path.cwd()
+            if path.as_posix().endswith('tmp'):
+                path = path.parent
+        if Path(str(path / nextfile.name)).is_file():
+            Path.unlink(path / nextfile.name)
+        tar.extract(nextfile, path=str(path))
         tar.close()
-        self.imagefile = Path(file_to_open).parent / nextfile.name
+        self.imagefile = path / nextfile.name
 
     def preview_geotiff(self, mode):
         """Display the geotiff on the canvas of the first tab"""
@@ -247,6 +254,9 @@ class Application(tk.Frame):
             if Path(str(self.imagefile) + ".aux.xml").exists():
                 shutil.copyfile(str(self.imagefile) + ".aux.xml", str(path / self.imagefile.stem) + ".aux.xml")
             shutil.copyfile("template_input.txt", path / "input.txt")
+            for fname in Path.cwd().iterdir():
+                if fname.suffix == ".tif":
+                    Path(fname).unlink()
             os.chdir(str(path))
             
             # Open existing dataset
@@ -862,6 +872,7 @@ class Application(tk.Frame):
             if int(osgeo.__version__[0]) >= 3:
                 # GDAL 3 changes axis order: https://github.com/OSGeo/gdal/issues/1546
                 src_srs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+
             proj = ds.GetProjection()
             src_srs.ImportFromWkt(proj)
             tgt_srs = src_srs.CloneGeogCS()
@@ -884,6 +895,7 @@ class Application(tk.Frame):
                 if ds2 is None:
                     print('Unable to open', elem, 'for writing')
                     sys.exit(1)
+
                 if geotransform is not None and geotransform != (0, 1, 0, 0, 0, 1):
                     ds2.SetGeoTransform(geotransform)
 
@@ -974,8 +986,8 @@ class Application(tk.Frame):
     def saveOutput(self):
         """Save outputs from a run in a timestamp-marked folder"""
         saveDir = "outputs(save-" + str(datetime.now()).replace(" ", "").replace(":", ".") + ")"
-        Path.mkdir(Path.cwd() / '..' / saveDir)
-        saveDir = Path.cwd() / '..' / saveDir
+        Path.mkdir(Path.cwd().parent / saveDir)
+        saveDir = Path.cwd().parent / saveDir
         acceptable_files = ["parameters.txt", "input.txt", "map.html", "rills.ppm"]
         for fname in Path.cwd().iterdir():
             file_name = fname.name

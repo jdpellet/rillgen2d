@@ -249,10 +249,14 @@ class Application(tk.Frame):
                 shutil.rmtree(path.as_posix())
             Path.mkdir(path)
             self.filename = str(path / self.imagefile.name)
+            print("self.imagefile is:", self.imagefile)
             shutil.copyfile(str(self.imagefile), self.filename)
             if Path(str(self.imagefile) + ".aux.xml").exists():
                 shutil.copyfile(str(self.imagefile) + ".aux.xml", str(path / self.imagefile.stem) + ".aux.xml")
             shutil.copyfile("template_input.txt", path / "input.txt")
+            for fname in Path.cwd().iterdir():
+                if fname.suffix == ".tif":
+                    Path(fname).unlink()
             os.chdir(str(path))
             
             # Open existing dataset

@@ -56,6 +56,7 @@ class Application(tk.Frame):
         self.starterimg = None  # This is the image to be displayed in the input_dem tab
         self.hydrologic_popup = None  # This is the popup that comes up during the hydrologic correction step 
         self.can_redraw = None  # Used to redraw the canvas in the view_output tab
+        self.rillgen = None  # Used to import the rillgen.c code
         self.style = ttk.Style(root)
         self.style.layout('text.Horizontal.TProgressbar',
                     [('Horizontal.Progressbar.trough',
@@ -88,7 +89,6 @@ class Application(tk.Frame):
         """Handles the connection between rillgen2d.py and console.py by making a
         host/client structure with rillgen2d.py as the host and console.py as the
         client"""
-
         Popen([sys.executable, "console.py"], universal_newlines=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
         port = 5000  # initiate port no above 1024
         self.socket = socket()  # get instance
@@ -243,8 +243,9 @@ class Application(tk.Frame):
             if Path.cwd().name == "tmp":
                 os.chdir("..")
             """This portion compiles the rillgen2d.c file in order to import it as a module"""
-            cmd = "gcc -shared -fPIC rillgen2d.c -o rillgen.so" # compile the c file so that it will be useable later
-            self.client_socket.send(subprocess.check_output(cmd, shell=True) + ('\n').encode('utf-8'))
+            if self.rillgen == None:
+                cmd = "gcc -shared -fPIC rillgen2d.c -o rillgen.so" # compile the c file so that it will be useable later
+                self.client_socket.send(subprocess.check_output(cmd, shell=True) + ('\n').encode('utf-8'))
             path = Path.cwd() / "tmp"
             if path.exists():
                 shutil.rmtree(path.as_posix())
@@ -262,7 +263,6 @@ class Application(tk.Frame):
             # Open existing dataset
             self.client_socket.send(("Filename is: " + Path(self.filename).name + "\n\n").encode('utf-8'))
             self.client_socket.send(("Saving the image as .txt...\n\n").encode('utf-8'))
-
             self.src_ds = gdal.Open(self.filename)
             band = self.src_ds.GetRasterBand(1)
             arr = band.ReadAsArray()
@@ -283,6 +283,7 @@ class Application(tk.Frame):
             dst_ds = driver.CreateCopy( "input_dem.asc", self.src_ds, 0 )
 
             # Properly close the datasets to flush to disk
+            self.src_ds = None
             dst_ds = None
 
             # Create the `.txt` with `awk` but in Python using `os` call:
@@ -599,6 +600,7 @@ class Application(tk.Frame):
             self.canvas2.pack(side="left", fill="both", expand=True)
         
         self.first_time_populating_parameters_tab = False
+        f.close()
         # The width of rills (in m) as they begin to form. This value is used to localize water flow to a width less than the width of a pixel. 
         # For example, if deltax = 1 m and rillwidth = 20 cm then the flow entering each pixel is assumed, for the purposes of rill development, to be localized in a width equal to one fifth of the pixel width.
         ########################### ^MAIN TAB^ ###########################
@@ -651,6 +653,7 @@ class Application(tk.Frame):
         f.write(self.cInput.get().replace("\n", "") + '\t /* c out */ \n')
         f.write(self.rillwidthInput.get().replace("\n", "") + '\t /* rill width out */ \n')
         self.client_socket.send(("Generated parameters.txt\n\n").encode('utf-8'))
+        f.close()
 
     
     def generate_input_txt_file(self):
@@ -729,6 +732,7 @@ class Application(tk.Frame):
         cmd1 = "gdaldem color-relief " + self.filename + " color-relief.txt color-relief.png"
         self.client_socket.send(subprocess.check_output(cmd1, shell=True) + ('\n').encode('utf-8'))
         self.client_socket.send(("Hillshade and color relief generated\n\n").encode('utf-8'))
+        gtif = None
 
     def make_popup(self):
         self.hydrologic_popup = tk.Toplevel(root)
@@ -762,7 +766,8 @@ class Application(tk.Frame):
         self.client_socket.send(subprocess.check_output(cmd0, shell=True) + ('\n').encode('utf-8'))
         cmd1 = "awk '{print $1, $2}' output_tin.asc > xy.txt"
         self.client_socket.send(subprocess.check_output(cmd1, shell=True) + ('\n').encode('utf-8'))
-        self.rillgen = CDLL(str(Path('..') / 'rillgen.so'))
+        if self.rillgen == None:
+            self.rillgen = CDLL(str(Path('..') / 'rillgen.so'))
         t1 = Thread(target=self.run_rillgen)
         t1.start()
         still_update = True
@@ -872,7 +877,6 @@ class Application(tk.Frame):
             if int(osgeo.__version__[0]) >= 3:
                 # GDAL 3 changes axis order: https://github.com/OSGeo/gdal/issues/1546
                 src_srs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
-
             proj = ds.GetProjection()
             src_srs.ImportFromWkt(proj)
             tgt_srs = src_srs.CloneGeogCS()
@@ -895,7 +899,7 @@ class Application(tk.Frame):
                 if ds2 is None:
                     print('Unable to open', elem, 'for writing')
                     sys.exit(1)
-
+                
                 if geotransform is not None and geotransform != (0, 1, 0, 0, 0, 1):
                     ds2.SetGeoTransform(geotransform)
 
@@ -1032,6 +1036,7 @@ class Application(tk.Frame):
         main_window = MainWindow()
         main_window.show()
         app.exec_()
+
 
 if __name__ == "__main__":
     root=tk.Tk()

@@ -53,7 +53,11 @@ class Console(tk.Frame):
         port = 5000  # socket server port number
 
         client_socket = socket()  # instantiate
+<<<<<<< HEAD
         client_socket.connect(('', port))  # connect to the server
+=======
+        client_socket.connect(("127.0.0.1", port))  # connect to the server
+>>>>>>> 642956999db3a8ee2ea1c6d3cc8b6b0a105cea70
 
         while True:
             data = client_socket.recv(1024).decode()  # receive response

@@ -13,13 +13,13 @@ import matplotlib.pyplot as plt
 import osgeo
 import PIL
 import rasterio
-
-from ctypes import *
+from ctypes import CDLL
 from datetime import datetime
 from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg)
 from matplotlib.figure import Figure
 from osgeo import gdal, osr
+from pathlib import Path
 from PIL import ImageTk
 from PyQt5 import QtWidgets, QtWebEngineWidgets, QtCore
 from PyQt5.QtWidgets import QApplication, QMessageBox, QMainWindow
@@ -152,8 +152,8 @@ class Application(tk.Frame):
         """Given a geotiff image, either in .tar format or directly, extract the image and display
         it on the canvas"""
         try:
-            self.imagefile = askopenfilename()
-            if (str(self.imagefile)[-4:] == '.tar'):
+            self.imagefile = Path(askopenfilename())
+            if self.imagefile.suffix == '.tar' or self.imagefile.suffix == '.gz':
                 self.extract_geotiff_from_tarfile(self.imagefile, mode=1)
         except:
             messagebox.showerror(title="ERROR", message="Invalid file type. Please select an image file")
@@ -166,7 +166,7 @@ class Application(tk.Frame):
         extract the geotiff image from the url and display it on the canvas """
         try: 
             entry1 = str(self.entry1.get())
-            if (entry1[-3:] == '.gz'):
+            if entry1.endswith(".gz"):
                 file_handler = urllib.urlopen(entry1)
                 self.extract_geotiff_from_tarfile(file_handler, mode=2)
             else: # Given a geotiff image directly from url
@@ -181,6 +181,7 @@ class Application(tk.Frame):
     def extract_geotiff_from_tarfile(self, file_to_open, mode):
         """If the geotiff image is contained within a .tar file,
         extract the geotiff image from the file"""
+        nextfile = None
         tar = None
         if mode == 1:
             tar = tarfile.open(file_to_open)
@@ -189,20 +190,29 @@ class Application(tk.Frame):
         endreached = False
         while(endreached == False):
             nextfile = tar.next()
-            if (nextfile == None):
+            if nextfile == None:
                 endreached = True
             else:
-                if (nextfile.name[-4:] == '.tif'):
-                    self.imagefile = nextfile.name
+                if nextfile.path.endswith('.tif'):
                     endreached = True
-        tar.extract(nextfile)
+        path = ""
+        if mode == 1:
+            path = Path(file_to_open).parent
+        else:
+            path = Path.cwd()
+            if path.as_posix().endswith('tmp'):
+                path = path.parent
+        if Path(str(path / nextfile.name)).is_file():
+            Path.unlink(path / nextfile.name)
+        tar.extract(nextfile, path=str(path))
         tar.close()
+        self.imagefile = path / nextfile.name
 
     def preview_geotiff(self, mode):
         """Display the geotiff on the canvas of the first tab"""
         try:
             self.starterimg = rasterio.open(self.imagefile)
-            if (self.imagefile[-4:] == '.tif'):
+            if self.imagefile.suffix == '.tif':
                 if self.ax:
                     self.ax.clear()
                 else:
@@ -225,30 +235,30 @@ class Application(tk.Frame):
     def saveimageastxt(self):
         """Prepares the geotiff file for the rillgen2D code by getting its dimensions (for the input.txt file) and converting it to
         .txt format"""
-        if (self.imagefile == None or self.imagefile == ""):
+        if self.imagefile == None or self.imagefile == "":
             messagebox.showerror(title="NO FILENAME CHOSEN", message="Please choose a valid file")
         else:
-            if (os.getcwd().split("/")[-1] == "tmp"):
+            if Path.cwd().name == "tmp":
                 os.chdir("..")
             """This portion compiles the rillgen2d.c file in order to import it as a module"""
             cmd = "gcc -shared -fPIC rillgen2d.c -o rillgen.so" # compile the c file so that it will be useable later
             self.client_socket.send(subprocess.check_output(cmd, shell=True) + ('\n').encode('utf-8'))
-            if os.path.exists(os.getcwd() + "/tmp"):
-                for filename in os.listdir(os.getcwd() + "/tmp"):
-                    if os.path.isfile(filename):
-                        os.remove(filename)
-                shutil.rmtree(os.getcwd() + "/tmp")
-            os.mkdir(os.getcwd() + "/tmp/")
-            self.filename = os.getcwd() + "/tmp/" + self.imagefile.split("/")[-1]
-            shutil.copyfile(self.imagefile, self.filename)
-            if os.path.exists(self.imagefile + ".aux.xml"):
-                shutil.copyfile(self.imagefile + ".aux.xml", os.getcwd() + "/tmp/" + self.imagefile.split("/")[-1] + ".aux.xml")
-            shutil.copyfile("template_input.txt", os.getcwd() + "/tmp/" + "input.txt")
-            os.chdir(os.getcwd() + "/tmp")
+            path = Path.cwd() / "tmp"
+            if path.exists():
+                shutil.rmtree(path.as_posix())
+            Path.mkdir(path)
+            self.filename = str(path / self.imagefile.name)
+            shutil.copyfile(str(self.imagefile), self.filename)
+            if Path(str(self.imagefile) + ".aux.xml").exists():
+                shutil.copyfile(str(self.imagefile) + ".aux.xml", str(path / self.imagefile.stem) + ".aux.xml")
+            shutil.copyfile("template_input.txt", path / "input.txt")
+            for fname in Path.cwd().iterdir():
+                if fname.suffix == ".tif":
+                    Path(fname).unlink()
+            os.chdir(str(path))
             
             # Open existing dataset
-            self.filename.split("/")[-1]
-            self.client_socket.send(("Filename is: " + self.filename.split("/")[-1] + "\n\n").encode('utf-8'))
+            self.client_socket.send(("Filename is: " + Path(self.filename).name + "\n\n").encode('utf-8'))
             self.client_socket.send(("Saving the image as .txt...\n\n").encode('utf-8'))
 
             self.src_ds = gdal.Open(self.filename)
@@ -608,9 +618,9 @@ class Application(tk.Frame):
 
     def generate_parameters(self):
         """Generate the parameters.txt file using the flags from the second tab"""
-
-        if os.path.isfile('parameters.txt'):
-            os.remove('parameters.txt')
+        path = Path.cwd() / 'parameters.txt'
+        if path.exists():
+            Path.unlink(path)
         f = open('parameters.txt', 'w+')
         f.write(str(self.flagformaskVar.get()) + '\t /* Flag for mask out */ \n')
         f.write(str(self.flagforslopeVar.get())+ '\t /* Flag for slope out */ \n')
@@ -652,8 +662,9 @@ class Application(tk.Frame):
         if self.t1 != None:
             self.t1.join()
             self.t1 = None
-        if os.path.isfile('input.txt'):
-            os.remove('input.txt')
+        path = Path.cwd() / 'input.txt'
+        if path.exists():
+            Path.unlink(path)
         f = open('input.txt', 'w')
         f.write(str(self.flagformaskVar.get())+'\n') 
         f.write(str(self.flagforslopeVar.get())+'\n')
@@ -749,7 +760,7 @@ class Application(tk.Frame):
         self.client_socket.send(subprocess.check_output(cmd0, shell=True) + ('\n').encode('utf-8'))
         cmd1 = "awk '{print $1, $2}' output_tin.asc > xy.txt"
         self.client_socket.send(subprocess.check_output(cmd1, shell=True) + ('\n').encode('utf-8'))
-        self.rillgen = CDLL('../rillgen.so')
+        self.rillgen = CDLL(str(Path('..') / 'rillgen.so'))
         t1 = Thread(target=self.run_rillgen)
         t1.start()
         still_update = True
@@ -791,8 +802,8 @@ class Application(tk.Frame):
             self.frame3 = tk.Frame(self.canvas3)
             self.view_output_window = self.canvas3.create_window((0,0), window=self.frame3, anchor="nw")
 
-        self.canvas3bg = PIL.Image.open(os.getcwd() + "/hillshade.png")
-        self.canvas3fg = PIL.Image.open(os.getcwd() + "/color-relief.png")
+        self.canvas3bg = PIL.Image.open(Path.cwd().as_posix() + "/hillshade.png")
+        self.canvas3fg = PIL.Image.open(Path.cwd().as_posix() + "/color-relief.png")
         self.bgcpy = self.canvas3bg.copy()
         self.fgcpy = self.canvas3fg.copy()
         self.bgcpy = self.bgcpy.convert("RGBA")
@@ -803,7 +814,7 @@ class Application(tk.Frame):
         self.canvas3.blended_image.save("background.png")
         cmd = "gdal_translate background.png background.jpg -of JPEG" # some tkinter versions do not support .png images
         self.client_socket.send(subprocess.check_output(cmd, shell=True) + ('\n').encode('utf-8'))
-        self.img3 = PIL.Image.open(os.getcwd() + "/background.jpg")
+        self.img3 = PIL.Image.open(Path.cwd().as_posix() + "/background.jpg")
         self.img3 = self.img3.resize((self.canvas3.width, self.canvas3.height))
         self.canvas3img = ImageTk.PhotoImage(self.img3)
         self.client_socket.send(("Preview Complete\n\n").encode('utf-8'))
@@ -849,7 +860,7 @@ class Application(tk.Frame):
         """Sets the georeferencing information for f.tif and tau.tif to be the same as that
         from the original geotiff file"""
         self.client_socket.send(("Setting georeferencing information\n\n").encode('utf-8'))
-        if self.filename != None and os.path.isfile(self.filename):
+        if self.filename != None and Path(self.filename).exists():
             ds = gdal.Open(self.filename)
             gt=ds.GetGeoTransform()
             cols = ds.RasterXSize
@@ -911,7 +922,7 @@ class Application(tk.Frame):
 
     def convert_ppm(self):
         """Convert the rills.ppm file to png so that it can be displayed on the map"""
-        if not os.path.isfile("rills.ppm"):
+        if not Path("rills.ppm").exists():
             self.client_socket.send(("Unable to open rills.ppm for writing\n\n").encode('utf-8'))
         else:
             self.client_socket.send(("Translating rills.ppm to .png\n\n").encode('utf-8'))
@@ -971,19 +982,21 @@ class Application(tk.Frame):
 
     def saveOutput(self):
         """Save outputs from a run in a timestamp-marked folder"""
-        saveDir = "../outputs(save-" + str(datetime.now()).replace(" ", "") + ")"
-        os.mkdir(saveDir)
-        src_files = os.listdir(os.getcwd())
+        saveDir = "outputs(save-" + str(datetime.now()).replace(" ", "").replace(":", ".") + ")"
+        Path.mkdir(Path.cwd().parent / saveDir)
+        saveDir = Path.cwd().parent / saveDir
         acceptable_files = ["parameters.txt", "input.txt", "map.html", "rills.ppm"]
-        for file_name in src_files:
+        for fname in Path.cwd().iterdir():
+            file_name = fname.name
             if file_name in acceptable_files or (file_name.endswith(".png") or file_name.endswith(".tif")):
-                shutil.copy(file_name, saveDir + "/" + file_name)
-        shutil.copy(self.filename, saveDir + "/" + self.filename.split("/")[-1])
+                shutil.copy(file_name, saveDir / file_name)
+        shutil.copy(self.filename, saveDir / Path(self.filename).name)
 
     
     def displayMap(self):
         """Uses the map.html file to generate a folium map using QtWidgets.QWebEngineView()"""
-        mapfile = QtCore.QUrl.fromLocalFile(os.path.abspath("map.html"))
+        if Path("map.html").exists():
+            mapfile = QtCore.QUrl.fromLocalFile(Path("map.html").resolve().as_posix())
         if self.app == None:
             self.app = QtWidgets.QApplication([])
 
@@ -1016,15 +1029,13 @@ class Application(tk.Frame):
         main_window = MainWindow()
         main_window.show()
         app.exec_()
-        
-
 
 
 if __name__ == "__main__":
     root=tk.Tk()
     root.resizable(True, True)
     root.title("rillgen2D")
-    if os.path.isfile('template_input.txt'):
+    if Path('template_input.txt').is_file():
         example = Application(root)
         example.pack(side="top", fill="both", expand=True)
         root.mainloop()

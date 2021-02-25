@@ -299,6 +299,7 @@ class Application(tk.Frame):
             if self.first_time_populating_parameters_tab == True:
                 self.tabControl.add(self.tab2, text="Parameters")
                 self.tabControl.pack(expand=1, fill="both")
+            self.client_socket.send(("Image saved\n\n").encode('utf-8'))
 
     def populate_parameters_tab(self):
         """Populate the second tab in the application with tkinter widgets. This tab holds editable parameters
@@ -767,7 +768,7 @@ class Application(tk.Frame):
         cmd1 = "awk '{print $1, $2}' output_tin.asc > xy.txt"
         self.client_socket.send(subprocess.check_output(cmd1, shell=True) + ('\n').encode('utf-8'))
         if self.rillgen == None:
-            self.rillgen = CDLL(str(Path('..') / 'rillgen.so'))
+            self.rillgen = CDLL(str(Path.cwd().parent / 'rillgen.so'))
         t1 = Thread(target=self.run_rillgen)
         t1.start()
         still_update = True

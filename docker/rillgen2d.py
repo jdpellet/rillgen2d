@@ -13,10 +13,6 @@ import matplotlib.pyplot as plt
 import osgeo
 import PIL
 import rasterio
-<<<<<<< HEAD
-=======
-
->>>>>>> windows-updates
 from ctypes import CDLL
 from datetime import datetime
 from matplotlib.backends.backend_tkagg import (

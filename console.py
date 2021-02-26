@@ -6,7 +6,7 @@ import os
 import sys
 
 from itertools import islice
-from socket import *
+from socket import socket
 from textwrap import dedent
 from threading import Thread
 from tkinter.scrolledtext import ScrolledText

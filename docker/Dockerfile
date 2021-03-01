@@ -12,8 +12,8 @@ RUN apt-get update && \
         g++    
 COPY . /root/
 RUN conda update -n base -c defaults conda && \
-    cd && \
-    conda env create -f ../environment_linux.yml
+    cd root && \
+    conda env create -f environment_linux.yml
 # Make RUN commands use the new environment:
 SHELL ["conda", "run", "-n", "rillgen", "/bin/bash", "-c"]
 WORKDIR /root

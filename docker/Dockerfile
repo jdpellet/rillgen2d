@@ -10,9 +10,7 @@ RUN apt-get update && \
         libgdal-dev  \
         gcc \
         g++ \
-        ffmpeg \
-        libsm6 \
-        libxext6
+        libgl1-mesa-glx
 COPY . /root/
 RUN conda update -n base -c defaults conda && \
     cd root && \

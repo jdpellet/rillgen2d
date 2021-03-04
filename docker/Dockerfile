@@ -9,11 +9,7 @@ RUN apt-get update && \
         gdal-bin   \
         libgdal-dev  \
         gcc \
-        g++ \
-        libselinux1 \
-        python3-pyqt5 \
-        pyqt5-dev-tools \
-        qttools5-dev-tools
+        g++
 COPY . /root/
 RUN conda update -n base -c defaults conda && \
     cd root && \

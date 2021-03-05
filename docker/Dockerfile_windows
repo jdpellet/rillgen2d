@@ -15,6 +15,6 @@ RUN conda update -n base -c defaults conda && \
     cd root && \
     conda env create -f environment_windows.yml
 # Make RUN commands use the new environment:
-SHELL ["conda", "run", "-n", "rillgen", "/bin/bash", "-c"]
+SHELL ["conda", "run", "-n", "rillgen2d", "/bin/bash", "-c"]
 WORKDIR /root
-ENTRYPOINT ["conda", "run", "-n", "rillgen", "python", "rillgen2d.py"]
+ENTRYPOINT ["conda", "run", "-n", "rillgen2d", "python", "rillgen2d.py"]

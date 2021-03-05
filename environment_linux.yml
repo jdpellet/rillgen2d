@@ -150,7 +150,7 @@ dependencies:
   - tbb
   - tiledb
   - tk
-  - tornadod
+  - tornado
   - tzcode
   - urllib3
   - wand

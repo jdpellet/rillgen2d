@@ -9,7 +9,15 @@ RUN apt-get update && \
         gdal-bin   \
         libgdal-dev  \
         gcc \
-        g++
+        g++ \
+        libgl1-mesa-dev \
+        libxcomposite-dev \
+        libxcursor1 \
+        libxi6 \
+        libxtst6 \
+        libxss1 \
+        libpci-dev \
+        libasound2
 COPY . /root/
 RUN conda update -n base -c defaults conda && \
     cd root && \

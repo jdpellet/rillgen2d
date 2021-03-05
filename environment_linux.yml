@@ -145,11 +145,12 @@ dependencies:
   - setuptools
   - six
   - snuggs
+  - socat
   - sqlite
   - tbb
   - tiledb
   - tk
-  - tornado
+  - tornadod
   - tzcode
   - urllib3
   - wand

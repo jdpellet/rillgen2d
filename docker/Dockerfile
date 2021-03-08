@@ -10,7 +10,9 @@ RUN apt-get update && \
         libgdal-dev  \
         gcc \
         g++ \
+        mesa-utils \
         libgl1-mesa-dev \
+        libgl1-mesa-glx \
         libxcomposite-dev \
         libxcursor1 \
         libxi6 \

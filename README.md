@@ -55,3 +55,13 @@ Alternately, you can run the entire program with [Docker]()
 
 ## Note:
 On Linux in the Parameters tab values may appear with a newline character '\n' at the end
+
+# Docker run command:
+
+Mac: 1.) run brew -a xquartz, go to xquartz preferences, and from the "Security" tab, make sure that "Allow connections from network clients" is selected. If it is not, then select it and restart xquartz
+
+2.) socat TCP-LISTEN:6000,reuseaddr,fork UNIX-CLIENT:\"$DISPLAY\"
+
+3.)docker run --rm -it -e DISPLAY=docker.for.mac.host.internal:0 rillgen2d:latest
+
+Linux: 1.) docker run --rm -it -e DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix rillgen2d:latest

@@ -1,4 +1,3 @@
-// #include<malloc.h>
 #include<stdio.h>
 #include<stdlib.h>
 #include<math.h>
@@ -363,8 +362,8 @@ int main()
 	 fscanf(fpin,"%d",&flagforrain);
 	 fscanf(fpin,"%d",&flagfortaucsoilandveg);
 	 fscanf(fpin,"%d",&flagford50); 
-	 fscanf(fpin,"%d",&flagforcu);
-	 fscanf(fpin,"%d",&flagforthickness);
+	//  fscanf(fpin,"%d",&flagforcu);
+	//  fscanf(fpin,"%d",&flagforthickness);
 	 fscanf(fpin,"%d",&flagforrockcover);
 	 fscanf(fpin,"%f",&fillincrement);
 	 fscanf(fpin,"%f",&threshslope); 
@@ -376,11 +375,11 @@ int main()
      fscanf(fpin,"%f",&rainfixed);	 
 	 fscanf(fpin,"%f",&taucsoilandvegfixed);
 	 fscanf(fpin,"%f",&d50fixed);
-	 fscanf(fpin,"%f",&cufixed);
-     fscanf(fpin,"%f",&thicknessfixed);
+	//  fscanf(fpin,"%f",&cufixed);
+    //  fscanf(fpin,"%f",&thicknessfixed);
      fscanf(fpin,"%f",&rockcoverfixed);  
 	 fscanf(fpin,"%f",&tanangleofinternalfriction); 
-	 fscanf(fpin,"%f",&reducedspecificgravity); 
+	//  fscanf(fpin,"%f",&reducedspecificgravity); 
 	 fscanf(fpin,"%f",&b);
 	 fscanf(fpin,"%f",&c);
      fscanf(fpin,"%f",&rillwidth);	 

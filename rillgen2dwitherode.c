@@ -239,7 +239,7 @@ void hydrologiccorrection()
 	 while (count==stacksize)
 	  {count=0;
        for (j=1;j<=lattice_size_y;j++)
-	   {if (j%(lattice_size_y/10)==0) printf("%ld ",10*j/(lattice_size_y/10));
+	   {
         for (i=1;i<=lattice_size_x;i++)
 	     {push(i,j);
 		  numprocesses++;
@@ -349,7 +349,7 @@ int main()
      fscanf(fpin,"%f",&rainfixed);	 
 	 fscanf(fpin,"%f",&taucsoilandvegfixed);
 	 fscanf(fpin,"%f",&d50fixed);
-     fscanf(fpin,"%f",&rockcoverfixed);  
+     fscanf(fpin,"%f",&rockcoverfixed);
 	 fscanf(fpin,"%f",&tanangleofinternalfriction); 
 	 fscanf(fpin,"%f",&b);
 	 fscanf(fpin,"%f",&c);

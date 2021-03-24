@@ -53,7 +53,9 @@ class Application(tk.Frame):
         self.socket = None  # socket for the connection between rillgen2d.py and console.py; host socket
         self.client_socket = None # socket for the connection between rillgen2d.py and console.py; client socket
         self.starterimg = None  # This is the image to be displayed in the input_dem tab
-        self.hydrologic_popup = None  # This is the popup that comes up during the hydrologic correction step 
+        self.popup = None  # This is the popup that comes up during the hydrologic correction step 
+        self.popupLabel = None
+        self.dynamic_mode_popup = None
         self.can_redraw = None  # Used to redraw the canvas in the view_output tab
         self.rillgen = None  # Used to import the rillgen.c code
         self.style = ttk.Style(root)
@@ -804,18 +806,23 @@ class Application(tk.Frame):
         self.client_socket.send(("Hillshade and color relief generated\n\n").encode('utf-8'))
         gtif = None
 
-    def make_popup(self):
-        self.hydrologic_popup = tk.Toplevel(root)
-        popupLabel = tk.Label(self.hydrologic_popup, text="hydrologic correction step in progress")
-        popupLabel.pack(side=tk.TOP)
-        self.progress_bar = ttk.Progressbar(self.hydrologic_popup, orient=HORIZONTAL, length=300, mode='determinate', maximum=100, style='text.Horizontal.TProgressbar')
+    def make_popup(self, mode):
+        if mode == 1:
+            self.popup = tk.Toplevel(root)
+            self.popupLabel = tk.Label(self.popup, text="hydrologic correction step in progress")
+            self.popupLabel.pack(side=tk.TOP)
+            self.progress_bar = ttk.Progressbar(self.popup, orient=HORIZONTAL, length=300, mode='determinate', maximum=100, style='text.Horizontal.TProgressbar')
+        else:
+            self.popupLabel.configure(text="dynamic mode in progress")
+            self.popupLabel.update()
+        
         # get screen width and height
         ws = root.winfo_screenwidth()
         hs = root.winfo_screenheight()
         # calculate position x, y
         x = (ws/2) - (350/2)    
         y = (hs/2) - (75/2)
-        self.hydrologic_popup.geometry('%dx%d+%d+%d' % (350, 75, x, y))
+        self.popup.geometry('%dx%d+%d+%d' % (350, 75, x, y))
         self.progress_bar.pack(fill=tk.X, expand=1, side=tk.BOTTOM)
 
     def update_progressbar(self, value):
@@ -830,8 +837,9 @@ class Application(tk.Frame):
     def setup_rillgen(self):
         """Sets up files for the rillgen.c code by creating topo.txt and xy.txt, and
         imports the rillgen.c code using the CDLL library"""
+        mode = 1
         self.client_socket.send(("Running rillgen.c...\n\n").encode('utf-8'))
-        self.make_popup()
+        self.make_popup(mode)
         cmd0 = "awk '{print $3}' output_tin.asc > topo.txt"
         self.client_socket.send(subprocess.check_output(cmd0, shell=True) + ('\n').encode('utf-8'))
         cmd1 = "awk '{print $1, $2}' output_tin.asc > xy.txt"
@@ -843,17 +851,29 @@ class Application(tk.Frame):
         still_update = True
         self.client_socket.send(("Starting hydrologic correction step...\n\n").encode('utf-8'))
         while still_update:
-            currentPercentage = self.rillgen.percentage()
+            if mode == 1:
+                currentPercentage = self.rillgen.percentage()
+            else:
+                currentPercentage = self.rillgen.dynamic_percentage()
             if currentPercentage == 0:
                 time.sleep(0.5)
             elif currentPercentage < 100:
                 self.update_progressbar(currentPercentage)
+                
                 time.sleep(0.5)
             else:
                 self.update_progressbar(100)
-                self.client_socket.send(("Hydrologic correction step completed. Creating outputs...\n\n").encode('utf-8'))
-                self.hydrologic_popup.destroy()
-                still_update = False
+                if mode == 1:
+                    self.client_socket.send(("Hydrologic correction step completed.\n\n").encode('utf-8'))
+                    mode = 2
+                    currentPercentage = 0
+                    self.update_progressbar(currentPercentage)
+                    self.client_socket.send(("Starting dynamic mode...\n\n").encode('utf-8'))
+                    self.make_popup(mode)
+                else: 
+                    self.popup.destroy()
+                    self.client_socket.send(("Dynamic mode completed. Creating outputs...\n\n").encode('utf-8'))
+                    still_update = False
         t1.join()
         
 

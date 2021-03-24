@@ -13,7 +13,7 @@
 #define small 1.e-12
 #define mfdweight 1.1
 
-long count,numprocesses,*topovecind,*slopevecind,*flatis,*flatjs,*iup,*idown,*jup,*jdown,lattice_size_x,lattice_size_y,ic,jc;
+long count,numprocesses,*topovecind,*slopevecind,*flatis,*flatjs,*iup,*idown,*jup,*jdown,lattice_size_x,lattice_size_y,ic,jc,m,n;
 int flagfordynamicmode,numberofraindata,numberofraingages,**closestgage,expansion,numberofdatapoints,flagforequation,flagfordynamicmode,flagformask,flagforslope,flagford50,flagfortaucsoilandveg,flagforrain,flagforcu,flagforthickness,flagforrockcover,**mask;
 float oneoverdeltax,durationofdata,ulx,uly,*raingagex,*raingagey,dist,mindist,*rainvalues,durationofdata,threshslope,**rain,**d50,**cu,**thickness,**rockcover,**taucsoilandveg,**tau,**angle,**topo,**topo2,**slope,**area,flow1,flow2,flow3,flow4,flow5,flow6,flow7,flow8,*slopevec,*topovec,fillincrement,**inciseddepth,**f,**f2,slopex,slopey,deltax,yellowthreshold,rillwidth,reducedspecificgravity,rainfixed,b,c,d50fixed,rockcoverfixed,bulkdensity,timescaleofinterest,durationofdata,rillerodibility,thicknessofsoil,tanangleofinternalfriction,taucsoilandvegfixed,**sinofslope,**avsinofslope,**cosofslopeterm,**taucarmor;
 
@@ -321,10 +321,18 @@ long percentage()
 	return 0;
 }
 
+long dynamic_percentage()
+{
+	if (numberofraindata > 0) {
+		return (long)((float)10*n/(numberofraindata/10));
+	}
+	return 0;
+}
+
 int main()
 {
      FILE *fpin,*fp0,*fp1,*fp2,*fp3,*fp4;
-	 long i,j,m,n;
+	 long i,j;
      numprocesses = 0;
 	 fpin=fopen("./input.txt","r");
 	 fp0=fopen("./topo.txt","r");
@@ -492,9 +500,8 @@ int main()
 	   fscanf(fpin,"%d",&numberofraindata);	 
 	   rainvalues=vector(1,numberofraindata);
 	   fp4=fopen("./inciseddepth.txt","w");
-	   printf("\npercent of dynamic mode completed: ");
 	   for (n=1;n<=numberofraindata;n++)
-	    {if (n%(numberofraindata/10)==0) printf("%ld ",10*n/(numberofraindata/10));
+	    {
 		 for (m=1;m<=numberofraingages;m++) fscanf(fpin,"%f",&rainvalues[m]);
 		 for (j=1;j<=lattice_size_y;j++)
           for (i=1;i<=lattice_size_x;i++)
@@ -505,6 +512,5 @@ int main()
 	   for (j=1;j<=lattice_size_y;j++)
         for (i=1;i<=lattice_size_x;i++)
 	     if (mask[i][j]==1) fprintf(fp4,"%f\n",inciseddepth[i][j]); else  fprintf(fp4,"0.0\n");
-	   fclose(fp4);
-	   printf("\n");}
+	   fclose(fp4);}
 }  

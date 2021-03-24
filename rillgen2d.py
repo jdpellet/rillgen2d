@@ -271,33 +271,35 @@ class Application(tk.Frame):
             self.dimensions = [arr.shape[0], arr.shape[1]]
             self.t1 = Thread(target=self.populate_parameters_tab)
             self.t1.start()  # Populates the second tab since now the user has chosen a file
-            if self.src_ds is None:
-                name = input
-                messagebox.showerror(title="ERROR", message="Unable to open" + name + "for writing")
-                print('Unable to open', input, 'for writing')
-                sys.exit(1)    
+            self.convert_geotiff_to_txt(self.filename[:-4])
             
-            # Open output format driver, see gdal_translate --formats for list
-            format = "XYZ"
-            driver = gdal.GetDriverByName( format )
+            # if self.src_ds is None:
+            #     name = input
+            #     messagebox.showerror(title="ERROR", message="Unable to open" + name + "for writing")
+            #     print('Unable to open', input, 'for writing')
+            #     sys.exit(1)    
+            
+            # # Open output format driver, see gdal_translate --formats for list
+            # format = "XYZ"
+            # driver = gdal.GetDriverByName( format )
 
-            # Output to new format
-            dst_ds = driver.CreateCopy( "input_dem.asc", self.src_ds, 0 )
+            # # Output to new format
+            # dst_ds = driver.CreateCopy( "input_dem.asc", self.src_ds, 0 )
 
-            # Properly close the datasets to flush to disk
-            self.src_ds = None
-            dst_ds = None
+            # # Properly close the datasets to flush to disk
+            # self.src_ds = None
+            # dst_ds = None
 
-            # Create the `.txt` with `awk` but in Python using `os` call:
-            cmd0 = "gdal_translate -of XYZ " + self.filename + " output_tin.asc"
-            self.client_socket.send(subprocess.check_output(cmd0, shell=True) + ('\n').encode('utf-8'))
+            # # Create the `.txt` with `awk` but in Python using `os` call:
+            # cmd0 = "gdal_translate -of XYZ " + self.filename + " output_tin.asc"
+            # self.client_socket.send(subprocess.check_output(cmd0, shell=True) + ('\n').encode('utf-8'))
 
-            cmd1 = "awk '{print $3}' input_dem.asc > input_dem.txt"
-            self.client_socket.send(subprocess.check_output(cmd1, shell=True) + ('\n').encode('utf-8'))
+            # cmd1 = "awk '{print $3}' input_dem.asc > input_dem.txt"
+            # self.client_socket.send(subprocess.check_output(cmd1, shell=True) + ('\n').encode('utf-8'))
 
-            # remove temporary .asc file to save space
-            cmd2 = "rm input_dem.asc"
-            self.client_socket.send(subprocess.check_output(cmd2, shell=True) + ('\n').encode('utf-8'))
+            # # remove temporary .asc file to save space
+            # cmd2 = "rm input_dem.asc"
+            # self.client_socket.send(subprocess.check_output(cmd2, shell=True) + ('\n').encode('utf-8'))
             if self.first_time_populating_parameters_tab == True:
                 self.tabControl.add(self.tab2, text="Parameters")
                 self.tabControl.pack(expand=1, fill="both")
@@ -674,6 +676,34 @@ class Application(tk.Frame):
         f.close()
 
     
+    def convert_geotiff_to_txt(self, filename):
+        self.src_ds = gdal.Open(filename + ".tif")
+        if self.src_ds is None:
+            name = input
+            messagebox.showerror(title="ERROR", message="Unable to open " + filename + " for writing")
+            sys.exit(1)  
+        # Open output format driver, see gdal_translate --formats for list
+        format = "XYZ"
+        driver = gdal.GetDriverByName( format )
+
+        # Output to new format
+        dst_ds = driver.CreateCopy( filename + "_dem.asc", self.src_ds, 0 )
+
+        # Properly close the datasets to flush to disk
+        self.src_ds = None
+        dst_ds = None
+
+        # Create the `.txt` with `awk` but in Python using `os` call:
+        cmd1 = "gdal_translate -of XYZ " + filename + ".tif " + filename + ".asc"
+        self.client_socket.send(subprocess.check_output(cmd1, shell=True) + ('\n').encode('utf-8'))
+
+        cmd2 = "awk '{print $3}' " + filename + ".asc > " + filename + ".txt"
+        self.client_socket.send(subprocess.check_output(cmd2, shell=True) + ('\n').encode('utf-8'))
+
+        # remove temporary .asc file to save space
+        cmd3 = "rm " + filename + "_dem.asc"
+        self.client_socket.send(subprocess.check_output(cmd3, shell=True) + ('\n').encode('utf-8'))
+
     def generate_input_txt_file(self):
         """Generate the input.txt file using the flags from the second tab.
         
@@ -704,20 +734,40 @@ class Application(tk.Frame):
         if (path / "mask.txt").exists():
             Path.unlink(path / "mask.txt")
         if self.flagForMaskVar.get() == 1:
-            if (path.parent / "mask.txt").exists():
-                shutil.copyfile(path.parent / "mask.txt", path / "mask.txt")
-                self.client_socket.send(("mask.txt found and copied to inner directory\n\n").encode('utf-8'))
-            else:
-                self.client_socket.send(("mask.txt not found\n\n").encode('utf-8'))
+            self.client_socket.send(("Creating mask.txt...\n\n").encode('utf-8'))
+            vector_layer = "mask.shp"
+            target_layer = "mask.tif"
+            # open the raster layer and get its relevant properties
+            raster_ds = gdal.Open(self.filename, gdal.GA_ReadOnly)
+            xSize = raster_ds.RasterXSize
+            ySize = raster_ds.RasterYSize
+            geotransform = raster_ds.GetGeoTransform()
+            projection = raster_ds.GetProjection()
+
+            # create the target layer (1 band)
+            driver = gdal.GetDriverByName('GTiff')
+            target_ds = driver.Create(target_layer, xSize, ySize, bands = 1, eType = gdal.GDT_Byte, options = ["COMPRESS=DEFLATE"])
+            target_ds.SetGeoTransform(geotransform)
+            target_ds.SetProjection(projection)
+
+            # rasterize the vector layer into the target one
+            ds = gdal.Rasterize(target_ds, vector_layer, burnValues = [1])
+            target_ds = None
+
+            self.convert_geotiff_to_txt("mask")
+            self.client_socket.send(("mask.txt created\n\n").encode('utf-8'))
+
         f.write(str(self.flagForSlopeVar.get())+'\n')
         if (path / "slope.txt").exists():
             Path.unlink(path / "slope.txt")
         if self.flagForSlopeVar.get() == 1:
-            if (path.parent / "slope.txt").exists():
-                shutil.copyfile(path.parent / "slope.txt", path / "slope.txt")
-                self.client_socket.send(("slope.txt found and copied to inner directory\n\n").encode('utf-8'))
-            else:
-                self.client_socket.send(("slope.txt not found\n\n").encode('utf-8'))
+            self.client_socket.send(("Creating slope.txt...\n\n").encode('utf-8'))
+            cmd0 = "gdaldem slope " + self.filename + " slope.tif"
+            self.client_socket.send(subprocess.check_output(cmd0, shell=True) + ('\n').encode('utf-8'))
+            self.convert_geotiff_to_txt("slope")
+
+            self.client_socket.send(("slope.txt created\n\n").encode('utf-8'))
+
         f.write(str(self.flagForRainVar.get())+'\n')
         if (path / "rain.txt").exists():
             Path.unlink(path / "rain.txt")
@@ -840,9 +890,9 @@ class Application(tk.Frame):
         mode = 1
         self.client_socket.send(("Running rillgen.c...\n\n").encode('utf-8'))
         self.make_popup(mode)
-        cmd0 = "awk '{print $3}' output_tin.asc > topo.txt"
+        cmd0 = "awk '{print $3}' " + self.imagefile.stem + ".asc > topo.txt"
         self.client_socket.send(subprocess.check_output(cmd0, shell=True) + ('\n').encode('utf-8'))
-        cmd1 = "awk '{print $1, $2}' output_tin.asc > xy.txt"
+        cmd1 = "awk '{print $1, $2}' " + self.imagefile.stem + ".asc > xy.txt"
         self.client_socket.send(subprocess.check_output(cmd1, shell=True) + ('\n').encode('utf-8'))
         if self.rillgen == None:
             self.rillgen = CDLL(str(Path.cwd().parent / 'rillgen.so'))
@@ -852,27 +902,30 @@ class Application(tk.Frame):
         self.client_socket.send(("Starting hydrologic correction step...\n\n").encode('utf-8'))
         while still_update:
             if mode == 1:
-                currentPercentage = self.rillgen.percentage()
+                currentPercentage = self.rillgen.hydrologic_percentage()
             else:
                 currentPercentage = self.rillgen.dynamic_percentage()
             if currentPercentage == 0:
                 time.sleep(0.5)
             elif currentPercentage < 100:
                 self.update_progressbar(currentPercentage)
-                
                 time.sleep(0.5)
             else:
                 self.update_progressbar(100)
-                if mode == 1:
-                    self.client_socket.send(("Hydrologic correction step completed.\n\n").encode('utf-8'))
+                if mode == 1 and self.flagforDynamicModeVar.get() == 1:
                     mode = 2
+                    self.client_socket.send(("Hydrologic correction step completed.\n\n").encode('utf-8'))
                     currentPercentage = 0
                     self.update_progressbar(currentPercentage)
                     self.client_socket.send(("Starting dynamic mode...\n\n").encode('utf-8'))
                     self.make_popup(mode)
-                else: 
+                else:
+                    if self.flagforDynamicModeVar.get() == 1:
+                        self.client_socket.send(("Dynamic mode completed. Creating outputs...\n\n").encode('utf-8'))
+                    else:
+                        self.client_socket.send(("Hydrologic correction step completed. Creating outputs...\n\n").encode('utf-8'))
+                    self.popup.withdraw()
                     self.popup.destroy()
-                    self.client_socket.send(("Dynamic mode completed. Creating outputs...\n\n").encode('utf-8'))
                     still_update = False
         t1.join()
         
@@ -887,6 +940,7 @@ class Application(tk.Frame):
         
 
     def populate_view_output_tab(self):
+        print("is first time?: ", self.first_time_populating_view_output_tab)
         """Populate the third tab with tkinter widgets. The third tab allows
         the user to generate a folium map based on the rillgen output
         and also allows them to preview the image hillshade and color relief"""

@@ -313,7 +313,7 @@ void computecontributingarea()
 	  avsinofslope[i][j]/=area[i][j]/(deltax*deltax);   
 }
 
-long percentage()
+long hydrologic_percentage()
 {
 	if (lattice_size_x*lattice_size_y != 0) {
 		return (long)((float)numprocesses/(lattice_size_x*lattice_size_y)*100);

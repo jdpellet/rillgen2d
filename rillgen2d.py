@@ -272,34 +272,7 @@ class Application(tk.Frame):
             self.t1 = Thread(target=self.populate_parameters_tab)
             self.t1.start()  # Populates the second tab since now the user has chosen a file
             self.convert_geotiff_to_txt(Path(self.filename).stem)
-            
-            # if self.src_ds is None:
-            #     name = input
-            #     messagebox.showerror(title="ERROR", message="Unable to open" + name + "for writing")
-            #     print('Unable to open', input, 'for writing')
-            #     sys.exit(1)    
-            
-            # # Open output format driver, see gdal_translate --formats for list
-            # format = "XYZ"
-            # driver = gdal.GetDriverByName( format )
 
-            # # Output to new format
-            # dst_ds = driver.CreateCopy( "input_dem.asc", self.src_ds, 0 )
-
-            # # Properly close the datasets to flush to disk
-            # self.src_ds = None
-            # dst_ds = None
-
-            # # Create the `.txt` with `awk` but in Python using `os` call:
-            # cmd0 = "gdal_translate -of XYZ " + self.filename + " output_tin.asc"
-            # self.client_socket.send(subprocess.check_output(cmd0, shell=True) + ('\n').encode('utf-8'))
-
-            # cmd1 = "awk '{print $3}' input_dem.asc > input_dem.txt"
-            # self.client_socket.send(subprocess.check_output(cmd1, shell=True) + ('\n').encode('utf-8'))
-
-            # # remove temporary .asc file to save space
-            # cmd2 = "rm input_dem.asc"
-            # self.client_socket.send(subprocess.check_output(cmd2, shell=True) + ('\n').encode('utf-8'))
             if self.first_time_populating_parameters_tab == True:
                 self.tabControl.add(self.tab2, text="Parameters")
                 self.tabControl.pack(expand=1, fill="both")
@@ -677,12 +650,7 @@ class Application(tk.Frame):
         # Properly close the datasets to flush to disk
         self.src_ds = None
         dst_ds = None
-        # Create the `.txt` with `awk` but in Python using `os` call:
-        # path = Path.cwd() / (filename + ".tif")
-        # if path.exists():
-        #     Path.unlink(path)
-        # cmd1 = "gdal_translate -of GTIFF -scale -a_nodata 0 " + filename + ".tif" + filename + ".vrt"
-        # self.client_socket.send(subprocess.check_output(cmd1, shell=True) + ('\n').encode('utf-8'))
+
         cmd1 = "gdal_translate -of XYZ " + filename + ".tif " + filename + ".asc"
         self.client_socket.send(subprocess.check_output(cmd1, shell=True) + ('\n').encode('utf-8'))
 
@@ -719,32 +687,7 @@ class Application(tk.Frame):
                 self.client_socket.send(("dynamicinput.txt found and copied to inner directory\n\n").encode('utf-8'))
             else:
                 self.client_socket.send(("dynamicinput.txt not found\n\n").encode('utf-8'))
-        f.write(str(self.flagForMaskVar.get())+'\n') 
-        if (path / "mask.txt").exists():
-            Path.unlink(path / "mask.txt")
-        if self.flagForMaskVar.get() == 1:
-            self.client_socket.send(("Creating mask.txt...\n\n").encode('utf-8'))
-            vector_layer = "mask.shp"
-            target_layer = "mask.tif"
-            # open the raster layer and get its relevant properties
-            raster_ds = gdal.Open(self.filename, gdal.GA_ReadOnly)
-            xSize = raster_ds.RasterXSize
-            ySize = raster_ds.RasterYSize
-            geotransform = raster_ds.GetGeoTransform()
-            projection = raster_ds.GetProjection()
-
-            # create the target layer (1 band)
-            driver = gdal.GetDriverByName('GTiff')
-            target_ds = driver.Create(target_layer, xSize, ySize, bands = 1, eType = gdal.GDT_Byte, options = ["COMPRESS=DEFLATE"])
-            target_ds.SetGeoTransform(geotransform)
-            target_ds.SetProjection(projection)
-
-            # rasterize the vector layer into the target one
-            ds = gdal.Rasterize(target_ds, vector_layer, burnValues = [1])
-            target_ds = None
-
-            self.convert_geotiff_to_txt("mask")
-            self.client_socket.send(("mask.txt created\n\n").encode('utf-8'))
+        f.write(str(self.flagForMaskVar.get())+'\n')  
 
         f.write(str(self.flagForSlopeVar.get())+'\n')
         if (path / "slope.txt").exists():
@@ -844,8 +787,6 @@ class Application(tk.Frame):
         f.close()
         cmd1 = "gdaldem color-relief " + self.filename + " color-relief.txt color-relief.png"
         self.client_socket.send(subprocess.check_output(cmd1, shell=True) + ('\n').encode('utf-8'))
-        # if self.flagForMaskVar.get() == 1:
-        #     cmd2 = "gdal_translate -of GTi"
         self.client_socket.send(("Hillshade and color relief generated\n\n").encode('utf-8'))
         gtif = None
 
@@ -930,12 +871,7 @@ class Application(tk.Frame):
         self.client_socket.send(subprocess.check_output(cmd4, shell=True) + ('\n').encode('utf-8'))
         cmd5 = "paste xy.txt f.txt > xy_f.txt"
         self.client_socket.send(subprocess.check_output(cmd5, shell=True) + ('\n').encode('utf-8'))
-        # if self.flagforDynamicModeVar.get() == 1:
-        #     print("reaching before")
-        #     cmd6 = "paste xy.txt inciseddepth.txt > xy_inciseddepth.txt"
-        #     os.system(cmd6)
-        #     # self.client_socket.send(subprocess.check_output(cmd6, shell=True) + ('\n').encode('utf-8'))
-        #     print("reaching after")
+
 
     def populate_view_output_tab(self):
         print("is first time?: ", self.first_time_populating_view_output_tab)
@@ -947,7 +883,6 @@ class Application(tk.Frame):
             self.canvas3.bind("<Configure>", self.schedule_resize_canvas)
             self.canvas3.height = self.canvas3.winfo_reqheight()
             self.canvas3.width = self.canvas3.winfo_reqwidth()
-            
             self.frame3 = tk.Frame(self.canvas3)
             self.view_output_window = self.canvas3.create_window((0,0), window=self.frame3, anchor="nw")
 
@@ -977,7 +912,7 @@ class Application(tk.Frame):
             self.button3.place(relx=0.5, rely=0.67, anchor=CENTER)
             self.canvas3.itemconfig(self.view_output_window, height=self.canvas3.height, width=self.canvas3.width)
             self.canvas3.pack(side="left", fill="both", expand=YES)
-        
+            self.first_time_populating_view_output_tab = False
         self.canvas3imlbl.configure(image=self.canvas3img)
         
             
@@ -992,7 +927,7 @@ class Application(tk.Frame):
         self.canvas3.config(width=self.canvas3.width, height=self.canvas3.height)
         if self.first_time_populating_view_output_tab:
             self.resize_canvas()
-            self.first_time_populating_view_output_tab = False
+            
         else:
             self.can_redraw = self.after(500,self.resize_canvas)
 
@@ -1028,9 +963,6 @@ class Application(tk.Frame):
             self.client_socket.send(subprocess.check_output(cmd0, shell=True) + ('\n').encode('utf-8'))
             cmd1 = "gdal_translate xy_f.txt f.tif"
             self.client_socket.send(subprocess.check_output(cmd1, shell=True) + ('\n').encode('utf-8'))
-            # if self.flagforDynamicModeVar.get() == 1:
-            #     cmd2 = "gdal_translate xy_inciseddepth.txt inciseddepth.tif"
-            #     self.client_socket.send(subprocess.check_output(cmd2, shell=True) + ('\n').encode('utf-8'))
             projection = ds.GetProjection()
             geotransform = ds.GetGeoTransform()
 
@@ -1127,9 +1059,9 @@ class Application(tk.Frame):
         img3.add_to(m)
         img4.add_to(m)
         img5.add_to(m)
-        if self.flagForSlopeVar.get() == 1:
-            img6 = folium.raster_layers.ImageOverlay(image="slope.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.5, interactive=True, show=True, name="slope")
-            img6.add_to(m)
+        # if self.flagForSlopeVar.get() == 1:
+        #     img6 = folium.raster_layers.ImageOverlay(image="slope.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.5, interactive=True, show=True, name="slope")
+        #     img6.add_to(m)
         folium.LayerControl().add_to(m)
         m.save("map.html", close_file=True)
         t1 = Thread(target=self.saveOutput)

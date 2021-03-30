@@ -372,7 +372,7 @@ int main()
 	    for (i=1;i<=lattice_size_x;i++)
 		 mask[i][j]=1;} 
 	  else 
-	   {fp4=fopen("./mask.txt","r");
+	   {fp4=fopen("../mask.txt","r");  // Change back to ./mask.txt when modified
         for (j=1;j<=lattice_size_y;j++)
 	     for (i=1;i<=lattice_size_x;i++)
 		  {fscanf(fp4,"%d",&mask[i][j]);
@@ -429,7 +429,7 @@ int main()
         slopey=topo[i][jup[j]]-topo[i][jdown[j]];
 	    slope[i][j]=0.5*sqrt(slopex*slopex+slopey*slopey)/deltax;}
 	 if (flagforslope==1)
-	  {fp4=fopen("./slope.txt","r");
+	  {fp4=fopen("../slope.txt","r");  //Change back to ./slope.txt when modified
 	   for (j=1;j<=lattice_size_y;j++)
 	    for (i=1;i<=lattice_size_x;i++)
 	     fscanf(fp4,"%f",&slope[i][j]);

@@ -315,7 +315,7 @@ class Application(tk.Frame):
 
         # Flag for dynamic node variable
         Label(self.frame2, text='Flag for dynamicmode', font='Helvetica 25 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='Should be 1 if the user wants to implement the dynamic mode, in which case the file "dynamicinput.txt" must be provided in the same directory as the executable. If this flag is set to zero then the model is run in "peak mode" only.', font='Helvetica 20', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='Should be 1 if the user wants to implement either the dynamic mode, in which case the file "dynamicinput.txt" must be provided in the same directory as the executable, and/or spatially variable rainfall. If this flag is set to zero then the model is run in "peak mode" with spatially uniform rainfall only.', font='Helvetica 20', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
         
         self.flagforDynamicModeVar = IntVar(value=int(f.readline()))
         Checkbutton(self.frame2, variable=self.flagforDynamicModeVar, width=5).grid(row=rowNumber, column=1, pady=20)
@@ -333,26 +333,6 @@ class Application(tk.Frame):
         rowNumber += 1
 
         Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3, padx=0)
-        rowNumber += 1
-
-        # Flag for slope variable
-        Label(self.frame2, text='Flag for slope:', font='Helvetica 25 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='Should be 1 if the user provides a raster (slope.txt) of slope is provided by the user. By default Rillgen2D computes the slope using the local topographic differences. This flag is useful if the user wants the slope to be smoothed or otherwise calculated over larger spatial scale that the pixel width. ', font='Helvetica 20',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
-        self.flagForSlopeVar = IntVar(value=int(f.readline()))
-        Checkbutton(self.frame2, variable=self.flagForSlopeVar, width=5).grid(row=rowNumber, column=1, pady=20)
-        rowNumber += 1
-
-        Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3, padx=0)
-        rowNumber += 1
-
-        #Flag for rain variable
-        Label(self.frame2, text='Flag for rain:', font='Helvetica 25 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='Should be 1 if the user provides a raster (rain.txt) that maps the peak 5 min rainfall intensity, 0 means a fixed value equal to rainfixed will be used.', font='Helvetica 20',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
-        self.flagForRainVar = IntVar(value=int(f.readline()))
-        Checkbutton(self.frame2, variable=self.flagForRainVar, width=5).grid(row=rowNumber, column=1, pady=20)
-        rowNumber += 1
-
-        Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
         rowNumber += 1
 
         # flagForTaucSoilAndVeg variable
@@ -399,12 +379,12 @@ class Application(tk.Frame):
         Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
         rowNumber += 1
 
-        # threshSlope variable
-        Label(self.frame2, text='threshSlope:', font='Helvetica 25 bold').grid(row=rowNumber, column=0, pady=20)
+        # minslope variable
+        Label(self.frame2, text='minslope:', font='Helvetica 25 bold').grid(row=rowNumber, column=0, pady=20)
         Label(self.frame2, text='This value (unitless) is used to halt runoff from areas below a threshold slope steepness. Setting this value larger than 0 is useful for eliminating runoff from portions of the landscape that the user expects are too flat to produce significant runoff.', font='Helvetica 20', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
-        threshSlopeVar = StringVar(value=str(f.readline()))
-        self.threshSlopeInput = Entry(self.frame2, textvariable=threshSlopeVar, width=5)
-        self.threshSlopeInput.grid(row=rowNumber, column=1, pady=20)
+        minslopeVar = StringVar(value=str(f.readline()))
+        self.minslopeInput = Entry(self.frame2, textvariable=minslopeVar, width=5)
+        self.minslopeInput.grid(row=rowNumber, column=1, pady=20)
         rowNumber += 1
 
         Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
@@ -441,7 +421,7 @@ class Application(tk.Frame):
         self.lattice_size_xInput.config(state=DISABLED)
         rowNumber += 1
 
-        Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=28, column=0, columnspan=3)
+        Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
         rowNumber += 1
 
         # Lattice_size_y variable
@@ -467,7 +447,29 @@ class Application(tk.Frame):
         self.deltaxInput.grid(row=rowNumber, column=1, pady=20)
         rowNumber += 1
 
-        Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=32, column=0, columnspan=3)
+        Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
+        rowNumber += 1
+
+        # Nodata variable
+        Label(self.frame2, text='nodata:', font='Helvetica 25 bold').grid(row=rowNumber, column=0, pady=20)
+        Label(self.frame2, text='Any topo less than or equal to this nodata value will be masked out.', font='Helvetica 20', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        nodataVar = StringVar(value=str(f.readline()))
+        self.nodataInput = Entry(self.frame2, textvariable=nodataVar, width=5)
+        self.nodataInput.grid(row=rowNumber, column=1, pady=20)
+        rowNumber += 1
+
+        Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
+        rowNumber += 1
+
+        # Smoothinglength variable
+        Label(self.frame2, text='smoothinglength:', font='Helvetica 25 bold').grid(row=rowNumber, column=0, pady=20)
+        Label(self.frame2, text='The length scale (in pixels) for smoothing of the slope map. Set to 1 if no smoothing is desired.', font='Helvetica 20', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        smoothinglengthVar = StringVar(value=str(f.readline()))
+        self.smoothinglengthInput = Entry(self.frame2, textvariable=smoothinglengthVar, width=5)
+        self.smoothinglengthInput.grid(row=rowNumber, column=1, pady=20)
+        rowNumber += 1
+
+        Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
         rowNumber += 1
 
         # Rain fixed variable
@@ -609,18 +611,18 @@ class Application(tk.Frame):
         f.write(str(self.flagForEquationVar.get()) + '\t /* Flag for equation out */ \n')
         f.write(str(self.flagforDynamicModeVar.get()) + '\t /* Flag for dynamicmode out */ \n')
         f.write(str(self.flagForMaskVar.get()) + '\t /* Flag for mask out */ \n')
-        f.write(str(self.flagForSlopeVar.get())+ '\t /* Flag for slope out */ \n')
-        f.write(str(self.flagForRainVar.get()) + '\t /* Flag for rain out */ \n')
         f.write(str(self.flagForTaucSoilAndVegVar.get()) + '\t /* Flag for taucsoilandveg out */ \n')
         f.write(str(self.flagFord50Var.get()) + '\t /* Flag for d50 out */ \n')
         f.write(str(self.flagForRockCoverVar.get()) + '\t /* Flag for rockcover out */ \n')
         f.write(self.fillIncrementInput.get().replace("\n", "") + '\t /* fillIncrement out */ \n')
-        f.write(self.threshSlopeInput.get().replace("\n", "") + '\t /* threshSlope out */ \n')
+        f.write(self.minslopeInput.get().replace("\n", "") + '\t /* minslope out */ \n')
         f.write(self.expansionInput.get().replace("\n", "") + '\t /* Expansion out */ \n')
         f.write(self.yellowThresholdInput.get().replace("\n", "") + '\t /* Yellow threshold out */ \n')
         f.write(self.lattice_size_xInput.get().replace("\n", "") + '\t /* Lattice Size X out */ \n')
         f.write(self.lattice_size_yInput.get().replace("\n", "") + '\t /* Lattice Size Y out */ \n')
         f.write(self.deltaxInput.get().replace("\n", "") + '\t /* Delta X out */ \n')
+        f.write(self.nodataInput.get().replace("\n", "") + '\t /* nodata out */ \n')
+        f.write(self.smoothinglengthInput.get().replace("\n", "") + '\t /* smoothing length out */ \n')
         f.write(self.rainInput.get().replace("\n", "") + '\t /* Rain out */ \n')
         f.write(self.taucSoilAndVegeInput.get().replace("\n", "") + '\t /* tauc soil and vege out */ \n')
         f.write(self.d50Input.get().replace("\n", "") + '\t /* d50 out */ \n')
@@ -687,30 +689,17 @@ class Application(tk.Frame):
                 self.client_socket.send(("dynamicinput.txt found and copied to inner directory\n\n").encode('utf-8'))
             else:
                 self.client_socket.send(("dynamicinput.txt not found\n\n").encode('utf-8'))
+        
         f.write(str(self.flagForMaskVar.get())+'\n')  
-
-        f.write(str(self.flagForSlopeVar.get())+'\n')
-        if (path / "slope.txt").exists():
-            Path.unlink(path / "slope.txt")
-        if self.flagForSlopeVar.get() == 1:
-            self.client_socket.send(("Creating slope.txt...\n\n").encode('utf-8'))
-            cmd0 = "gdaldem slope " + Path(self.filename).name + " slope.tif"
-            self.client_socket.send(subprocess.check_output(cmd0, shell=True) + ('\n').encode('utf-8'))
-            self.convert_geotiff_to_txt("slope")
-            self.client_socket.send(("slope.txt created\n\n").encode('utf-8'))
-            cmd2 = "gdal_translate -a_nodata 0 -ot BYTE -of PNG slope.tif slope.png"
-            self.client_socket.send(subprocess.check_output(cmd2, shell=True) + ('\n').encode('utf-8'))
-            self.client_socket.send(("Slope map generated\n\n").encode('utf-8'))
-
-        f.write(str(self.flagForRainVar.get())+'\n')
-        if (path / "rain.txt").exists():
-            Path.unlink(path / "rain.txt")
-        if self.flagForRainVar.get() == 1:
-            if (path.parent / "rain.txt").exists():
-                shutil.copyfile(path.parent / "rain.txt", path / "rain.txt")
-                self.client_socket.send(("rain.txt found and copied to inner directory\n\n").encode('utf-8'))
+        if (path / "mask.txt").exists():
+            Path.unlink(path / "mask.txt")
+        if self.flagForMaskVar.get() == 1:
+            if (path.parent / "mask.txt").exists():
+                shutil.copyfile(path.parent / "mask.txt", path / "mask.txt")
+                self.client_socket.send(("mask.txt found and copied to inner directory\n\n").encode('utf-8'))
             else:
-                self.client_socket.send(("rain.txt not found\n\n").encode('utf-8'))
+                self.client_socket.send(("mask.txt not found\n\n").encode('utf-8'))
+
         f.write(str(self.flagForTaucSoilAndVegVar.get())+'\n')
         if (path / "taucsoilandvegfixed.txt").exists():
             Path.unlink(path / "taucsoilandvegfixed.txt")
@@ -739,12 +728,14 @@ class Application(tk.Frame):
             else:
                 self.client_socket.send(("rockcover.txt not found\n\n").encode('utf-8'))
         f.write(self.fillIncrementInput.get().replace("\n", "")+'\n')
-        f.write(self.threshSlopeInput.get().replace("\n", "")+'\n')
+        f.write(self.minslopeInput.get().replace("\n", "")+'\n')
         f.write(self.expansionInput.get().replace("\n", "")+'\n')
         f.write(self.yellowThresholdInput.get().replace("\n", "")+'\n')
         f.write(self.lattice_size_xInput.get().replace("\n", "")+'\n')
         f.write(self.lattice_size_yInput.get().replace("\n", "")+'\n')
         f.write(self.deltaxInput.get().replace("\n", "")+'\n')
+        f.write(self.nodataInput.get().replace("\n", "")+'\n')
+        f.write(self.smoothinglengthInput.get().replace("\n", "")+'\n')
         f.write(self.rainInput.get().replace("\n", "")+'\n')
         f.write(self.taucSoilAndVegeInput.get().replace("\n", "")+'\n')
         f.write(self.d50Input.get().replace("\n", "")+'\n')
@@ -841,7 +832,7 @@ class Application(tk.Frame):
                 currentPercentage = self.rillgen.dynamic_percentage()
             if currentPercentage == 0:
                 time.sleep(0.5)
-            elif currentPercentage < 100:
+            elif currentPercentage > 0 and currentPercentage < 100:
                 self.update_progressbar(currentPercentage)
                 time.sleep(0.5)
             else:
@@ -1049,19 +1040,18 @@ class Application(tk.Frame):
         """Generates a folium map based on the bounds of the geotiff file"""
         m = folium.Map(location=[(self.geo_ext[1][1]+self.geo_ext[3][1])/2, (self.geo_ext[1][0]+self.geo_ext[3][0])/2], zoom_start=14, tiles='Stamen Terrain')
 
-        img1 = folium.raster_layers.ImageOverlay(image="tau.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.8, interactive=True, name="tau")
-        img2 = folium.raster_layers.ImageOverlay(image="hillshade.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.6, interactive=True, name="hillshade")
-        img3 = folium.raster_layers.ImageOverlay(image="color-relief.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.6, interactive=True, name="color-relief")
-        img4 = folium.raster_layers.ImageOverlay(image="f.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.7, interactive=True, show=True, name="f")
+        img1 = folium.raster_layers.ImageOverlay(image="hillshade.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.6, interactive=True, name="hillshade")
+        img2 = folium.raster_layers.ImageOverlay(image="color-relief.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.6, interactive=True, name="color-relief")
+        img3 = folium.raster_layers.ImageOverlay(image="f.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.7, interactive=True, show=True, name="f")
+        img4 = folium.raster_layers.ImageOverlay(image="tau.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.8, interactive=True, name="tau")
         img5 = folium.raster_layers.ImageOverlay(image="rills.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.7, interactive=True, show=True, name="rills")
+        
         img1.add_to(m)
         img2.add_to(m)
         img3.add_to(m)
         img4.add_to(m)
         img5.add_to(m)
-        # if self.flagForSlopeVar.get() == 1:
-        #     img6 = folium.raster_layers.ImageOverlay(image="slope.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.5, interactive=True, show=True, name="slope")
-        #     img6.add_to(m)
+        
         folium.LayerControl().add_to(m)
         m.save("map.html", close_file=True)
         t1 = Thread(target=self.saveOutput)

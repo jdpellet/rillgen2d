@@ -13,11 +13,9 @@
 #define small 1.e-12
 #define mfdweight 1.1
 
-long count,numprocesses,*topovecind,*slopevecind,*lakeis,*lakejs,*iup,*idown,*jup,*jdown,lattice_size_x,lattice_size_y,ic,jc;
-int expansion,flagformask,flagforslope,flagford50,flagfortaucsoilandveg,flagforrain,flagforcu,flagforthickness,flagforrockcover,**mask;
-float threshslope,**rain,**d50,**cu,**thickness,**rockcover,**taucsoilandveg,**tau,**angle,**topo,**topo2,**slope,**area,flow1,flow2,flow3,flow4,flow5,flow6,flow7,flow8,*slopevec,*topovec;
-float fillincrement,**f,**f2,slopex,slopey,deltax,yellowthreshold,rillwidth,reducedspecificgravity,rainfixed,b,c,d50fixed,rockcoverfixed,cufixed,thicknessfixed;
-float tanangleofinternalfriction,taucsoilandvegfixed,**sinofslope,**avsinofslope,**cosofslopeterm,**taucarmor;
+long count,numprocesses,*topovecind,*flatis,*flatjs,*iup,*idown,*jup,*jdown,lattice_size_x,lattice_size_y,ic,jc,m,n;
+int flagfordynamicmode,numberofraindata,numberofraingages,**closestgage,expansion,smoothinglength,numberofdatapoints,flagforrainrasters,flagforequation,flagfordynamicmode,flagformask,flagforslope,flagford50,flagfortaucsoilandveg,flagforrain,flagforcu,flagforthickness,flagforrockcover,**mask;
+float oneoverdeltax,durationofdata,timestep,ulx,uly,*raingagex,*raingagey,dist,mindist,*rainvalues,durationofdata,minslope,**slopefactor,**rainl,**rain,**d50,**cu,**thickness,**rockcover,**taucsoilandveg,**tauwithoutrain,**topo,**slope,**area,flow1,flow2,flow3,flow4,flow5,flow6,flow7,flow8,*topovec,fillincrement,**inciseddepth,**f,**f2,slopex,slopey,deltax,yellowthreshold,rillwidth,rainfixed,b,c,d50fixed,rockcoverfixed,bulkdensity,timescaleofinterest,durationofdata,rillerodibility,tanangleofinternalfriction,taucsoilandvegfixed,**sinofslope,**avsinofslope,**cosofslopeterm,**taucarmor;
 
 void free_vector(float *v, long nl, long nh)
 /* free a float vector allocated with vector() */
@@ -29,6 +27,20 @@ void free_lvector(long *v, long nl, long nh)
 /* free an unsigned long vector allocated with lvector() */
 {
 	free((FREE_ARG) (v+nl-NR_END));
+}
+
+void free_matrix(float **m, long nrl, long nrh, long ncl, long nch)
+/* free a float matrix allocated by matrix() */
+{
+	free((FREE_ARG) (m[nrl]+ncl-NR_END));
+	free((FREE_ARG) (m+nrl-NR_END));
+}
+
+void free_imatrix(int **m, long nrl, long nrh, long ncl, long nch)
+/* free an int matrix allocated by imatrix() */
+{
+	free((FREE_ARG) (m[nrl]+ncl-NR_END));
+	free((FREE_ARG) (m+nrl-NR_END));
 }
 
 long *lvector(long nl, long nh)
@@ -183,147 +195,178 @@ void mfdflowroute(i,j)
 long i,j;
 {    float tot;
 
-     if ((mask[i][j]==1)&&(slope[i][j]>threshslope)&&(i>1)&&(i<lattice_size_x)&&(j>1)&&(j<lattice_size_y))
-	 {tot=0;
-     if (topo[i][j]>topo[iup[i]][j])
-      tot+=pow(topo[i][j]-topo[iup[i]][j],mfdweight);
-     if (topo[i][j]>topo[idown[i]][j])
-      tot+=pow(topo[i][j]-topo[idown[i]][j],mfdweight);
-     if (topo[i][j]>topo[i][jup[j]])
-      tot+=pow(topo[i][j]-topo[i][jup[j]],mfdweight);
-     if (topo[i][j]>topo[i][jdown[j]])
-      tot+=pow(topo[i][j]-topo[i][jdown[j]],mfdweight);
-     if (topo[i][j]>topo[iup[i]][jup[j]])
-      tot+=pow((topo[i][j]-topo[iup[i]][jup[j]])*oneoversqrt2,mfdweight);
-     if (topo[i][j]>topo[iup[i]][jdown[j]])
-      tot+=pow((topo[i][j]-topo[iup[i]][jdown[j]])*oneoversqrt2,mfdweight);
-     if (topo[i][j]>topo[idown[i]][jup[j]])
-      tot+=pow((topo[i][j]-topo[idown[i]][jup[j]])*oneoversqrt2,mfdweight);
-     if (topo[i][j]>topo[idown[i]][jdown[j]])
-      tot+=pow((topo[i][j]-topo[idown[i]][jdown[j]])*oneoversqrt2,mfdweight);
-     if (topo[i][j]>topo[iup[i]][j])
-      flow1=pow(topo[i][j]-topo[iup[i]][j],mfdweight)/tot;
-       else flow1=0;
-     if (topo[i][j]>topo[idown[i]][j])
-      flow2=pow(topo[i][j]-topo[idown[i]][j],mfdweight)/tot;
-       else flow2=0;
-     if (topo[i][j]>topo[i][jup[j]])
-      flow3=pow(topo[i][j]-topo[i][jup[j]],mfdweight)/tot;
-       else flow3=0;
-     if (topo[i][j]>topo[i][jdown[j]])
-      flow4=pow(topo[i][j]-topo[i][jdown[j]],mfdweight)/tot;
-       else flow4=0;
-     if (topo[i][j]>topo[iup[i]][jup[j]])
-      flow5=pow((topo[i][j]-topo[iup[i]][jup[j]])*oneoversqrt2,mfdweight)/tot;
-       else flow5=0;
-     if (topo[i][j]>topo[iup[i]][jdown[j]])
-      flow6=pow((topo[i][j]-topo[iup[i]][jdown[j]])*oneoversqrt2,mfdweight)/tot;
-       else flow6=0;
-     if (topo[i][j]>topo[idown[i]][jup[j]])
-      flow7=pow((topo[i][j]-topo[idown[i]][jup[j]])*oneoversqrt2,mfdweight)/tot;
-       else flow7=0;
-     if (topo[i][j]>topo[idown[i]][jdown[j]])
-      flow8=pow((topo[i][j]-topo[idown[i]][jdown[j]])*oneoversqrt2,mfdweight)/tot;
-       else flow8=0;
-     area[iup[i]][j]+=area[i][j]*flow1;
-     area[idown[i]][j]+=area[i][j]*flow2;
-     area[i][jup[j]]+=area[i][j]*flow3;
-     area[i][jdown[j]]+=area[i][j]*flow4;
-     area[iup[i]][jup[j]]+=area[i][j]*flow5;
-     area[iup[i]][jdown[j]]+=area[i][j]*flow6;
-     area[idown[i]][jup[j]]+=area[i][j]*flow7;
-     area[idown[i]][jdown[j]]+=area[i][j]*flow8;
-	 avsinofslope[iup[i]][j]+=avsinofslope[i][j]*flow1; 
-	 avsinofslope[idown[i]][j]+=avsinofslope[i][j]*flow2; 
-	 avsinofslope[i][jup[j]]+=avsinofslope[i][j]*flow3; 
-	 avsinofslope[i][jdown[j]]+=avsinofslope[i][j]*flow4; 
-	 avsinofslope[iup[i]][jup[j]]+=avsinofslope[i][j]*flow5; 
-	 avsinofslope[iup[i]][jdown[j]]+=avsinofslope[i][j]*flow6; 
-	 avsinofslope[idown[i]][jup[j]]+=avsinofslope[i][j]*flow7; 
-	 avsinofslope[idown[i]][jdown[j]]+=avsinofslope[i][j]*flow8;}
+     if ((mask[i][j]==1)&&(slope[i][j]>minslope)&&(i>1)&&(i<lattice_size_x)&&(j>1)&&(j<lattice_size_y))
+	  {tot=0;
+       if (topo[i][j]>topo[iup[i]][j]) tot+=pow(topo[i][j]-topo[iup[i]][j],mfdweight);
+       if (topo[i][j]>topo[idown[i]][j]) tot+=pow(topo[i][j]-topo[idown[i]][j],mfdweight);
+       if (topo[i][j]>topo[i][jup[j]]) tot+=pow(topo[i][j]-topo[i][jup[j]],mfdweight);
+       if (topo[i][j]>topo[i][jdown[j]]) tot+=pow(topo[i][j]-topo[i][jdown[j]],mfdweight);
+       if (topo[i][j]>topo[iup[i]][jup[j]]) tot+=pow((topo[i][j]-topo[iup[i]][jup[j]])*oneoversqrt2,mfdweight);
+       if (topo[i][j]>topo[iup[i]][jdown[j]]) tot+=pow((topo[i][j]-topo[iup[i]][jdown[j]])*oneoversqrt2,mfdweight);
+       if (topo[i][j]>topo[idown[i]][jup[j]]) tot+=pow((topo[i][j]-topo[idown[i]][jup[j]])*oneoversqrt2,mfdweight);
+       if (topo[i][j]>topo[idown[i]][jdown[j]]) tot+=pow((topo[i][j]-topo[idown[i]][jdown[j]])*oneoversqrt2,mfdweight);
+       if (topo[i][j]>topo[iup[i]][j]) flow1=pow(topo[i][j]-topo[iup[i]][j],mfdweight)/tot; else flow1=0;
+       if (topo[i][j]>topo[idown[i]][j]) flow2=pow(topo[i][j]-topo[idown[i]][j],mfdweight)/tot; else flow2=0;
+       if (topo[i][j]>topo[i][jup[j]]) flow3=pow(topo[i][j]-topo[i][jup[j]],mfdweight)/tot; else flow3=0;
+       if (topo[i][j]>topo[i][jdown[j]]) flow4=pow(topo[i][j]-topo[i][jdown[j]],mfdweight)/tot; else flow4=0;
+       if (topo[i][j]>topo[iup[i]][jup[j]]) flow5=pow((topo[i][j]-topo[iup[i]][jup[j]])*oneoversqrt2,mfdweight)/tot; else flow5=0;
+       if (topo[i][j]>topo[iup[i]][jdown[j]]) flow6=pow((topo[i][j]-topo[iup[i]][jdown[j]])*oneoversqrt2,mfdweight)/tot; else flow6=0;
+       if (topo[i][j]>topo[idown[i]][jup[j]]) flow7=pow((topo[i][j]-topo[idown[i]][jup[j]])*oneoversqrt2,mfdweight)/tot; else flow7=0;
+       if (topo[i][j]>topo[idown[i]][jdown[j]]) flow8=pow((topo[i][j]-topo[idown[i]][jdown[j]])*oneoversqrt2,mfdweight)/tot; else flow8=0;
+       area[iup[i]][j]+=area[i][j]*flow1;
+       area[idown[i]][j]+=area[i][j]*flow2;
+       area[i][jup[j]]+=area[i][j]*flow3;
+       area[i][jdown[j]]+=area[i][j]*flow4;
+       area[iup[i]][jup[j]]+=area[i][j]*flow5;
+       area[iup[i]][jdown[j]]+=area[i][j]*flow6;
+       area[idown[i]][jup[j]]+=area[i][j]*flow7;
+       area[idown[i]][jdown[j]]+=area[i][j]*flow8;
+	   avsinofslope[iup[i]][j]+=avsinofslope[i][j]*flow1; 
+	   avsinofslope[idown[i]][j]+=avsinofslope[i][j]*flow2; 
+	   avsinofslope[i][jup[j]]+=avsinofslope[i][j]*flow3; 
+	   avsinofslope[i][jdown[j]]+=avsinofslope[i][j]*flow4; 
+	   avsinofslope[iup[i]][jup[j]]+=avsinofslope[i][j]*flow5; 
+	   avsinofslope[iup[i]][jdown[j]]+=avsinofslope[i][j]*flow6; 
+	   avsinofslope[idown[i]][jup[j]]+=avsinofslope[i][j]*flow7; 
+	   avsinofslope[idown[i]][jdown[j]]+=avsinofslope[i][j]*flow8;}
 }
 
 void push(i,j)
 long i,j;
 {  
 	 count++;
-     lakeis[count]=i;
-     lakejs[count]=j;
+     flatis[count]=i;
+     flatjs[count]=j;
 }
 
 void pop()
 {  
-     ic=lakeis[count];
-     jc=lakejs[count];
+     ic=flatis[count];
+     jc=flatjs[count];
 	 count--;
+}
+
+long hydrologic_percentage()
+{
+	if (lattice_size_x*lattice_size_y != 0) {
+		return (long)((float)numprocesses/(lattice_size_x*lattice_size_y)*100);
+	}
+	return 0;
+}
+
+long dynamic_percentage()
+{
+	if (numberofraindata > 0) {
+		return (long)((float)10*n/(numberofraindata/10));
+	}
+	return 0;
 }
 
 void hydrologiccorrection()
 {    long i,j;
      float max;
 
-	 int x = 0;
-	 
-     count=0;
-
-     for (j=1;j<=lattice_size_y;j++)
-      for (i=1;i<=lattice_size_x;i++)
-	   {push(i,j);
-	    numprocesses++;
-	    while (count>0) 
-		 {
-		  pop();
-		  max=topo[ic][jc];
-          if (topo[iup[ic]][jc]<max) max=topo[iup[ic]][jc];
-          if (topo[idown[ic]][jc]<max) max=topo[idown[ic]][jc];
-          if (topo[ic][jup[jc]]<max) max=topo[ic][jup[jc]];
-          if (topo[ic][jdown[jc]]<max) max=topo[ic][jdown[jc]];
-	      if (topo[iup[ic]][jup[jc]]<max) max=topo[iup[ic]][jup[jc]];
-          if (topo[idown[ic]][jdown[jc]]<max) max=topo[idown[ic]][jdown[jc]];
-          if (topo[idown[ic]][jup[jc]]<max) max=topo[idown[ic]][jup[jc]];
-          if (topo[iup[ic]][jdown[jc]]<max) max=topo[iup[ic]][jdown[jc]];
-          if ((mask[ic][jc]==1)&&(topo[ic][jc]>0)&&(topo[ic][jc]<=max)&&(ic>1)&&(jc>1)&&(ic<lattice_size_x)&&(jc<lattice_size_y)&&(count<stacksize))
-		   {topo[ic][jc]=max+fillincrement;
-			push(ic,jc);
-			push(iup[ic],jc);
-			push(idown[ic],jc);
-			push(ic,jup[jc]);
-			push(ic,jdown[jc]);
-	        push(iup[ic],jup[jc]);
-			push(idown[ic],jdown[jc]);
-			push(idown[ic],jup[jc]);
-	        push(iup[ic],jdown[jc]);}}}
+	 fflush(stdout);
+	 count=stacksize;
+	 while (count==stacksize)
+	  {count=0;
+       for (j=1;j<=lattice_size_y;j++)
+	   {
+        for (i=1;i<=lattice_size_x;i++)
+	     {push(i,j);
+		  numprocesses++;
+	      while (count>0) 
+		   {pop();
+		    max=topo[ic][jc];
+            if (topo[iup[ic]][jc]<max) max=topo[iup[ic]][jc];
+            if (topo[idown[ic]][jc]<max) max=topo[idown[ic]][jc];
+            if (topo[ic][jup[jc]]<max) max=topo[ic][jup[jc]];
+            if (topo[ic][jdown[jc]]<max) max=topo[ic][jdown[jc]];
+	        if (topo[iup[ic]][jup[jc]]<max) max=topo[iup[ic]][jup[jc]];
+            if (topo[idown[ic]][jdown[jc]]<max) max=topo[idown[ic]][jdown[jc]];
+            if (topo[idown[ic]][jup[jc]]<max) max=topo[idown[ic]][jup[jc]];
+            if (topo[iup[ic]][jdown[jc]]<max) max=topo[iup[ic]][jdown[jc]];
+            if ((mask[ic][jc]==1)&&(topo[ic][jc]>0)&&(topo[ic][jc]<=max)&&(ic>1)&&(jc>1)&&(ic<lattice_size_x)&&(jc<lattice_size_y)&&(count<stacksize))
+		     {topo[ic][jc]=max+fillincrement;
+			  push(ic,jc);
+			  push(iup[ic],jc);
+			  push(idown[ic],jc);
+			  push(ic,jup[jc]);
+			  push(ic,jdown[jc]);
+	          push(iup[ic],jup[jc]);
+			  push(idown[ic],jdown[jc]);
+			  push(idown[ic],jup[jc]);
+	          push(iup[ic],jdown[jc]);}}}}}
 }
 
-void setupgrids()
-{
-	 mask=imatrix(1,lattice_size_x,1,lattice_size_y);
-	 topo=matrix(1,lattice_size_x,1,lattice_size_y);
-	 topo2=matrix(1,lattice_size_x,1,lattice_size_y);
-	 area=matrix(1,lattice_size_x,1,lattice_size_y);
-	 f=matrix(1,lattice_size_x,1,lattice_size_y);
-	 f2=matrix(1,lattice_size_x,1,lattice_size_y);
-	 taucarmor=matrix(1,lattice_size_x,1,lattice_size_y);
-	 taucsoilandveg=matrix(1,lattice_size_x,1,lattice_size_y);
-	 tau=matrix(1,lattice_size_x,1,lattice_size_y);
-	 sinofslope=matrix(1,lattice_size_x,1,lattice_size_y);
-	 avsinofslope=matrix(1,lattice_size_x,1,lattice_size_y);
-	 cosofslopeterm=matrix(1,lattice_size_x,1,lattice_size_y);
-	 rain=matrix(1,lattice_size_x,1,lattice_size_y);
-	 d50=matrix(1,lattice_size_x,1,lattice_size_y);
-	 cu=matrix(1,lattice_size_x,1,lattice_size_y);
-	 thickness=matrix(1,lattice_size_x,1,lattice_size_y);
-	 rockcover=matrix(1,lattice_size_x,1,lattice_size_y);
-	 slope=matrix(1,lattice_size_x,1,lattice_size_y);
-	 topovec=vector(1,lattice_size_x*lattice_size_y);
-	 topovecind=lvector(1,lattice_size_x*lattice_size_y);
-	 lakeis=lvector(1,stacksize);
-	 lakejs=lvector(1,stacksize);
+void smoothslope()
+{    long i,j,i2,j2,il,jl;
+     int n,**countslope;
+     float **sumslope;
+
+	 sumslope=matrix(1,lattice_size_x,1,lattice_size_y);
+	 countslope=imatrix(1,lattice_size_x,1,lattice_size_y);
+	 for (j=1;j<=lattice_size_y;j++)
+      for (i=1;i<=lattice_size_x;i++)
+	   {sumslope[i][j]=0;
+	    countslope[i][j]=0;}
+	 j=smoothinglength/2;
+     for (i=1;i<=lattice_size_x;i++)
+	  for (j2=j-smoothinglength/2;j2<=j+smoothinglength/2;j2++)      
+	   for (i2=i-smoothinglength/2;i2<=i+smoothinglength/2;i2++)
+		{il=i;
+	     jl=j;
+		 if (i2<i) for (n=1;n<=i-i2;n++) il=idown[il]; else for (n=1;n<=i2-i;n++) il=iup[il];
+	     if (j2<j) for (n=1;n<=j-j2;n++) jl=jdown[jl]; else for (n=1;n<=j2-j;n++) jl=jup[jl];
+		 if (mask[il][jl]==1) {sumslope[i][j]+=slope[il][jl];countslope[i][j]++;}}
+     j=lattice_size_y-smoothinglength/2;
+     for (i=1;i<=lattice_size_x;i++)
+	  for (j2=j-smoothinglength/2;j2<=j+smoothinglength/2;j2++)      
+	   for (i2=i-smoothinglength/2;i2<=i+smoothinglength/2;i2++)
+		{il=i;
+	     jl=j;
+		 if (i2<i) for (n=1;n<=i-i2;n++) il=idown[il]; else for (n=1;n<=i2-i;n++) il=iup[il];
+	     if (j2<j) for (n=1;n<=j-j2;n++) jl=jdown[jl]; else for (n=1;n<=j2-j;n++) jl=jup[jl];
+		 if (mask[il][jl]==1) {sumslope[i][j]+=slope[il][jl];countslope[i][j]++;}} 
+     i=smoothinglength/2;
+     for (j=1;j<=lattice_size_y;j++)
+      for (j2=j-smoothinglength/2;j2<=j+smoothinglength/2;j2++)      
+	   for (i2=i-smoothinglength/2;i2<=i+smoothinglength/2;i2++)
+		{il=i;
+	     jl=j;
+		 if (i2<i) for (n=1;n<=i-i2;n++) il=idown[il]; else for (n=1;n<=i2-i;n++) il=iup[il];
+	     if (j2<j) for (n=1;n<=j-j2;n++) jl=jdown[jl]; else for (n=1;n<=j2-j;n++) jl=jup[jl];
+		 if (mask[il][jl]==1) {sumslope[i][j]+=slope[il][jl];countslope[i][j]++;}} 		 
+     i=lattice_size_x-smoothinglength/2;
+     for (j=1;j<=lattice_size_y;j++)
+      for (j2=j-smoothinglength/2;j2<=j+smoothinglength/2;j2++)      
+	   for (i2=i-smoothinglength/2;i2<=i+smoothinglength/2;i2++)
+		{il=i;
+	     jl=j;
+		 if (i2<i) for (n=1;n<=i-i2;n++) il=idown[il]; else for (n=1;n<=i2-i;n++) il=iup[il];
+	     if (j2<j) for (n=1;n<=j-j2;n++) jl=jdown[jl]; else for (n=1;n<=j2-j;n++) jl=jup[jl];
+		 if (mask[il][jl]==1) {sumslope[i][j]+=slope[il][jl];countslope[i][j]++;}} 		 
+	 for (j=smoothinglength/2+1;j<lattice_size_y-smoothinglength/2;j++)
+	  {for (i=smoothinglength/2+1;i<lattice_size_x-smoothinglength/2;i++)  
+	    {sumslope[i][j]=sumslope[idown[i]][j];
+	     countslope[i][j]=countslope[idown[i]][j];
+         for (j2=-smoothinglength/2;j2<=smoothinglength/2;j2++)
+	      {if (mask[i-smoothinglength/2][j+j2]==1) {sumslope[i][j]-=slope[i-smoothinglength/2][j+j2];countslope[i][j]--;}
+	       if (mask[i+smoothinglength/2][j+j2]==1) {sumslope[i][j]+=slope[i+smoothinglength/2][j+j2];countslope[i][j]++;}}}
+	   i=smoothinglength/2+1;}
+	 for (j=1;j<=lattice_size_y;j++)
+      for (i=1;i<=lattice_size_x;i++)  
+	   if (countslope[i][j]>(smoothinglength*smoothinglength/2)) slope[i][j]=sumslope[i][j]/countslope[i][j]; 
+     free_matrix(sumslope,1,lattice_size_x,1,lattice_size_y);
+	 free_imatrix(countslope,1,lattice_size_x,1,lattice_size_y);
 }
 
 void computecontributingarea()
 {   long i,j,m;
 
+	topovec=vector(1,lattice_size_x*lattice_size_y);
+	topovecind=lvector(1,lattice_size_x*lattice_size_y);
+	area=matrix(1,lattice_size_x,1,lattice_size_y);
 	for (j=1;j<=lattice_size_y;j++)
      for (i=1;i<=lattice_size_x;i++)
 	  {topovec[(j-1)*lattice_size_x+i]=topo[i][j];
@@ -337,56 +380,55 @@ void computecontributingarea()
       j=(topovecind[m])/lattice_size_x+1;
       if (i==lattice_size_x) j--;
 	  mfdflowroute(i,j);}
+	for (j=1;j<=lattice_size_y;j++)
+     for (i=1;i<=lattice_size_x;i++)
+	  avsinofslope[i][j]/=area[i][j]/(deltax*deltax);
+    free_vector(topovec,1,lattice_size_x*lattice_size_y);
+	free_lvector(topovecind,1,lattice_size_x*lattice_size_y);  
 }
-
-long percentage()
-{
-	if (lattice_size_x*lattice_size_y != 0) {
-		return (long)((float)numprocesses/(lattice_size_x*lattice_size_y)*100);
-	}
-	return 0;
-} 
 
 int main()
 {
-     FILE *fpin,*fp0,*fp1,*fp2,*fp3,*fp4;
-	 long i,j,m;
-	 numprocesses = 0;
+     FILE *fpin,*fp0,*fp1,*fp2,*fp3,*fp4,*fp5;
+	 long i,j;
 	 fpin=fopen("./input.txt","r");
 	 fp0=fopen("./topo.txt","r");
 	 fp1=fopen("./f.txt","w");
 	 fp2=fopen("./rills.ppm","w");
 	 fp3=fopen("./tau.txt","w");
+	 fscanf(fpin,"%d",&flagforequation);
+	 fscanf(fpin,"%d",&flagfordynamicmode);
 	 fscanf(fpin,"%d",&flagformask);
-	 fscanf(fpin,"%d",&flagforslope);
-	 fscanf(fpin,"%d",&flagforrain);
 	 fscanf(fpin,"%d",&flagfortaucsoilandveg);
 	 fscanf(fpin,"%d",&flagford50); 
-	//  fscanf(fpin,"%d",&flagforcu);
-	//  fscanf(fpin,"%d",&flagforthickness);
 	 fscanf(fpin,"%d",&flagforrockcover);
 	 fscanf(fpin,"%f",&fillincrement);
-	 fscanf(fpin,"%f",&threshslope); 
+	 fscanf(fpin,"%f",&minslope);  
 	 fscanf(fpin,"%d",&expansion); 
 	 fscanf(fpin,"%f",&yellowthreshold); 
 	 fscanf(fpin,"%ld",&lattice_size_x);
 	 fscanf(fpin,"%ld",&lattice_size_y);
 	 fscanf(fpin,"%f",&deltax);
+	 fscanf(fpin,"%d",&smoothinglength);
      fscanf(fpin,"%f",&rainfixed);	 
 	 fscanf(fpin,"%f",&taucsoilandvegfixed);
 	 fscanf(fpin,"%f",&d50fixed);
-	//  fscanf(fpin,"%f",&cufixed);
-    //  fscanf(fpin,"%f",&thicknessfixed);
      fscanf(fpin,"%f",&rockcoverfixed);  
 	 fscanf(fpin,"%f",&tanangleofinternalfriction); 
-	//  fscanf(fpin,"%f",&reducedspecificgravity); 
 	 fscanf(fpin,"%f",&b);
 	 fscanf(fpin,"%f",&c);
      fscanf(fpin,"%f",&rillwidth);	 
+	 fclose(fpin);
+	 oneoverdeltax=1.0/deltax;
 	 setupgridneighbors();
-	 setupgrids();
+	 mask=imatrix(1,lattice_size_x,1,lattice_size_y);
+	 topo=matrix(1,lattice_size_x,1,lattice_size_y);
+	 slope=matrix(1,lattice_size_x,1,lattice_size_y);
+	 flatis=lvector(1,stacksize);
+	 flatjs=lvector(1,stacksize);
 	 if (flagformask==0) 
-	  {for (j=1;j<=lattice_size_y;j++)
+	  {
+		for (j=1;j<=lattice_size_y;j++)
 	    for (i=1;i<=lattice_size_x;i++)
 		 mask[i][j]=1;} 
 	  else 
@@ -395,17 +437,33 @@ int main()
 	     for (i=1;i<=lattice_size_x;i++)
 		  {fscanf(fp4,"%d",&mask[i][j]);
 		   if (mask[i][j]>0) mask[i][j]=1;}
-	    fclose(fp4);}
-	 if (flagforrain==0)
-	  {for (j=1;j<=lattice_size_y;j++)
-	    for (i=1;i<=lattice_size_x;i++)
-	     rain[i][j]=rainfixed;}
-	  else
-       {fp4=fopen("./rain.txt","r");
-		for (j=1;j<=lattice_size_y;j++)
-	     for (i=1;i<=lattice_size_x;i++)
-	      fscanf(fp4,"%f",&rain[i][j]);
-	    fclose(fp4);}
+		fclose(fp4);}
+	 for (j=1;j<=lattice_size_y;j++)
+	  for (i=1;i<=lattice_size_x;i++)
+	   fscanf(fp0,"%f",&topo[i][j]);
+	 for (j=1;j<=lattice_size_y;j++)
+      for (i=1;i<=lattice_size_x;i++)
+	   {slopex=topo[iup[i]][j]-topo[idown[i]][j];
+        slopey=topo[i][jup[j]]-topo[i][jdown[j]];
+	    if ((mask[i][j]==1)&&(mask[iup[i]][j]==1)&&(mask[idown[i]][j]==1)&&(mask[i][jup[j]]==1)&&(mask[i][jdown[j]]==1))
+	     slope[i][j]=0.5*oneoverdeltax*sqrt(slopex*slopex+slopey*slopey);
+	    else slope[i][j]=0;}
+	 if (smoothinglength>1) smoothslope();
+     hydrologiccorrection(); 
+	 slopefactor=matrix(1,lattice_size_x,1,lattice_size_y);
+	 sinofslope=matrix(1,lattice_size_x,1,lattice_size_y);
+	 avsinofslope=matrix(1,lattice_size_x,1,lattice_size_y);
+	 cosofslopeterm=matrix(1,lattice_size_x,1,lattice_size_y);
+	 for (j=1;j<=lattice_size_y;j++)
+      for (i=1;i<=lattice_size_x;i++)
+	   {sinofslope[i][j]=sin(atan(slope[i][j]));
+        if (mask[i][j]==1) avsinofslope[i][j]=sin(atan(slope[i][j])); else avsinofslope[i][j]=0;
+		cosofslopeterm[i][j]=sqrt(9.81*cos(atan(slope[i][j])));
+        slopefactor[i][j]=sin(atan(slope[i][j]))/(cos(atan(slope[i][j]))*tanangleofinternalfriction-sin(atan(slope[i][j])));}
+	 computecontributingarea();  
+	 taucsoilandveg=matrix(1,lattice_size_x,1,lattice_size_y);
+	 d50=matrix(1,lattice_size_x,1,lattice_size_y);
+	 rockcover=matrix(1,lattice_size_x,1,lattice_size_y);
 	 if (flagfortaucsoilandveg==0) 
 	  {for (j=1;j<=lattice_size_y;j++)
 	    for (i=1;i<=lattice_size_x;i++)
@@ -426,27 +484,6 @@ int main()
 	     for (i=1;i<=lattice_size_x;i++)
 	      fscanf(fp4,"%f",&d50[i][j]);
 	    fclose(fp4);}
-	 if (flagforcu==0) 
-	  {for (j=1;j<=lattice_size_y;j++)
-	    for (i=1;i<=lattice_size_x;i++)
-		 cu[i][j]=cufixed;} 
-	  else 
-	   {fp4=fopen("./cu.txt","r");
-		for (j=1;j<=lattice_size_y;j++)
-	     for (i=1;i<=lattice_size_x;i++)
-	      fscanf(fp4,"%f",&cu[i][j]);
-	    fclose(fp4);}
-	 if (flagforthickness==0) 
-	  {for (j=1;j<=lattice_size_y;j++)
-	    for (i=1;i<=lattice_size_x;i++)
-		 thickness[i][j]=thicknessfixed;} 
-	  else 
-	   {fp4=fopen("./thickness.txt","r");
-        thickness=matrix(1,lattice_size_x,1,lattice_size_y);
-		for (j=1;j<=lattice_size_y;j++)
-	     for (i=1;i<=lattice_size_x;i++)
-	      fscanf(fp4,"%f",&thickness[i][j]);
-	    fclose(fp4);}
 	 if (flagforrockcover==0) 
 	  {for (j=1;j<=lattice_size_y;j++)
 	    for (i=1;i<=lattice_size_x;i++)
@@ -457,45 +494,87 @@ int main()
 	     for (i=1;i<=lattice_size_x;i++)
 	      fscanf(fp4,"%f",&rockcover[i][j]);
 	    fclose(fp4);}
-	 for (j=1;j<=lattice_size_y;j++)
-	  for (i=1;i<=lattice_size_x;i++)
-	   fscanf(fp0,"%f",&topo[i][j]);
-     for (j=1;j<=lattice_size_y;j++)
-      for (i=1;i<=lattice_size_x;i++)
-	   {topo2[i][j]=topo[i][j];
-        slopex=topo[iup[i]][j]-topo[idown[i]][j];
-        slopey=topo[i][jup[j]]-topo[i][jdown[j]];
-	    slope[i][j]=0.5*sqrt(slopex*slopex+slopey*slopey)/deltax;}
-	 if (flagforslope==1)
-	  {fp4=fopen("./slope.txt","r");
-	   for (j=1;j<=lattice_size_y;j++)
-	    for (i=1;i<=lattice_size_x;i++)
-	     fscanf(fp4,"%f",&slope[i][j]);
-	   fclose(fp4);}		 
-	 for (j=1;j<=lattice_size_y;j++)
-      for (i=1;i<=lattice_size_x;i++)
-	   {sinofslope[i][j]=sin(atan(slope[i][j]));
-        if (mask[i][j]==1) avsinofslope[i][j]=sin(atan(slope[i][j])); else avsinofslope[i][j]=0;
-		cosofslopeterm[i][j]=sqrt(9.81*cos(atan(slope[i][j])));
-        slope[i][j]=sin(atan(slope[i][j]))*tanangleofinternalfriction/(cos(atan(slope[i][j]))*tanangleofinternalfriction-sin(atan(slope[i][j])));}
-	 hydrologiccorrection();
-     computecontributingarea();
-	 for (j=1;j<=lattice_size_y;j++)
-      for (i=1;i<=lattice_size_x;i++)
-	   avsinofslope[i][j]/=area[i][j]/(deltax*deltax);   
+	 taucarmor=matrix(1,lattice_size_x,1,lattice_size_y);
+	 tauwithoutrain=matrix(1,lattice_size_x,1,lattice_size_y);
+	 taucsoilandveg=matrix(1,lattice_size_x,1,lattice_size_y);
 	 for (j=1;j<=lattice_size_y;j++)
       for (i=1;i<=lattice_size_x;i++)
 	   if (mask[i][j]==1)
-	    {taucarmor[i][j]=9810*sinofslope[i][j]*pow(pow(pow(d50[i][j],0.38)*pow(cu[i][j],0.28)/(10*pow(thickness[i][j],0.62)*pow(slope[i][j],0.2)*1.16/pow(reducedspecificgravity,0.3)),4.76)/cosofslopeterm[i][j],0.666667);     
+	    {if (flagforequation==0) taucarmor[i][j]=9810*sinofslope[i][j]*pow(1.9*pow(slope[i][j],-1.15)*pow(d50[i][j],2.13)/cosofslopeterm[i][j],0.666667);
+	      else taucarmor[i][j]=9810*sinofslope[i][j]*pow(1.3*pow(slopefactor[i][j],-0.86)*pow(d50[i][j],1.68)/cosofslopeterm[i][j],0.666667);     
 	     if (taucarmor[i][j]<taucsoilandveg[i][j]) taucarmor[i][j]=taucsoilandveg[i][j];
 		 if ((rockcover[i][j]<0.99)&&(rockcover[i][j]>0.3)) taucarmor[i][j]/=exp(-4*(rockcover[i][j]-0.1));
-		 tau[i][j]=(9810*sinofslope[i][j]*pow(b*rain[i][j]/(1000*3600)*avsinofslope[i][j]*pow(area[i][j],c)/(rillwidth*cosofslopeterm[i][j]),0.666667));
-		 f[i][j]=tau[i][j]/taucarmor[i][j];}
-     for (j=1;j<=lattice_size_y;j++)
+		 tauwithoutrain[i][j]=9810*sinofslope[i][j]*pow(b/(1000*3600)*avsinofslope[i][j]*pow(area[i][j],c)/(rillwidth*cosofslopeterm[i][j]),0.666667);}
+	 free_matrix(taucsoilandveg,1,lattice_size_x,1,lattice_size_y);
+	 free_matrix(d50,1,lattice_size_x,1,lattice_size_y);
+	 free_matrix(rockcover,1,lattice_size_x,1,lattice_size_y);
+	 free_matrix(slopefactor,1,lattice_size_x,1,lattice_size_y);
+	 free_matrix(sinofslope,1,lattice_size_x,1,lattice_size_y);
+	 free_matrix(avsinofslope,1,lattice_size_x,1,lattice_size_y);
+	 free_matrix(cosofslopeterm,1,lattice_size_x,1,lattice_size_y);
+	 rain=matrix(1,lattice_size_x,1,lattice_size_y);
+	 f=matrix(1,lattice_size_x,1,lattice_size_y);
+     f2=matrix(1,lattice_size_x,1,lattice_size_y);	 
+	 if (flagfordynamicmode==0)
+	  {for (j=1;j<=lattice_size_y;j++)
+        for (i=1;i<=lattice_size_x;i++)
+	     rain[i][j]=rainfixed;}
+ 	 else	 
+	  {fpin=fopen("./dynamicinput.txt","r");
+	   fscanf(fpin,"%d",&flagforrainrasters);		 
+	   fscanf(fpin,"%f",&rillerodibility);		 
+	   fscanf(fpin,"%f",&bulkdensity);		 	 
+	   fscanf(fpin,"%f",&timescaleofinterest);
+       fscanf(fpin,"%f",&durationofdata);
+	   fscanf(fpin,"%f",&timestep);
+	   fscanf(fpin,"%d",&numberofraingages);
+	   fscanf(fpin,"%f %f",&ulx,&uly);
+	   inciseddepth=matrix(1,lattice_size_x,1,lattice_size_y);
+	   rainl=matrix(1,lattice_size_x,1,lattice_size_y);
+	   for (j=1;j<=lattice_size_y;j++)
+        for (i=1;i<=lattice_size_x;i++)
+		 inciseddepth[i][j]=0;
+	   fp4=fopen("./inciseddepth.txt","w");
+	   if (flagforrainrasters==0)
+	    {raingagex=vector(1,numberofraingages);
+	     raingagey=vector(1,numberofraingages);
+		 closestgage=imatrix(1,lattice_size_x,1,lattice_size_y); 
+	     for (m=1;m<=numberofraingages;m++) fscanf(fpin,"%f %f",&raingagex[m],&raingagey[m]);
+	     for (j=1;j<=lattice_size_y;j++)
+          for (i=1;i<=lattice_size_x;i++)
+		   {mindist=large;
+	        for (m=1;m<=numberofraingages;m++) 
+		     {ic=oneoverdeltax*(raingagex[m]-ulx);
+		      jc=oneoverdeltax*(uly-raingagey[m]);
+		      dist=sqrt((i-ic-1)*(i-ic-1)+(j-jc-1)*(j-jc-1));
+		      if (dist<mindist) {mindist=dist;closestgage[i][j]=m;}}}}
+	   fscanf(fpin,"%d",&numberofraindata);	 
+	   if (flagforrainrasters==0) rainvalues=vector(1,numberofraindata); else fp5=fopen("./rainrasters.txt","r");    
+	   for (n=1;n<=numberofraindata;n++)
+	    {if (flagforrainrasters==0) for (m=1;m<=numberofraingages;m++) fscanf(fpin,"%f",&rainvalues[m]);
+		  else 
+		   {for (j=1;j<=lattice_size_y;j++)
+             for (i=1;i<=lattice_size_x;i++)
+			  fscanf(fp5,"%f",&rainl[i][j]);}
+		 for (j=1;j<=lattice_size_y;j++)
+          for (i=1;i<=lattice_size_x;i++)
+		   {if (flagforrainrasters==0) rainl[i][j]=rainvalues[closestgage[i][j]];
+	        if (rainl[i][j]>rain[i][j]) rain[i][j]=rainl[i][j];
+			f[i][j]=tauwithoutrain[i][j]*pow(rainl[i][j],0.666667)/taucarmor[i][j];
+		    if ((slope[i][j]<tanangleofinternalfriction)&&(f[i][j]>1)) 
+		     inciseddepth[i][j]+=rillerodibility*(tauwithoutrain[i][j]*pow(rainl[i][j],0.666667)-taucarmor[i][j])*timescaleofinterest*60*timestep/(bulkdensity*durationofdata);}}		   
+	   for (j=1;j<=lattice_size_y;j++)
+        for (i=1;i<=lattice_size_x;i++)
+	     if (mask[i][j]==1) fprintf(fp4,"%f\n",inciseddepth[i][j]); else  fprintf(fp4,"0.0\n");
+	   fclose(fpin);fclose(fp4);
+	   if (flagforrainrasters==1) fclose(fp5);}
+	 for (j=1;j<=lattice_size_y;j++)
       for (i=1;i<=lattice_size_x;i++)
-	   {
-        if ((f[i][j]>0)&&(f[i][j]<=2)) fprintf(fp1,"%f\n",f[i][j]); else fprintf(fp1,"0.0\n"); 
-		if (mask[i][j]==1) fprintf(fp3,"%f\n",tau[i][j]); else  fprintf(fp3,"0.0\n");}
+	   if (slope[i][j]<tanangleofinternalfriction) f[i][j]=tauwithoutrain[i][j]*pow(rain[i][j],0.666667)/taucarmor[i][j]; else f[i][j]=1;    
+	 for (j=1;j<=lattice_size_y;j++)
+      for (i=1;i<=lattice_size_x;i++)
+	   {if ((mask[i][j]==1)&&(f[i][j]>-large)&&(f[i][j]<large)) fprintf(fp1,"%f\n",f[i][j]); else fprintf(fp1,"0.0\n");
+		if (mask[i][j]==1) fprintf(fp3,"%f\n",tauwithoutrain[i][j]*pow(rain[i][j],0.666667)); else  fprintf(fp3,"0.0\n");}
      fprintf(fp2,"P3\n%ld %ld\n255\n",lattice_size_x,lattice_size_y);
 	 for (m=1;m<=expansion;m++)
 	  {for (j=1;j<=lattice_size_y;j++)
@@ -513,11 +592,6 @@ int main()
 	     if (((f2[iup[i]][j]>=yellowthreshold)&&(f2[i][j]<1))||((f2[idown[i]][j]>=yellowthreshold)&&(f2[idown[i]][j]<1))||((f2[i][jup[j]]>=yellowthreshold)&&(f2[i][jup[j]]<1))||((f2[i][jdown[j]]>=yellowthreshold)&&(f2[i][jdown[j]]<1))) f[i][j]=yellowthreshold+0.01;}
 	 for (j=1;j<=lattice_size_y;j++)
       for (i=1;i<=lattice_size_x;i++)
-	   if (mask[i][j]==0) fprintf(fp2,"0 0 0\n");
-		else {if (f[i][j]>1) fprintf(fp2,"255 0 0\n"); else if (f[i][j]>yellowthreshold) fprintf(fp2,"255 255 0\n"); else fprintf(fp2,"255 255 255\n");}
-	 fclose(fpin);
-	 fclose(fp0);
-	 fclose(fp1);
-	 fclose(fp2);
-	 fclose(fp3);
-}	   
+	   if (mask[i][j]==0) fprintf(fp2,"0 0 0\n"); else {if (f[i][j]>1) fprintf(fp2,"255 0 0\n"); else if (f[i][j]>yellowthreshold) fprintf(fp2,"255 255 0\n"); else fprintf(fp2,"255 255 255\n");}
+     fclose(fp1);fclose(fp2);fclose(fp3);
+}  

@@ -13,9 +13,9 @@
 #define small 1.e-12
 #define mfdweight 1.1
 
-long count,numprocesses,*topovecind,*flatis,*flatjs,*iup,*idown,*jup,*jdown,lattice_size_x,lattice_size_y,ic,jc,m,n;
-int flagfordynamicmode,numberofraindata,numberofraingages,**closestgage,expansion,smoothinglength,numberofdatapoints,flagforrainrasters,flagforequation,flagfordynamicmode,flagformask,flagforslope,flagford50,flagfortaucsoilandveg,flagforrain,flagforcu,flagforthickness,flagforrockcover,**mask;
-float oneoverdeltax,durationofdata,timestep,ulx,uly,*raingagex,*raingagey,dist,mindist,*rainvalues,durationofdata,minslope,**slopefactor,**rainl,**rain,**d50,**cu,**thickness,**rockcover,**taucsoilandveg,**tauwithoutrain,**topo,**slope,**area,flow1,flow2,flow3,flow4,flow5,flow6,flow7,flow8,*topovec,fillincrement,**inciseddepth,**f,**f2,slopex,slopey,deltax,yellowthreshold,rillwidth,rainfixed,b,c,d50fixed,rockcoverfixed,bulkdensity,timescaleofinterest,durationofdata,rillerodibility,tanangleofinternalfriction,taucsoilandvegfixed,**sinofslope,**avsinofslope,**cosofslopeterm,**taucarmor;
+long count,*topovecind,*flatis,*flatjs,*iup,*idown,*jup,*jdown,lattice_size_x,lattice_size_y,ic,jc,i,j,m,n;
+int flagfordynamicmode,numberofraindata,numberofraingages,**closestgage,expansion,smoothinglength,numberofdatapoints,flagforrainrasters,flagforequation,flagfordynamicmode,flagformask,flagforslope,flagford50,flagfortaucsoilandveg,flagforrain,flagforcu,flagforthickness,flagforrockcover,**mask,hydrologic=0,dynamic=0,result;
+float nodatavalue,oneoverdeltax,durationofdata,timestep,ulx,uly,*raingagex,*raingagey,dist,mindist,*rainvalues,durationofdata,minslope,**slopefactor,**rainl,**rain,**d50,**cu,**thickness,**rockcover,**taucsoilandveg,**tauwithoutrain,**topo,**slope,**area,flow1,flow2,flow3,flow4,flow5,flow6,flow7,flow8,*topovec,fillincrement,**inciseddepth,**f,**f2,slopex,slopey,deltax,yellowthreshold,rillwidth,rainfixed,b,c,d50fixed,rockcoverfixed,bulkdensity,timescaleofinterest,durationofdata,rillerodibility,tanangleofinternalfriction,taucsoilandvegfixed,**sinofslope,**avsinofslope,**cosofslopeterm,**taucarmor;
 
 void free_vector(float *v, long nl, long nh)
 /* free a float vector allocated with vector() */
@@ -248,25 +248,37 @@ void pop()
 
 long hydrologic_percentage()
 {
-	if (lattice_size_x*lattice_size_y != 0) {
-		return (long)((float)numprocesses/(lattice_size_x*lattice_size_y)*100);
+	if (hydrologic == 1) {
+		if (lattice_size_x*lattice_size_y != 0) {
+			result = 10*j/(lattice_size_y/10);
+			if (result >= 100) {
+				hydrologic = 0;
+			}
+			return result;
+		}
+		return 0;
 	}
-	return 0;
+	return -1;
 }
 
 long dynamic_percentage()
 {
-	if (numberofraindata > 0) {
-		return (long)((float)10*n/(numberofraindata/10));
+	if (dynamic == 1) {
+		if (numberofraindata > 0) {
+			result = (long)((float)100*n/numberofraindata);
+			if (result >= 100) {
+				dynamic = 0;
+			}
+			return result;
+		}
+		return 0;
 	}
-	return 0;
+	return -1;
 }
 
 void hydrologiccorrection()
-{    long i,j;
-     float max;
-
-	 fflush(stdout);
+{	 float max;
+	 hydrologic = 1;
 	 count=stacksize;
 	 while (count==stacksize)
 	  {count=0;
@@ -274,7 +286,6 @@ void hydrologiccorrection()
 	   {
         for (i=1;i<=lattice_size_x;i++)
 	     {push(i,j);
-		  numprocesses++;
 	      while (count>0) 
 		   {pop();
 		    max=topo[ic][jc];
@@ -297,6 +308,7 @@ void hydrologiccorrection()
 			  push(idown[ic],jdown[jc]);
 			  push(idown[ic],jup[jc]);
 	          push(iup[ic],jdown[jc]);}}}}}
+	  hydrologic = 0;
 }
 
 void smoothslope()
@@ -390,7 +402,7 @@ void computecontributingarea()
 int main()
 {
      FILE *fpin,*fp0,*fp1,*fp2,*fp3,*fp4,*fp5;
-	 long i,j;
+     
 	 fpin=fopen("./input.txt","r");
 	 fp0=fopen("./topo.txt","r");
 	 fp1=fopen("./f.txt","w");
@@ -409,6 +421,7 @@ int main()
 	 fscanf(fpin,"%ld",&lattice_size_x);
 	 fscanf(fpin,"%ld",&lattice_size_y);
 	 fscanf(fpin,"%f",&deltax);
+	 fscanf(fpin,"%f",&nodatavalue);
 	 fscanf(fpin,"%d",&smoothinglength);
      fscanf(fpin,"%f",&rainfixed);	 
 	 fscanf(fpin,"%f",&taucsoilandvegfixed);
@@ -427,8 +440,7 @@ int main()
 	 flatis=lvector(1,stacksize);
 	 flatjs=lvector(1,stacksize);
 	 if (flagformask==0) 
-	  {
-		for (j=1;j<=lattice_size_y;j++)
+	  {for (j=1;j<=lattice_size_y;j++)
 	    for (i=1;i<=lattice_size_x;i++)
 		 mask[i][j]=1;} 
 	  else 
@@ -440,7 +452,8 @@ int main()
 		fclose(fp4);}
 	 for (j=1;j<=lattice_size_y;j++)
 	  for (i=1;i<=lattice_size_x;i++)
-	   fscanf(fp0,"%f",&topo[i][j]);
+	   {fscanf(fp0,"%f",&topo[i][j]);
+	    if (topo[i][j]<=nodatavalue) mask[i][j]=0;}
 	 for (j=1;j<=lattice_size_y;j++)
       for (i=1;i<=lattice_size_x;i++)
 	   {slopex=topo[iup[i]][j]-topo[idown[i]][j];
@@ -550,6 +563,7 @@ int main()
 		      if (dist<mindist) {mindist=dist;closestgage[i][j]=m;}}}}
 	   fscanf(fpin,"%d",&numberofraindata);	 
 	   if (flagforrainrasters==0) rainvalues=vector(1,numberofraindata); else fp5=fopen("./rainrasters.txt","r");    
+	   dynamic = 1;
 	   for (n=1;n<=numberofraindata;n++)
 	    {if (flagforrainrasters==0) for (m=1;m<=numberofraingages;m++) fscanf(fpin,"%f",&rainvalues[m]);
 		  else 
@@ -563,6 +577,7 @@ int main()
 			f[i][j]=tauwithoutrain[i][j]*pow(rainl[i][j],0.666667)/taucarmor[i][j];
 		    if ((slope[i][j]<tanangleofinternalfriction)&&(f[i][j]>1)) 
 		     inciseddepth[i][j]+=rillerodibility*(tauwithoutrain[i][j]*pow(rainl[i][j],0.666667)-taucarmor[i][j])*timescaleofinterest*60*timestep/(bulkdensity*durationofdata);}}		   
+	   dynamic = 0;
 	   for (j=1;j<=lattice_size_y;j++)
         for (i=1;i<=lattice_size_x;i++)
 	     if (mask[i][j]==1) fprintf(fp4,"%f\n",inciseddepth[i][j]); else  fprintf(fp4,"0.0\n");
@@ -573,7 +588,10 @@ int main()
 	   if (slope[i][j]<tanangleofinternalfriction) f[i][j]=tauwithoutrain[i][j]*pow(rain[i][j],0.666667)/taucarmor[i][j]; else f[i][j]=1;    
 	 for (j=1;j<=lattice_size_y;j++)
       for (i=1;i<=lattice_size_x;i++)
-	   {if ((mask[i][j]==1)&&(f[i][j]>-large)&&(f[i][j]<large)) fprintf(fp1,"%f\n",f[i][j]); else fprintf(fp1,"0.0\n");
+	   {if (mask[i][j]==1) 
+	     {if ((f[i][j]<2)&&(f[i][j]>-large)&&(f[i][j]<large)) fprintf(fp1,"%f\n",f[i][j]); 
+		   else {if (f[i][j]>2) fprintf(fp1,"2.0\n"); else fprintf(fp1,"0.0\n");}}
+	    else fprintf(fp1,"0.0\n");
 		if (mask[i][j]==1) fprintf(fp3,"%f\n",tauwithoutrain[i][j]*pow(rain[i][j],0.666667)); else  fprintf(fp3,"0.0\n");}
      fprintf(fp2,"P3\n%ld %ld\n255\n",lattice_size_x,lattice_size_y);
 	 for (m=1;m<=expansion;m++)

@@ -243,9 +243,9 @@ class Application(tk.Frame):
         else:
             if Path.cwd().name == "tmp":
                 os.chdir("..")
-            """This portion compiles the rillgen2dwitherode.c file in order to import it as a module"""
+            """This portion compiles the rillgen2d.c file in order to import it as a module"""
             if self.rillgen == None:
-                cmd = "gcc -Wall -shared -fPIC rillgen2dwitherode.c -o rillgen.so" # compile the c file so that it will be useable later
+                cmd = "gcc -Wall -shared -fPIC rillgen2d.c -o rillgen.so" # compile the c file so that it will be useable later
                 self.client_socket.send(subprocess.check_output(cmd, shell=True) + ('\n').encode('utf-8'))
             path = Path.cwd() / "tmp"
             if path.exists():
@@ -903,7 +903,9 @@ class Application(tk.Frame):
             self.button3.place(relx=0.5, rely=0.67, anchor=CENTER)
             self.canvas3.itemconfig(self.view_output_window, height=self.canvas3.height, width=self.canvas3.width)
             self.canvas3.pack(side="left", fill="both", expand=YES)
+            self.resize_canvas()
             self.first_time_populating_view_output_tab = False
+            
         self.canvas3imlbl.configure(image=self.canvas3img)
         
             
@@ -916,11 +918,7 @@ class Application(tk.Frame):
         self.canvas3.height = event.height
         # resize the canvas 
         self.canvas3.config(width=self.canvas3.width, height=self.canvas3.height)
-        if self.first_time_populating_view_output_tab:
-            self.resize_canvas()
-            
-        else:
-            self.can_redraw = self.after(500,self.resize_canvas)
+        self.can_redraw = self.after(500,self.resize_canvas)
 
 
     def resize_canvas(self):
@@ -980,13 +978,13 @@ class Application(tk.Frame):
                     
                     if elem == "tau.tif":
                         self.client_socket.send(("Translating tau.tif to .png\n\n").encode('utf-8'))
-                        cmd2 = "gdal_translate -ot Byte -of PNG " + elem.split(sep='.')[0] + ".tif " + elem.split(sep='.')[0] + ".png"
+                        cmd2 = "gdal_translate -a_nodata 255 -ot Byte -of PNG " + elem.split(sep='.')[0] + ".tif " + elem.split(sep='.')[0] + ".png"
                     elif elem == "f.tif":
                         self.client_socket.send(("Translating f.tif to .png\n\n").encode('utf-8'))
-                        cmd2 = "gdal_translate -ot Byte -scale 0 0.1 -of PNG " + elem.split(sep='.')[0] + ".tif " + elem.split(sep='.')[0] + ".png"
+                        cmd2 = "gdal_translate -a_nodata 255 -ot Byte -scale 0 0.1 -of PNG " + elem.split(sep='.')[0] + ".tif " + elem.split(sep='.')[0] + ".png"
                     else:
                         self.client_socket.send(("Translating inciseddepth.tif to .png\n\n").encode('utf-8'))
-                        cmd2 = "gdal_translate -ot Byte -of PNG " + elem.split(sep='.')[0] + ".tif " + elem.split(sep='.')[0] + ".png"
+                        cmd2 = "gdal_translate -a_nodata 255 -ot Byte -of PNG " + elem.split(sep='.')[0] + ".tif " + elem.split(sep='.')[0] + ".png"
                     self.client_socket.send(subprocess.check_output(cmd2, shell=True) + ('\n').encode('utf-8'))
 
                 ds2 = None
@@ -1040,11 +1038,11 @@ class Application(tk.Frame):
         """Generates a folium map based on the bounds of the geotiff file"""
         m = folium.Map(location=[(self.geo_ext[1][1]+self.geo_ext[3][1])/2, (self.geo_ext[1][0]+self.geo_ext[3][0])/2], zoom_start=14, tiles='Stamen Terrain')
 
-        img1 = folium.raster_layers.ImageOverlay(image="hillshade.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.6, interactive=True, name="hillshade")
+        img1 = folium.raster_layers.ImageOverlay(image="hillshade.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.8, interactive=True, name="hillshade")
         img2 = folium.raster_layers.ImageOverlay(image="color-relief.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.6, interactive=True, name="color-relief")
-        img3 = folium.raster_layers.ImageOverlay(image="f.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.7, interactive=True, show=True, name="f")
-        img4 = folium.raster_layers.ImageOverlay(image="tau.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.8, interactive=True, name="tau")
-        img5 = folium.raster_layers.ImageOverlay(image="rills.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.7, interactive=True, show=True, name="rills")
+        img3 = folium.raster_layers.ImageOverlay(image="f.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.5, interactive=True, show=True, name="f")
+        img4 = folium.raster_layers.ImageOverlay(image="tau.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.5, interactive=True, name="tau")
+        img5 = folium.raster_layers.ImageOverlay(image="rills.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.5, interactive=True, show=True, name="rills")
         
         img1.add_to(m)
         img2.add_to(m)

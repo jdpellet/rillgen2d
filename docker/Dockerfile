@@ -27,4 +27,4 @@ RUN conda update -n base -c defaults conda && \
 # Make RUN commands use the new environment:
 SHELL ["conda", "run", "-n", "rillgen2d", "/bin/bash", "-c"]
 WORKDIR /root
-# ENTRYPOINT ["conda", "run", "-n", "rillgen2d", "python", "rillgen2d.py"]
+ENTRYPOINT ["conda", "run", "-n", "rillgen2d", "python", "rillgen2d.py"]

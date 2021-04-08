@@ -611,5 +611,5 @@ int main()
 	 for (j=1;j<=lattice_size_y;j++)
       for (i=1;i<=lattice_size_x;i++)
 	   if (mask[i][j]==0) fprintf(fp2,"0 0 0\n"); else {if (f[i][j]>1) fprintf(fp2,"255 0 0\n"); else if (f[i][j]>yellowthreshold) fprintf(fp2,"255 255 0\n"); else fprintf(fp2,"255 255 255\n");}
-     fclose(fp1);fclose(fp2);fclose(fp3);
+     fclose(fp0);fclose(fp1);fclose(fp2);fclose(fp3);
 }  

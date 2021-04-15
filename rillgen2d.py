@@ -865,7 +865,6 @@ class Application(tk.Frame):
 
 
     def populate_view_output_tab(self):
-        print("is first time?: ", self.first_time_populating_view_output_tab)
         """Populate the third tab with tkinter widgets. The third tab allows
         the user to generate a folium map based on the rillgen output
         and also allows them to preview the image hillshade and color relief"""
@@ -956,13 +955,14 @@ class Application(tk.Frame):
             geotransform = ds.GetGeoTransform()
 
             if projection is None and geotransform is None:
-                print('No projection or geotransform found on file' + str(self.filename))
+                self.client_socket.send(("No projection or geotransform found on file" + str(self.filename) + "\n\n").encode('utf-8'))
                 sys.exit(1)
 
             for elem in ["tau.tif", "f.tif", "inciseddepth.tif"]:
                 if (Path.cwd() / elem).exists():
                     ds2 = gdal.Open(elem, gdal.GA_Update)
                     if ds2 is None:
+                        self.client_socket.send(("Unable to open " + elem + " for writing\n\n").encode('utf-8'))
                         print('Unable to open', elem, 'for writing')
                         sys.exit(1)
                     

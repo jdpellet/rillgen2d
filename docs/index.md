@@ -5,7 +5,7 @@ Code, example data, and manuscript supplemental materials which accompany **Pell
 
 Lead Author: [Jon D Pelletier](http://jdpellet.github.io/) [![](https://orcid.org/sites/default/files/images/orcid_16x16.png)](http://orcid.org/0000-0002-0702-2646)
 
-Co-Authors: [Jacob van der Leeuw](https://jvanderleeuw) [![](https://orcid.org/sites/default/files/images/orcid_16x16.png)](http://orcid.org/),  [Tyson Lee Swetnam](https://tyson-swetnam.github.io/) [![](https://orcid.org/sites/default/files/images/orcid_16x16.png)](http://orcid.org/0000-0002-6639-7181)
+Co-Authors: [Jacob van der Leeuw](https://jvanderleeuw) [![](https://orcid.org/sites/default/files/images/orcid_16x16.png)](http://orcid.org/0000-0003-0892-9837),  [Tyson Lee Swetnam](https://tyson-swetnam.github.io/) [![](https://orcid.org/sites/default/files/images/orcid_16x16.png)](http://orcid.org/0000-0002-6639-7181)
 
 ## Contents
 

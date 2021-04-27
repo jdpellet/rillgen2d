@@ -7,12 +7,12 @@ import tarfile
 import time
 import tkinter as tk
 import urllib.request as urllib
-
 import folium
 import matplotlib.pyplot as plt
 import osgeo
 import PIL
 import rasterio
+
 from ctypes import CDLL
 from datetime import datetime
 from matplotlib.backends.backend_tkagg import (
@@ -30,7 +30,7 @@ from threading import Thread
 from tkinter import *
 from tkinter import messagebox
 from tkinter import ttk
-from tkinter.filedialog import askopenfilename
+from tkinter.filedialog import askopenfilename, askdirectory
 from wand.image import Image as im
 
 """This is the main rillgen2d file which handles the gui and communicates with console.py
@@ -113,7 +113,7 @@ class Application(tk.Frame):
         self.button1.grid(row=0, column=0)
 
         self.entry1 = Entry(self.tab1, width=55)
-        self.entry1.insert(0, "Or enter in a url for a DEM (.tif) image in this box and press the button below")
+        self.entry1.insert(0, "Or enter in a url for a DEM (.tif or .tar.gz) image in this box and press the button below")
         self.entry1.first_time_clicked = True
 
         def delete_default_text(event):
@@ -124,7 +124,7 @@ class Application(tk.Frame):
         self.entry1.bind("<Button-1>", delete_default_text)
         self.entry1.grid(row=1, column=0)
 
-        self.button2 = ttk.Button(self.tab1, text="Go", command=self.get_image_from_url)
+        self.button2 = ttk.Button(self.tab1, text="Choose DEM (.tar.gz) from url", command=self.get_image_from_url)
         self.button2.grid(row=2, column=0)
 
         self.img1 = Label(self.tab1)
@@ -155,7 +155,7 @@ class Application(tk.Frame):
         """Given a geotiff image, either in .tar format or directly, extract the image and display
         it on the canvas"""
         try:
-            self.imagefile = Path(askopenfilename())
+            self.imagefile = Path(askopenfilename(initialdir=Path.cwd().parent, filetypes=[('Image Files', ['.tif','.gz','.tar'])]))
             if self.imagefile.suffix == '.tar' or self.imagefile.suffix == '.gz':
                 self.extract_geotiff_from_tarfile(self.imagefile, mode=1)
         except:
@@ -897,9 +897,11 @@ class Application(tk.Frame):
             self.canvas3imlbl = Label(self.frame3, image=self.canvas3img)
             self.canvas3imlbl.place(relx=0,rely=0)
             self.canvas3Label = tk.Label(self.frame3, text='Here you can view a leaflet map based on the file chosen in tab 1', font='Helvetica 40 bold', justify=CENTER, wraplength=800)
-            self.canvas3Label.place(relx=0.5, rely=0.33, anchor=CENTER)
+            self.canvas3Label.place(relx=0.5, rely=0.25, anchor=CENTER)
             self.button3 = ttk.Button(self.frame3, text="Generate Map", command=self.generatemap)
-            self.button3.place(relx=0.5, rely=0.67, anchor=CENTER)
+            self.button3.place(relx=0.5, rely=0.5, anchor=CENTER)
+            self.button3 = ttk.Button(self.frame3, text="View Outputs", command=self.view_output_folder)
+            self.button3.place(relx=0.5, rely=0.75, anchor=CENTER)
             self.canvas3.itemconfig(self.view_output_window, height=self.canvas3.height, width=self.canvas3.width)
             self.canvas3.pack(side="left", fill="both", expand=YES)
             self.resize_canvas()
@@ -907,7 +909,10 @@ class Application(tk.Frame):
             
         self.canvas3imlbl.configure(image=self.canvas3img)
         
-            
+
+    def view_output_folder(self):
+        askdirectory(initialdir=Path.cwd().parent)
+
     def schedule_resize_canvas(self,event):
         """Schedule resizing the canvas for the view output tab on a user click/drag event.
         The canvas cannot be continuously resized because rendering is too slow"""
@@ -1070,43 +1075,44 @@ class Application(tk.Frame):
                 shutil.copy(file_name, saveDir / file_name)
         shutil.copy(self.filename, saveDir / Path(self.filename).name)
 
-    
     def displayMap(self):
         """Uses the map.html file to generate a folium map using QtWidgets.QWebEngineView()"""
         if Path("map.html").exists():
             mapfile = QtCore.QUrl.fromLocalFile(Path("map.html").resolve().as_posix())
-        if self.app == None:
-            self.app = QtWidgets.QApplication([])
+            if self.app == None:
+                self.app = QtWidgets.QApplication([])
 
-        class MainWindow(QMainWindow):
-            def __init__(self, *args, **kwargs):
-                super(MainWindow, self).__init__(*args, **kwargs)
+            class MainWindow(QMainWindow):
+                def __init__(self, *args, **kwargs):
+                    super(MainWindow, self).__init__(*args, **kwargs)
 
-                self.setWindowTitle("View Output")
+                    self.setWindowTitle("View Output")
 
-                w = QtWebEngineWidgets.QWebEngineView()
-                w.load(mapfile)
+                    w = QtWebEngineWidgets.QWebEngineView()
+                    w.load(mapfile)
 
-                # Set the central widget of the Window. Widget will expand
-                # to take up all the space in the window by default.
-                self.setCentralWidget(w)
+                    # Set the central widget of the Window. Widget will expand
+                    # to take up all the space in the window by default.
+                    self.setCentralWidget(w)
 
-            def closeEvent(self, event):
-                reply = QMessageBox.question(self, "Window Close", "Are you sure you want to close the window?", QMessageBox.No | QMessageBox.Yes, QMessageBox.Yes)
-                if reply == QMessageBox.Yes:
-                    event.accept()
-                    try:
-                        app.quit()
-                    except Exception as e:
-                        print("exception reached")
-                        print(str(e))
-                else: 
-                    event.ignore()
+                def closeEvent(self, event):
+                    reply = QMessageBox.question(self, "Window Close", "Are you sure you want to close the window?", QMessageBox.No | QMessageBox.Yes, QMessageBox.Yes)
+                    if reply == QMessageBox.Yes:
+                        event.accept()
+                        try:
+                            app.quit()
+                        except Exception as e:
+                            print("exception reached")
+                            print(str(e))
+                    else: 
+                        event.ignore()
 
-        app = self.app.instance()
-        main_window = MainWindow()
-        main_window.show()
-        app.exec_()
+            app = self.app.instance()
+            main_window = MainWindow()
+            main_window.show()
+            app.exec_()
+        else:
+            self.client_socket.send(("No map.html file found\n\n").encode('utf-8'))
 
 
 if __name__ == "__main__":

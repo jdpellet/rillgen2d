@@ -56,3 +56,7 @@ dkms.conf
 
 # MacOS-created folders
 *.idea
+
+slope.txt
+mask.txt
+topo.txt

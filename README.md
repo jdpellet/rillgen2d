@@ -18,6 +18,7 @@ cd rillgen2d
 
 We have provided a `environment.yml` file which can be used with [Conda](https://docs.conda.io/en/latest/) to install the stack.
 
+Example install for Linux
 ```
 # update conda
 conda update -n base -c defaults conda
@@ -26,7 +27,7 @@ conda update -n base -c defaults conda
 conda remove --name rillgen2d --all
 
 # create new environment for rillgen2d
-conda env create -f environment.yml
+conda env create -f environment_linux.yml
 
 # activate conda environment
 conda activate rillgen2d
@@ -35,6 +36,7 @@ conda activate rillgen2d
 conda env update --prefix ./env --file environment.yml  --prune
 ```
 
+To install on Windows, use the environment_windows.yml instead
 ### Starting the GUI
 
 Once the appropriate Python environment has been created, you can start the GUI
@@ -50,3 +52,16 @@ python rillgen2d.py
 ## Docker
 
 Alternately, you can run the entire program with [Docker]()
+
+## Note:
+On Linux in the Parameters tab values may appear with a newline character '\n' at the end
+
+# Docker run command:
+
+Mac: 1.) run brew -a xquartz, go to xquartz preferences, and from the "Security" tab, make sure that "Allow connections from network clients" is selected. If it is not, then select it and restart xquartz
+
+2.) socat TCP-LISTEN:6000,reuseaddr,fork UNIX-CLIENT:\"$DISPLAY\"
+
+3.)docker run --rm -it -e DISPLAY=docker.for.mac.host.internal:0 rillgen2d:latest
+
+Linux: 1.) docker run --rm -it -e DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix rillgen2d:latest

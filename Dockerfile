@@ -9,12 +9,22 @@ RUN apt-get update && \
         gdal-bin   \
         libgdal-dev  \
         gcc \
-        g++    
+        g++ \
+        mesa-utils \
+        libgl1-mesa-dev \
+        libgl1-mesa-glx \
+        libxcomposite-dev \
+        libxcursor1 \
+        libxi6 \
+        libxtst6 \
+        libxss1 \
+        libpci-dev \
+        libasound2
 COPY . /root/
 RUN conda update -n base -c defaults conda && \
-    cd && \
-    conda env create -f environment.yml
+    cd root && \
+    conda env create -f environment_linux.yml
 # Make RUN commands use the new environment:
-SHELL ["conda", "run", "-n", "rillgen", "/bin/bash", "-c"]
+SHELL ["conda", "run", "-n", "rillgen2d", "/bin/bash", "-c"]
 WORKDIR /root
-ENTRYPOINT ["conda", "run", "-n", "rillgen", "python", "rillgen2d.py"]
+ENTRYPOINT ["conda", "run", "-n", "rillgen2d", "python", "rillgen2d.py"]

@@ -1065,7 +1065,7 @@ class Application(tk.Frame):
 
     def saveOutput(self):
         """Save outputs from a run in a timestamp-marked folder"""
-        saveDir = "outputs(save-" + str(datetime.now()).replace(" ", "").replace(":", ".") + ")"
+        saveDir = "outputs_save-" + str(datetime.now()).replace(" ", "").replace(":", ".")
         Path.mkdir(Path.cwd().parent / saveDir)
         saveDir = Path.cwd().parent / saveDir
         acceptable_files = ["parameters.txt", "input.txt", "map.html", "rills.ppm"]

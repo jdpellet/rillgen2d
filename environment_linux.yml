@@ -133,7 +133,7 @@ dependencies:
   - pyqtchart
   - pyqtwebengine
   - pysocks
-  - python==3.7.*
+  - python==3.8.*
   - python-dateutil
   - python-engineio
   - python-socketio
@@ -145,6 +145,7 @@ dependencies:
   - setuptools
   - six
   - snuggs
+  - socat
   - sqlite
   - tbb
   - tiledb

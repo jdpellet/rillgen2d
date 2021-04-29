@@ -124,7 +124,7 @@ class Application(tk.Frame):
         self.entry1.bind("<Button-1>", delete_default_text)
         self.entry1.grid(row=1, column=0)
 
-        self.button2 = ttk.Button(self.tab1, text="Choose DEM (.tar.gz) from url", command=self.get_image_from_url)
+        self.button2 = ttk.Button(self.tab1, text="Choose DEM (.tif or .tar.gz) from url", command=self.get_image_from_url)
         self.button2.grid(row=2, column=0)
 
         self.img1 = Label(self.tab1)

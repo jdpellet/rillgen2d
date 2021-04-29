@@ -21,7 +21,7 @@ RUN apt-get update && \
         libpci-dev \
         libasound2
 COPY . /root/
-RUN conda update -n base -c defaults conda && \
+RUN conda update -n base -c defaults conda -y && \
     cd root && \
     conda env create -f environment_linux.yml
 # Make RUN commands use the new environment:

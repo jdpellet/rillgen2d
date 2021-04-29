@@ -173,8 +173,14 @@ class Application(tk.Frame):
                 file_handler = urllib.urlopen(entry1)
                 self.extract_geotiff_from_tarfile(file_handler, mode=2)
             else: # Given a geotiff image directly from url
-                raw_data = urllib.urlopen(entry1).read()
-                self.starterimg = rasterio.open(io.BytesIO(raw_data))
+                import requests
+                path = Path.cwd()
+                if path.as_posix().endswith('tmp'):
+                    path = path.parent
+                r = requests.get(entry1,allow_redirects=True)
+                img = os.path.basename(entry1)
+                open((path / img),'wb').write(r.content)
+                self.imagefile = (path / img)
         except Exception:
             messagebox.showerror(title="ERROR", message="Invalid url. Please use the url for an image")
         else:

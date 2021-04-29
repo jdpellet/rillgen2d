@@ -919,9 +919,10 @@ class Application(tk.Frame):
     def view_output_folder(self):
         currentDir = Path.cwd()
         outputDir = askdirectory(initialdir=Path.cwd().parent)
-        os.chdir(outputDir)
-        self.displayMap()
-        os.chdir(currentDir)
+        if outputDir != '':
+            os.chdir(outputDir)
+            self.displayMap()
+            os.chdir(currentDir)
 
     def schedule_resize_canvas(self,event):
         """Schedule resizing the canvas for the view output tab on a user click/drag event.

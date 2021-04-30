@@ -1,3 +1,4 @@
+import gzip
 import io
 import os
 import subprocess
@@ -6,12 +7,12 @@ import sys
 import tarfile
 import time
 import tkinter as tk
-import urllib.request as urllib
 import folium
 import matplotlib.pyplot as plt
 import osgeo
 import PIL
 import rasterio
+import requests
 
 from ctypes import CDLL
 from datetime import datetime
@@ -65,7 +66,8 @@ class Application(tk.Frame):
                                     {'side': 'left', 'sticky': 'ns'})],
                         'sticky': 'nswe'}),
                     ('Horizontal.Progressbar.label', {'sticky': ''})])
-        self.style.configure('text.Horizontal.TProgressbar', text='0 %', foreground='black', background='green',)
+        self.style.configure('text.Horizontal.TProgressbar', text='0 %', foreground='black', background='green')
+        self.style.configure("TButton",font=('Helvetica', 25))
         self.tabControl = ttk.Notebook(self)
         self.tab1 = ttk.Frame(self.tabControl)
         self.tab2 = ttk.Frame(self.tabControl)
@@ -112,13 +114,13 @@ class Application(tk.Frame):
         self.button1 = ttk.Button(self.tab1, text="Choose DEM (.tif) locally", command=self.get_image_locally)
         self.button1.grid(row=0, column=0)
 
-        self.entry1 = Entry(self.tab1, width=55)
-        self.entry1.insert(0, "Or enter in a url for a DEM (.tif or .tar.gz) image in this box and press the button below")
+        self.entry1 = Text(self.tab1, width=60,height=5)
+        self.entry1.insert(1.0,"Or enter in a url for a DEM (.tif or .tar.gz) image in this box and press the button below")
         self.entry1.first_time_clicked = True
 
         def delete_default_text(event):
             if self.entry1.first_time_clicked == True:
-                self.entry1.delete(0, "end")
+                self.entry1.delete(1.0,END)
                 self.entry1.first_time_clicked = False
 
         self.entry1.bind("<Button-1>", delete_default_text)
@@ -140,7 +142,7 @@ class Application(tk.Frame):
         style = ttk.Style()
         style.configure('W.TButton', font="Helvetica", foreground='red')
 
-        self.save_image = ttk.Button(self.tab1, text="Save Image", style='W.TButton', command=self.saveimageastxt)
+        self.save_image = ttk.Button(self.tab1, text="Save Image", command=self.saveimageastxt)
         self.save_image.grid(row=3, column=1)
         self.tab1.columnconfigure(0, weight=1)
         self.tab1.columnconfigure(1, weight=1)
@@ -168,54 +170,26 @@ class Application(tk.Frame):
         """Given the url of an image when a raster is generated or located online,
         extract the geotiff image from the url and display it on the canvas """
         try: 
-            entry1 = str(self.entry1.get())
-            if entry1.endswith(".gz"):
-                file_handler = urllib.urlopen(entry1)
-                self.extract_geotiff_from_tarfile(file_handler, mode=2)
-            else: # Given a geotiff image directly from url
-                import requests
-                path = Path.cwd()
-                if path.as_posix().endswith('tmp'):
-                    path = path.parent
-                r = requests.get(entry1,allow_redirects=True)
-                img = os.path.basename(entry1)
-                open((path / img),'wb').write(r.content)
-                self.imagefile = (path / img)
+            entry1 = str(self.entry1.get("1.0",'end-1c'))
+            r = requests.get(entry1,allow_redirects=True)
+            path = Path.cwd()
+            if path.as_posix().endswith('tmp'):
+                path = path.parent
+            img = os.path.basename(entry1)
+            open((path / img),'wb').write(r.content)
+            if img.endswith(".gz"):
+                tar = tarfile.open(img)
+                for filename in tar.getnames():
+                    if filename.endswith('.tif'):
+                        tar.extract(filename, path=str(path))
+                        img = filename
+                        break
+            self.imagefile = (path / img)
         except Exception:
             messagebox.showerror(title="ERROR", message="Invalid url. Please use the url for an image")
         else:
             self.preview_geotiff(mode=2)
 
-    
-    def extract_geotiff_from_tarfile(self, file_to_open, mode):
-        """If the geotiff image is contained within a .tar file,
-        extract the geotiff image from the file"""
-        nextfile = None
-        tar = None
-        if mode == 1:
-            tar = tarfile.open(file_to_open)
-        else:
-            tar = tarfile.open(fileobj=file_to_open, mode="r|gz")
-        endreached = False
-        while(endreached == False):
-            nextfile = tar.next()
-            if nextfile == None:
-                endreached = True
-            else:
-                if nextfile.path.endswith('.tif'):
-                    endreached = True
-        path = ""
-        if mode == 1:
-            path = Path(file_to_open).parent
-        else:
-            path = Path.cwd()
-            if path.as_posix().endswith('tmp'):
-                path = path.parent
-        if Path(str(path / nextfile.name)).is_file():
-            Path.unlink(path / nextfile.name)
-        tar.extract(nextfile, path=str(path))
-        tar.close()
-        self.imagefile = path / nextfile.name
 
     def preview_geotiff(self, mode):
         """Display the geotiff on the canvas of the first tab"""
@@ -240,6 +214,7 @@ class Application(tk.Frame):
                 messagebox.showerror(title="ERROR", message="Invalid File Format. Supported files must be in TIFF format")
         except Exception as e:
                 messagebox.showerror(title="ERROR", message="Exception: " + str(e))
+
 
     def saveimageastxt(self):
         """Prepares the geotiff file for the rillgen2D code by getting its dimensions (for the input.txt file) and converting it to
@@ -284,6 +259,7 @@ class Application(tk.Frame):
                 self.tabControl.pack(expand=1, fill="both")
             self.client_socket.send(("Image saved\n\n").encode('utf-8'))
 
+
     def populate_parameters_tab(self):
         """Populate the second tab in the application with tkinter widgets. This tab holds editable parameters
         that will be used to run the rillgen2dwitherode.c script. lattice_size_x and lattice_size_y are read in from the
@@ -310,7 +286,7 @@ class Application(tk.Frame):
 
         # Flag for equation variable
         Label(self.frame2, text='Flag for equation:', font='Helvetica 25 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='Should be 0 if the user wishes to implement the rock armor shear strength equation of Haws and Erickson (2020), 1 if the user wishes to implement the equation of Pelletier et al. (2021).', font='Helvetica 20', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='Should be 0 if the user wishes to implement the rock armor shear strength equation of Haws and Erickson (2020), 1 if the user wishes to implement the equation of Pelletier et al. (2021).', font='Helvetica 25', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
         
         self.flagForEquationVar = IntVar(value=int(f.readline()))
         Checkbutton(self.frame2, variable=self.flagForEquationVar, width=5).grid(row=rowNumber, column=1, pady=20)
@@ -321,7 +297,7 @@ class Application(tk.Frame):
 
         # Flag for dynamic node variable
         Label(self.frame2, text='Flag for dynamicmode', font='Helvetica 25 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='Should be 1 if the user wants to implement either the dynamic mode, in which case the file "dynamicinput.txt" must be provided in the same directory as the executable, and/or spatially variable rainfall. If this flag is set to zero then the model is run in "peak mode" with spatially uniform rainfall only.', font='Helvetica 20', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='Should be 1 if the user wants to implement either the dynamic mode, in which case the file "dynamicinput.txt" must be provided in the same directory as the executable, and/or spatially variable rainfall. If this flag is set to zero then the model is run in "peak mode" with spatially uniform rainfall only.', font='Helvetica 25', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
         
         self.flagforDynamicModeVar = IntVar(value=int(f.readline()))
         Checkbutton(self.frame2, variable=self.flagforDynamicModeVar, width=5).grid(row=rowNumber, column=1, pady=20)
@@ -332,7 +308,7 @@ class Application(tk.Frame):
 
         # Flag for mask variable
         Label(self.frame2, text='Flag for mask:', font='Helvetica 25 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='Should be 1 if the user provides a raster (mask.txt) that restricts the model to certain portions of the input DEM (mask = 1 means run the model, 0 means ignore these areas).', font='Helvetica 20', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='Should be 1 if the user provides a raster (mask.txt) that restricts the model to certain portions of the input DEM (mask = 1 means run the model, 0 means ignore these areas).', font='Helvetica 25', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
         
         self.flagForMaskVar = IntVar(value=int(f.readline()))
         Checkbutton(self.frame2, variable=self.flagForMaskVar, width=5).grid(row=rowNumber, column=1, pady=20)
@@ -343,7 +319,7 @@ class Application(tk.Frame):
 
         # flagForTaucSoilAndVeg variable
         Label(self.frame2, text='Flag for taucsoilandveg:', font='Helvetica 25 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='Should be 1 if the user provides a raster (taucsoilandveg.txt) that maps the shear strength of soil and veg, 0 means a fixed value equal to taucsoilandvegfixed will be used.', font='Helvetica 20',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='Should be 1 if the user provides a raster (taucsoilandveg.txt) that maps the shear strength of soil and veg, 0 means a fixed value equal to taucsoilandvegfixed will be used.', font='Helvetica 25',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
         self.flagForTaucSoilAndVegVar = IntVar(value=int(f.readline()))
         flagForTaucSoilAndVegInput = Checkbutton(self.frame2, variable=self.flagForTaucSoilAndVegVar, width=5, pady=20)
         flagForTaucSoilAndVegInput.grid(row=rowNumber, column=1, pady=20)
@@ -354,7 +330,7 @@ class Application(tk.Frame):
 
         # Flag for d50 variable
         Label(self.frame2, text='Flag for d50', font='Helvetica 25 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='Should be 1 if the user provides a raster (d50.txt) that maps the median rock diameter, 0 means a fixed value equal to d50fixed will be used.', font='Helvetica 20',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='Should be 1 if the user provides a raster (d50.txt) that maps the median rock diameter, 0 means a fixed value equal to d50fixed will be used.', font='Helvetica 25',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
         self.flagFord50Var = IntVar(value=int(f.readline()))
         flagFord50Input = Checkbutton(self.frame2, variable=self.flagFord50Var, width=5, pady=20)
         flagFord50Input.grid(row=rowNumber, column=1)
@@ -365,7 +341,7 @@ class Application(tk.Frame):
 
         # Flag for rockcover
         Label(self.frame2, text='Flag for rockcover', font='Helvetica 25 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='Should be 1 if the user provides a raster (rockcover.txt) that maps the rock cover fraction, 0 means a fixed value equal to rockcoverfixed will be used.', font='Helvetica 20', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='Should be 1 if the user provides a raster (rockcover.txt) that maps the rock cover fraction, 0 means a fixed value equal to rockcoverfixed will be used.', font='Helvetica 25', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
         self.flagForRockCoverVar = IntVar(value=int(f.readline()))
         flagForRockCoverInput = Checkbutton(self.frame2, variable=self.flagForRockCoverVar, width=5, pady=20)
         flagForRockCoverInput.grid(row=rowNumber, column=1)
@@ -376,7 +352,7 @@ class Application(tk.Frame):
 
         # fillIncrement variable
         Label(self.frame2, text='fillIncrement:', font='Helvetica 25 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='This value (in meters) is used to fill in pits and flats for hydrologic correction. 0.01 is a reasonable default value for most lidar applications.', font='Helvetica 20',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='This value (in meters) is used to fill in pits and flats for hydrologic correction. 0.01 is a reasonable default value for most lidar applications.', font='Helvetica 25',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
         fillIncrementVar = StringVar(root, value=str(f.readline()))
         self.fillIncrementInput = Entry(self.frame2, textvariable=fillIncrementVar, width=5)
         self.fillIncrementInput.grid(row=rowNumber, column=1, pady=20)
@@ -387,7 +363,7 @@ class Application(tk.Frame):
 
         # minslope variable
         Label(self.frame2, text='minslope:', font='Helvetica 25 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='This value (unitless) is used to halt runoff from areas below a threshold slope steepness. Setting this value larger than 0 is useful for eliminating runoff from portions of the landscape that the user expects are too flat to produce significant runoff.', font='Helvetica 20', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='This value (unitless) is used to halt runoff from areas below a threshold slope steepness. Setting this value larger than 0 is useful for eliminating runoff from portions of the landscape that the user expects are too flat to produce significant runoff.', font='Helvetica 25', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
         minslopeVar = StringVar(value=str(f.readline()))
         self.minslopeInput = Entry(self.frame2, textvariable=minslopeVar, width=5)
         self.minslopeInput.grid(row=rowNumber, column=1, pady=20)
@@ -398,7 +374,7 @@ class Application(tk.Frame):
 
         # Expansion variable
         Label(self.frame2, text='expansion:', font='Helvetica 25 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='This value (in number of pixels) is used to expand the zones where rills are predicted in the output raster. This is useful for making the areas where rilling is predicted easier to see in the model output.', font='Helvetica 20',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='This value (in number of pixels) is used to expand the zones where rills are predicted in the output raster. This is useful for making the areas where rilling is predicted easier to see in the model output.', font='Helvetica 25',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
         expansionVar = StringVar(value=str(f.readline()))
         self.expansionInput = Entry(self.frame2, textvariable=expansionVar, width=5)
         self.expansionInput.grid(row=rowNumber, column=1, pady=20)
@@ -409,7 +385,7 @@ class Application(tk.Frame):
 
         # yellowThreshold variable
         Label(self.frame2, text='yellowThreshold:', font='Helvetica 25 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='This is a threshold value of f used to indicate an area that is close to but less than the threshold for generating rills. The model will visualize any location with a f value between this value and 1 as potentially prone to rill generation (any area with a f value larger than 1 is considered prone to rill generation and is colored red).', font='Helvetica 20',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='This is a threshold value of f used to indicate an area that is close to but less than the threshold for generating rills. The model will visualize any location with a f value between this value and 1 as potentially prone to rill generation (any area with a f value larger than 1 is considered prone to rill generation and is colored red).', font='Helvetica 25',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
         yellowThresholdVar = StringVar(value=str(f.readline()))
         self.yellowThresholdInput = Entry(self.frame2, textvariable=yellowThresholdVar, width=5)
         self.yellowThresholdInput.grid(row=rowNumber, column=1, pady=20)
@@ -420,7 +396,7 @@ class Application(tk.Frame):
 
         # Lattice_size_x variable
         Label(self.frame2, text='lattice_size_x:', font='Helvetica 25 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='The number of pixels along the east-west direction in the DEM.', font='Helvetica 20',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='The number of pixels along the east-west direction in the DEM.', font='Helvetica 25',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
         lattice_size_xVar = StringVar(value=self.dimensions[1])
         self.lattice_size_xInput = Entry(self.frame2, textvariable=lattice_size_xVar, width=5)
         self.lattice_size_xInput.grid(row=rowNumber, column=1, pady=20)
@@ -432,7 +408,7 @@ class Application(tk.Frame):
 
         # Lattice_size_y variable
         Label(self.frame2, text='lattice_size_y:', font='Helvetica 25 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='The number of pixels along the east-west direction in the DEM.', font='Helvetica 20', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='The number of pixels along the east-west direction in the DEM.', font='Helvetica 25', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
         lattice_size_yVar = StringVar(value=self.dimensions[0])
         self.lattice_size_yInput = Entry(self.frame2, textvariable=lattice_size_yVar, width=5)
         self.lattice_size_yInput.grid(row=rowNumber, column=1, pady=20)
@@ -447,7 +423,7 @@ class Application(tk.Frame):
   
         # Deltax variable
         Label(self.frame2, text='deltax:', font='Helvetica 25 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='The resolution (in meters/pixel) of the DEM and additional optional raster inputs.', font='Helvetica 20', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='The resolution (in meters/pixel) of the DEM and additional optional raster inputs.', font='Helvetica 25', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
         deltaxVar = StringVar(value=str(f.readline()))
         self.deltaxInput = Entry(self.frame2, textvariable=deltaxVar, width=5)
         self.deltaxInput.grid(row=rowNumber, column=1, pady=20)
@@ -458,7 +434,7 @@ class Application(tk.Frame):
 
         # Nodata variable
         Label(self.frame2, text='nodata:', font='Helvetica 25 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='Any topo less than or equal to this nodata value will be masked out.', font='Helvetica 20', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='Any topo less than or equal to this nodata value will be masked out.', font='Helvetica 25', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
         nodataVar = StringVar(value=str(f.readline()))
         self.nodataInput = Entry(self.frame2, textvariable=nodataVar, width=5)
         self.nodataInput.grid(row=rowNumber, column=1, pady=20)
@@ -469,7 +445,7 @@ class Application(tk.Frame):
 
         # Smoothinglength variable
         Label(self.frame2, text='smoothinglength:', font='Helvetica 25 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='The length scale (in pixels) for smoothing of the slope map. Set to 1 if no smoothing is desired.', font='Helvetica 20', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='The length scale (in pixels) for smoothing of the slope map. Set to 1 if no smoothing is desired.', font='Helvetica 25', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
         smoothinglengthVar = StringVar(value=str(f.readline()))
         self.smoothinglengthInput = Entry(self.frame2, textvariable=smoothinglengthVar, width=5)
         self.smoothinglengthInput.grid(row=rowNumber, column=1, pady=20)
@@ -480,7 +456,7 @@ class Application(tk.Frame):
 
         # Rain fixed variable
         Label(self.frame2, text='rain fixed:', font='Helvetica 25 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='Peak rainfall intensity (in mm/hr). This value is ignored if flagforrain=1.', font='Helvetica 20', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='Peak rainfall intensity (in mm/hr). This value is ignored if flagforrain=1.', font='Helvetica 25', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
         rainVar = StringVar(value=str(f.readline()))
         self.rainInput = Entry(self.frame2, textvariable=rainVar, width=5)
         self.rainInput.grid(row=rowNumber, column=1, pady=20)
@@ -491,7 +467,7 @@ class Application(tk.Frame):
 
         # tauc soil and vege fixed variable
         Label(self.frame2, text='tauc soil and vege fixed:', font='Helvetica 25 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='Threshold shear stress for soil and vegetation. This value is ignored if flagfortaucsoilandveg=1.', font='Helvetica 20',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='Threshold shear stress for soil and vegetation. This value is ignored if flagfortaucsoilandveg=1.', font='Helvetica 25',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
         taucSoilAndVegeVar = StringVar(value=str(f.readline()))
         self.taucSoilAndVegeInput = Entry(self.frame2, textvariable=taucSoilAndVegeVar, width=5)
         self.taucSoilAndVegeInput.grid(row=rowNumber, column=1, pady=20)
@@ -502,7 +478,7 @@ class Application(tk.Frame):
 
         # d50 fixed variable
         Label(self.frame2, text='d50 fixed:', font='Helvetica 25 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='Median rock armor diameter (in mm). This value is ignored if flagford50=1.', font='Helvetica 20',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='Median rock armor diameter (in mm). This value is ignored if flagford50=1.', font='Helvetica 25',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
         d50Var = StringVar(value=str(f.readline()))
         self.d50Input = Entry(self.frame2, textvariable=d50Var, width=5)
         self.d50Input.grid(row=rowNumber, column=1, pady=20)
@@ -513,7 +489,7 @@ class Application(tk.Frame):
 
         # Rockcover fixed variable
         Label(self.frame2, text='rockcover:', font='Helvetica 25 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='This value indicates the fraction of area covered by rock armor. Will be 1 for continuous rock armors, less than one for partial rock cover. This value is ignored if flagforrockcover=1.', font='Helvetica 20',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='This value indicates the fraction of area covered by rock armor. Will be 1 for continuous rock armors, less than one for partial rock cover. This value is ignored if flagforrockcover=1.', font='Helvetica 25',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
         rockcoverVar = StringVar(value=str(f.readline()))
         self.rockcoverInput = Entry(self.frame2, textvariable=rockcoverVar, width=5)
         self.rockcoverInput.grid(row=rowNumber, column=1, pady=20)
@@ -524,7 +500,7 @@ class Application(tk.Frame):
 
         # tanAngleOfInternalFriction fixed variable
         Label(self.frame2, text='tanAngleOfInternalFriction:', font='Helvetica 25 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='Tangent of the angle of internal friction. Values will typically be in the range of 0.5-0.8.  ', font='Helvetica 20',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='Tangent of the angle of internal friction. Values will typically be in the range of 0.5-0.8.  ', font='Helvetica 25',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
         tanAngleOfInternalFrictionVar = StringVar(value=str(f.readline()))
         self.tanAngleOfInternalFrictionInput = Entry(self.frame2, textvariable=tanAngleOfInternalFrictionVar, width=5)
         self.tanAngleOfInternalFrictionInput.grid(row=rowNumber, column=1, pady=20)
@@ -535,7 +511,7 @@ class Application(tk.Frame):
 
         # b variable
         Label(self.frame2, text='b:', font='Helvetica 25 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='This value is the coefficient in the model component that predicts the relationship between runoff and contributing area.', font='Helvetica 20',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='This value is the coefficient in the model component that predicts the relationship between runoff and contributing area.', font='Helvetica 25',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
         bVar = StringVar(value=str(f.readline()))
         self.bInput = Entry(self.frame2, textvariable=bVar, width=5)
         self.bInput.grid(row=rowNumber, column=1, pady=20)
@@ -546,7 +522,7 @@ class Application(tk.Frame):
 
         # c variable
         Label(self.frame2, text='c:', font='Helvetica 25 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='This value is the exponent in the model component that predicts the relationship between runoff and contributing area.', font='Helvetica 20', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='This value is the exponent in the model component that predicts the relationship between runoff and contributing area.', font='Helvetica 25', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
         cVar = StringVar(value=str(f.readline()))
         self.cInput = Entry(self.frame2, textvariable=cVar, width=5)
         self.cInput.grid(row=rowNumber, column=1, pady=20)
@@ -557,7 +533,7 @@ class Application(tk.Frame):
 
         # rillWidth variable
         Label(self.frame2, text='rillWidth:', font='Helvetica 25 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='The width of rills (in m) as they begin to form. This value is used to localize water flow to a width less than the width of a pixel. For example, if deltax = 1 m and rillwidth = 20 cm then the flow entering each pixel is assumed, for the purposes of rill development, to be localized in a width equal to one fifth of the pixel width.', font='Helvetica 20', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='The width of rills (in m) as they begin to form. This value is used to localize water flow to a width less than the width of a pixel. For example, if deltax = 1 m and rillwidth = 20 cm then the flow entering each pixel is assumed, for the purposes of rill development, to be localized in a width equal to one fifth of the pixel width.', font='Helvetica 25', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
         rillWidthVar = StringVar(value=str(f.readline()))
         self.rillWidthInput = Entry(self.frame2, textvariable=rillWidthVar, width=5)
         self.rillWidthInput.grid(row=rowNumber, column=1, pady=20)
@@ -565,7 +541,6 @@ class Application(tk.Frame):
 
         Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
         rowNumber += 1
-
         self.parameterButton = ttk.Button(self.frame2, text='Generate Parameters', command=self.generate_parameters)
         self.parameterButton.grid(row=rowNumber, column=0)
         self.goButton = ttk.Button(self.frame2, text='Run Rillgen', command=self.generate_input_txt_file)
@@ -574,7 +549,7 @@ class Application(tk.Frame):
 
         Label(self.frame2, text='NOTE: The hydrologic correction step can take a long time if there are lots of depressions in the input DEM and/or if the'
         + ' landscape is very steep. RILLGEN2D can be sped up by increasing the value of fillIncrement or by performing the hydrologic correction step in a'
-        + ' different program (e.g., ArcGIS or TauDEM) prior to input into RILLGEN2D.', justify=CENTER, wraplength=600).grid(row=rowNumber, column=0, sticky=(N,E,S,W), pady=30, columnspan=3)
+        + ' different program (e.g., ArcGIS or TauDEM) prior to input into RILLGEN2D.', justify=CENTER, wraplength=750, font='Helvetica 20 bold').grid(row=rowNumber, column=0, sticky=(N,E,S,W), pady=30, columnspan=3)
 
         if self.first_time_populating_parameters_tab == True:
             w = 0
@@ -902,7 +877,7 @@ class Application(tk.Frame):
         if self.first_time_populating_view_output_tab:
             self.canvas3imlbl = Label(self.frame3, image=self.canvas3img)
             self.canvas3imlbl.place(relx=0,rely=0)
-            self.canvas3Label = tk.Label(self.frame3, text='Here you can view a leaflet map based on the file chosen in tab 1', font='Helvetica 40 bold', justify=CENTER, wraplength=800)
+            self.canvas3Label = tk.Label(self.frame3, text='View a map based off of the input DEM with layers generated from rillgen', font='Helvetica 40 bold', justify=CENTER, wraplength=800)
             self.canvas3Label.place(relx=0.5, rely=0.25, anchor=CENTER)
             self.button3 = ttk.Button(self.frame3, text="Generate Map", command=self.generatemap)
             self.button3.place(relx=0.5, rely=0.5, anchor=CENTER)

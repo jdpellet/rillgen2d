@@ -13,6 +13,7 @@ import osgeo
 import PIL
 import rasterio
 import requests
+import webbrowser
 
 from ctypes import CDLL
 from datetime import datetime
@@ -68,6 +69,8 @@ class Application(tk.Frame):
                     ('Horizontal.Progressbar.label', {'sticky': ''})])
         self.style.configure('text.Horizontal.TProgressbar', text='0 %', foreground='black', background='green')
         self.style.configure("TButton",font=('Helvetica', 25))
+        self.style.configure('BLUE.TButton', font = ('Helvetica', 25,'underline'), foreground = 'blue')
+        self.style.configure('RED.TButton', font = ('Helvetica', 25,'underline'), foreground = 'red')
         self.tabControl = ttk.Notebook(self)
         self.tab1 = ttk.Frame(self.tabControl)
         self.tab2 = ttk.Frame(self.tabControl)
@@ -111,8 +114,11 @@ class Application(tk.Frame):
         The first tab allows a user to select an geotiff image from either their 
         local filesystem or from a url."""
         
+        self.github_button = ttk.Button(self.tab1,text="Click to go to the rillgen2D github",command=self.open_github, style='BLUE.TButton')
+        self.github_button.grid(row=0,column=0)
+
         self.button1 = ttk.Button(self.tab1, text="Choose DEM (.tif) locally", command=self.get_image_locally)
-        self.button1.grid(row=0, column=0)
+        self.button1.grid(row=1, column=0)
 
         self.entry1 = Text(self.tab1, width=60,height=5)
         self.entry1.insert(1.0,"Or enter in a url for a DEM (.tif or .tar.gz) image in this box and press the button below")
@@ -124,10 +130,10 @@ class Application(tk.Frame):
                 self.entry1.first_time_clicked = False
 
         self.entry1.bind("<Button-1>", delete_default_text)
-        self.entry1.grid(row=1, column=0)
+        self.entry1.grid(row=2, column=0)
 
         self.button2 = ttk.Button(self.tab1, text="Choose DEM (.tif or .tar.gz) from url", command=self.get_image_from_url)
-        self.button2.grid(row=2, column=0)
+        self.button2.grid(row=3, column=0)
 
         self.img1 = Label(self.tab1)
         self.canvas1 = FigureCanvasTkAgg(self.fig1, master=self.img1)
@@ -136,22 +142,24 @@ class Application(tk.Frame):
         self.canvas1.get_tk_widget().pack(side=TOP, fill=BOTH, expand=1, padx=0, pady=0)
         self.canvas1._tkcanvas.pack(side=TOP, fill=BOTH, expand=1, padx=0, pady=0)
 
-        self.img1.grid(row=0, column=2, rowspan=3, sticky=N+S+E+W)
+        self.img1.grid(row=0, column=2, rowspan=4, sticky=N+S+E+W)
         self.canvas1.get_tk_widget().configure(highlightbackground="red")
 
         style = ttk.Style()
         style.configure('W.TButton', font="Helvetica", foreground='red')
 
-        self.save_image = ttk.Button(self.tab1, text="Save Image", command=self.saveimageastxt)
-        self.save_image.grid(row=3, column=1)
+        self.save_image = ttk.Button(self.tab1, text="Save Image", command=self.saveimageastxt,style='RED.TButton')
+        self.save_image.grid(row=4, column=1)
         self.tab1.columnconfigure(0, weight=1)
         self.tab1.columnconfigure(1, weight=1)
         self.tab1.columnconfigure(2, weight=1)
-        self.tab1.rowconfigure(0, weight=5)
-        self.tab1.rowconfigure(1, weight=1)
+        self.tab1.rowconfigure(0, weight=2)
+        self.tab1.rowconfigure(1, weight=4)
         self.tab1.rowconfigure(2, weight=1)
         self.tab1.rowconfigure(3, weight=1)
 
+    def open_github(self):
+        webbrowser.open("https://github.com/jdpellet/rillgen2d",new=1,autoraise=True)
 
     def get_image_locally(self):
         """Given a geotiff image, either in .tar format or directly, extract the image and display
@@ -159,7 +167,10 @@ class Application(tk.Frame):
         try:
             self.imagefile = Path(askopenfilename(initialdir=Path.cwd().parent, filetypes=[('Image Files', ['.tif','.gz','.tar'])]))
             if self.imagefile.suffix == '.tar' or self.imagefile.suffix == '.gz':
-                self.extract_geotiff_from_tarfile(self.imagefile, mode=1)
+                path = Path.cwd()
+                if path.as_posix().endswith('tmp'):
+                    path = path.parent
+                self.extract_geotiff_from_tarfile(self.imagefile,path)
         except:
             messagebox.showerror(title="ERROR", message="Invalid file type. Please select an image file")
         else:
@@ -175,20 +186,30 @@ class Application(tk.Frame):
             path = Path.cwd()
             if path.as_posix().endswith('tmp'):
                 path = path.parent
-            img = os.path.basename(entry1)
-            open((path / img),'wb').write(r.content)
-            if img.endswith(".gz"):
-                tar = tarfile.open(img)
-                for filename in tar.getnames():
-                    if filename.endswith('.tif'):
-                        tar.extract(filename, path=str(path))
-                        img = filename
-                        break
-            self.imagefile = (path / img)
+            downloaded = os.path.basename(entry1)
+            img = downloaded
+            open((path / downloaded),'wb').write(r.content)
+            if downloaded.endswith(".gz"):
+                tarpath = path / downloaded
+                self.extract_geotiff_from_tarfile(tarpath,path)
+                os.remove(path / downloaded)
+            else:
+                self.imagefile = (path / img)
+            
         except Exception:
             messagebox.showerror(title="ERROR", message="Invalid url. Please use the url for an image")
         else:
             self.preview_geotiff(mode=2)
+
+    def extract_geotiff_from_tarfile(self,tarpath,outputpath):
+        img = tarpath
+        tar = tarfile.open(tarpath)
+        for filename in tar.getnames():
+            if filename.endswith('.tif'):
+                tar.extract(filename, path=str(outputpath))
+                img = filename
+                break
+        self.imagefile = (outputpath / img)
 
 
     def preview_geotiff(self, mode):
@@ -543,7 +564,7 @@ class Application(tk.Frame):
         rowNumber += 1
         self.parameterButton = ttk.Button(self.frame2, text='Generate Parameters', command=self.generate_parameters)
         self.parameterButton.grid(row=rowNumber, column=0)
-        self.goButton = ttk.Button(self.frame2, text='Run Rillgen', command=self.generate_input_txt_file)
+        self.goButton = ttk.Button(self.frame2, text='Run Rillgen', command=self.generate_input_txt_file,style='RED.TButton')
         self.goButton.grid(row=rowNumber, column=2)
         rowNumber += 1
 

@@ -915,9 +915,6 @@ class Application(tk.Frame):
         outputDir = askdirectory(initialdir=Path.cwd().parent)
         if outputDir != '':
             os.chdir(outputDir)
-            print(currentDir != os.getcwd())
-            print("currentDir is:",currentDir)
-            print("os.getcwd is:",os.getcwd())
             self.displayMap()
             os.chdir(currentDir)
 
@@ -1085,11 +1082,7 @@ class Application(tk.Frame):
 
     def displayMap(self):
         """Uses the map.html file to generate a folium map using QtWidgets.QWebEngineView()"""
-        print("I AM REACHING HERE")
-        print("path is:",Path.cwd().as_posix())
-        print("dir is:",os.getcwd())
-        print(os.listdir())
-        if os.path.exists("map.html"):
+        if Path("map.html").exists():
             mapfile = QtCore.QUrl.fromLocalFile(Path("map.html").resolve().as_posix())
             if self.app == None:
                 self.app = QtWidgets.QApplication([])

@@ -915,6 +915,7 @@ class Application(tk.Frame):
         outputDir = askdirectory(initialdir=Path.cwd().parent)
         if outputDir != '':
             os.chdir(outputDir)
+            print(currentDir != os.getcwd())
             self.displayMap()
             os.chdir(currentDir)
 

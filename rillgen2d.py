@@ -916,6 +916,8 @@ class Application(tk.Frame):
         if outputDir != '':
             os.chdir(outputDir)
             print(currentDir != os.getcwd())
+            print("currentDir is:",currentDir)
+            print("os.getcwd is:",os.getcwd())
             self.displayMap()
             os.chdir(currentDir)
 

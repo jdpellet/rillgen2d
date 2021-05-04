@@ -1085,7 +1085,7 @@ class Application(tk.Frame):
         """Uses the map.html file to generate a folium map using QtWidgets.QWebEngineView()"""
         print("I AM REACHING HERE")
         print("path is:",Path.cwd().as_posix())
-        if Path("map.html").exists():
+        if os.path.exists("map.html"):
             mapfile = QtCore.QUrl.fromLocalFile(Path("map.html").resolve().as_posix())
             if self.app == None:
                 self.app = QtWidgets.QApplication([])

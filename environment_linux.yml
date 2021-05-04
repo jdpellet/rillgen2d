@@ -4,10 +4,12 @@ channels:
   - defaults
   - anaconda
 dependencies:
+  - _libgcc_mutex
+  - _openmp_mutex
   - affine
-  - atk
+  - alsa-lib
+  - atk-1.0
   - attrs
-  - bidict
   - boost-cpp
   - branca
   - brotlipy
@@ -47,8 +49,11 @@ dependencies:
   - ghostscript
   - giflib
   - glib
+  - glib-tools
   - graphite2
   - graphviz
+  - gst-plugins-base
+  - gstreamer
   - gtk2
   - gts
   - harfbuzz
@@ -65,44 +70,53 @@ dependencies:
   - kiwisolver
   - krb5
   - lcms2
+  - ld_impl_linux-64
   - libblas
   - libcblas
   - libclang
   - libcurl
-  - libcxx
   - libdap4
   - libedit
   - libev
+  - libevent
   - libffi
+  - libgcc-ng
+  - libgd
   - libgdal
-  - libgfortran
+  - libgfortran-ng
   - libgfortran5
   - libglib
+  - libgomp
   - libiconv
   - libkml
   - liblapack
-  - libllvm10
-  - libllvm9
+  - libllvm11
   - libnetcdf
   - libnghttp2
+  - libogg
   - libopenblas
+  - libopus
   - libpng
   - libpq
   - librsvg
+  - librttopo
   - libspatialite
   - libssh2
+  - libstdcxx-ng
   - libtiff
+  - libtool
   - libuuid
+  - libvorbis
   - libwebp
   - libwebp-base
   - libxcb
+  - libxkbcommon
   - libxml2
-  - llvm-openmp
+  - libzip
   - lz4-c
   - markupsafe
   - matplotlib
   - matplotlib-base
-  - mkl
   - mysql-common
   - mysql-libs
   - ncurses
@@ -133,10 +147,8 @@ dependencies:
   - pyqtchart
   - pyqtwebengine
   - pysocks
-  - python==3.8.*
+  - python==3.9.4
   - python-dateutil
-  - python-engineio
-  - python-socketio
   - python_abi
   - qt
   - rasterio
@@ -145,13 +157,12 @@ dependencies:
   - setuptools
   - six
   - snuggs
-  - socat
   - sqlite
-  - tbb
   - tiledb
   - tk
   - tornado
   - tzcode
+  - tzdata
   - urllib3
   - wand
   - wheel

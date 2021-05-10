@@ -168,7 +168,7 @@ class Application(tk.Frame):
                 path = Path.cwd()
                 if path.as_posix().endswith('tmp'):
                     path = path.parent
-                self.extract_geotiff_from_tarfile(self.imagefile,path)
+                self.imagefile = self.extract_geotiff_from_tarfile(self.imagefile,path)
         except:
             messagebox.showerror(title="ERROR", message="Invalid file type. Please select an image file")
         else:
@@ -189,7 +189,7 @@ class Application(tk.Frame):
             open((path / downloaded),'wb').write(r.content)
             if downloaded.endswith(".gz"):
                 tarpath = path / downloaded
-                self.extract_geotiff_from_tarfile(tarpath,path)
+                self.imagefile = self.extract_geotiff_from_tarfile(tarpath,path)
                 os.remove(path / downloaded)
             else:
                 self.imagefile = (path / img)
@@ -207,7 +207,9 @@ class Application(tk.Frame):
                 tar.extract(filename, path=str(outputpath))
                 img = filename
                 break
-        self.imagefile = (outputpath / img)
+        desiredfile = (outputpath / img)
+        return desiredfile
+        # self.imagefile = (outputpath / img)
 
 
     def preview_geotiff(self, mode):
@@ -327,10 +329,10 @@ class Application(tk.Frame):
 
         # Flag for mask variable
         Label(self.frame2, text='Flag for mask:', font='Helvetica 25 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='Should be 1 if the user provides a raster (mask.txt) that restricts the model to certain portions of the input DEM (mask = 1 means run the model, 0 means ignore these areas).', font='Helvetica 25', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='Should be 1 if the user provides a raster (mask.tif) that restricts the model to certain portions of the input DEM (mask = 1 means run the model, 0 means ignore these areas).', font='Helvetica 25', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
         
         self.flagForMaskVar = IntVar(value=int(f.readline()))
-        Checkbutton(self.frame2, variable=self.flagForMaskVar, width=5).grid(row=rowNumber, column=1, pady=20)
+        Checkbutton(self.frame2, variable=self.flagForMaskVar, width=5, command=self.getMask).grid(row=rowNumber, column=1, pady=20)
         rowNumber += 1
 
         Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3, padx=0)
@@ -602,6 +604,18 @@ class Application(tk.Frame):
             self.canvas2.yview_scroll(scroll, "units")
 
 
+    def getMask(self):
+        if self.flagForMaskVar.get() == 1:
+            self.client_socket.send(("Choose a mask.tif file\n\n").encode('utf-8'))
+            try:
+                maskfile = Path(askopenfilename(initialdir=Path.cwd().parent, filetypes=[('Image Files', ['.tif'])]))
+                if maskfile.suffix == '.tar' or maskfile.suffix == '.gz':
+                    maskfile = self.extract_geotiff_from_tarfile(maskfile,Path.cwd())
+                shutil.copyfile(maskfile, Path.cwd() / "mask.tif")
+                self.client_socket.send(("maskfile: is: " + str(maskfile) + "\n\n").encode('utf-8'))
+            except Exception:
+                self.client_socket.send(("Invalid mask.tif file\n\n").encode('utf-8'))
+
     def generate_parameters(self):
         """Generate the parameters.txt file using the flags from the second tab"""
         path = Path.cwd() / 'parameters.txt'
@@ -689,16 +703,20 @@ class Application(tk.Frame):
                 self.client_socket.send(("dynamicinput.txt found and copied to inner directory\n\n").encode('utf-8'))
             else:
                 self.client_socket.send(("dynamicinput.txt not found\n\n").encode('utf-8'))
-        
+
+
         f.write(str(self.flagForMaskVar.get())+'\n')  
-        if (path / "mask.txt").exists():
-            Path.unlink(path / "mask.txt")
+        # if (path / "mask.tif").exists():
+        #     Path.unlink(path / "mask.tif")
         if self.flagForMaskVar.get() == 1:
-            if (path.parent / "mask.txt").exists():
-                shutil.copyfile(path.parent / "mask.txt", path / "mask.txt")
-                self.client_socket.send(("mask.txt found and copied to inner directory\n\n").encode('utf-8'))
+            # shutil.copyfile(askopenfilename(initialdir=Path.cwd().parent, filetypes=[('Image Files', ['.tif'])]), path / "mask.tif")
+            if (path / "mask.tif").exists():
+                self.convert_geotiff_to_txt("mask")
+                # shutil.copyfile(path.parent / "mask.txt", path / "mask.txt")
+                self.client_socket.send(("mask.txt generated\n\n").encode('utf-8'))
             else:
-                self.client_socket.send(("mask.txt not found\n\n").encode('utf-8'))
+                self.client_socket.send(("mask.tif not found\n\n").encode('utf-8'))
+                self.flagForMaskVar = 0
 
         f.write(str(self.flagForTaucSoilAndVegVar.get())+'\n')
         if (path / "taucsoilandvegfixed.txt").exists():

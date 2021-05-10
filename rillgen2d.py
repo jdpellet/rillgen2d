@@ -209,7 +209,6 @@ class Application(tk.Frame):
                 break
         desiredfile = (outputpath / img)
         return desiredfile
-        # self.imagefile = (outputpath / img)
 
 
     def preview_geotiff(self, mode):
@@ -706,13 +705,9 @@ class Application(tk.Frame):
 
 
         f.write(str(self.flagForMaskVar.get())+'\n')  
-        # if (path / "mask.tif").exists():
-        #     Path.unlink(path / "mask.tif")
         if self.flagForMaskVar.get() == 1:
-            # shutil.copyfile(askopenfilename(initialdir=Path.cwd().parent, filetypes=[('Image Files', ['.tif'])]), path / "mask.tif")
             if (path / "mask.tif").exists():
                 self.convert_geotiff_to_txt("mask")
-                # shutil.copyfile(path.parent / "mask.txt", path / "mask.txt")
                 self.client_socket.send(("mask.txt generated\n\n").encode('utf-8'))
             else:
                 self.client_socket.send(("mask.tif not found\n\n").encode('utf-8'))

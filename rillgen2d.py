@@ -1,3 +1,4 @@
+import branca
 import os
 import subprocess
 import shutil
@@ -771,7 +772,42 @@ class Application(tk.Frame):
         
         self.set_georeferencing_information()
 
-    
+    def generate_colorramp(self,filename,mode):
+        """generates a color ramp from a geotiff image and then uses that in order to produce
+        a color-relief for the geotiff"""
+        gtif = gdal.Open(filename)
+        srcband = gtif.GetRasterBand(1)
+        # Get raster statistics
+        stats = srcband.GetStatistics(True, True)
+        f = open('color-relief.txt', 'w')
+        if mode == 1:
+            f.writelines([str(stats[0]) + ", 0, 0, 0\n", str(stats[0]+(stats[2]-stats[0])/4) + ", 167, 30, 66\n", str(stats[0]+(stats[2]-stats[0])/2) + ", 51, 69, 131\n", 
+            str(stats[0]+3*(stats[2]-stats[0])/4) + ", 101, 94, 190\n", str(stats[2]) + ", 130, 125, 253\n", str(stats[2]+(stats[1]-stats[2])/4) + ", 159, 158, 128\n",
+            str(stats[2]+(stats[1]-stats[2])/2) + ", 193, 192, 16\n", str(stats[2]+3*(stats[1]-stats[2])/4) + ", 224, 222, 137\n", str(stats[1]) + ", 255, 255, 255\n"])
+            self.colormap = branca.colormap.LinearColormap([(0, 0, 0),(167, 30, 66),(51, 69, 131),(101, 94, 190),(130, 125, 253),(159, 158, 128),(193, 192, 16),(224, 222, 137),(255, 255, 255)])
+            self.colormap = self.colormap.to_step(index=[stats[0],stats[0]+(stats[2]-stats[0])/4,stats[0]+(stats[2]-stats[0])/2,stats[0]+3*(stats[2]-stats[0])/4,stats[2],
+            stats[2]+(stats[1]-stats[2])/4,stats[2]+(stats[1]-stats[2])/2,stats[2]+3*(stats[1]-stats[2])/4,stats[1]])
+            self.colormap.caption = "Elevation (in meters)"
+            cmd1 = "gdaldem color-relief " + filename + " color-relief.txt color-relief.png"
+        elif mode == 2:
+            statsmin = stats[2]-3*stats[3]
+            if statsmin < stats[0]:
+                statsmin = stats[0]
+            statsmax = stats[2]+3*stats[3]
+            if statsmax > stats[1]:
+                statsmax = stats[1]
+            print((statsmin,statsmax,stats[2],stats[3]))
+            f.writelines([str(statsmin) + ", 74, 156, 15\n", str(statsmin+2*(stats[2]-statsmin)/3) + ", 255, 255, 255\n", str(stats[2]+(statsmax-stats[2])/3) + ", 138, 205, 121\n", str(statsmax) + ", 255, 255, 255\n"])
+            self.taucolormap = branca.colormap.LinearColormap([(74, 156, 15),(255, 255, 255),(138, 205, 121),(255,255,255)])
+            self.taucolormap = self.taucolormap.to_step(index=[statsmin,statsmin+2*(stats[2]-statsmin)/3,stats[2]+(statsmax-stats[2])/3,statsmax])
+            self.taucolormap.caption = "Tau (in pascals)"
+            cmd1 = "gdaldem color-relief " + filename + " color-relief.txt color-relief_tau.png"
+        f.close()
+        self.client_socket.send(subprocess.check_output(cmd1, shell=True) + ('\n').encode('utf-8'))
+        self.client_socket.send(("Hillshade and color relief generated\n\n").encode('utf-8'))
+        gtif = None
+
+
     def hillshade_and_color_relief(self):
         """Generates the hillshade and color-relief images from the original 
         geotiff image that will be available on the map"""
@@ -779,20 +815,7 @@ class Application(tk.Frame):
         self.client_socket.send(("Generating hillshade and color relief...\n\n").encode('utf-8'))
         cmd0 = "gdaldem hillshade " + self.filename + " hillshade.png"
         self.client_socket.send(subprocess.check_output(cmd0, shell=True) + ('\n').encode('utf-8'))
-        gtif = gdal.Open(self.filename)
-        srcband = gtif.GetRasterBand(1)
-        # Get raster statistics
-        stats = srcband.GetStatistics(True, True)
-        # Print the min, max, mean, stdev based on stats index
-        f = open('color-relief.txt', 'w')
-        f.writelines([str(stats[0]) + ", 0, 0, 0\n", str(stats[0]+(stats[2]-stats[0])/4) + ", 167, 30, 66\n", str(stats[0]+(stats[2]-stats[0])/2) + ", 51, 69, 131\n", 
-        str(stats[0]+3*(stats[2]-stats[0])/4) + ", 101, 94, 190\n", str(stats[2]) + ", 130, 125, 253\n", str(stats[2]+(stats[1]-stats[2])/4) + ", 159, 158, 128\n",
-        str(stats[2]+(stats[1]-stats[2])/2) + ", 193, 192, 16\n", str(stats[2]+3*(stats[1]-stats[2])/4) + ", 224, 222, 137\n", str(stats[1]) + ", 255, 255, 255\n"])
-        f.close()
-        cmd1 = "gdaldem color-relief " + self.filename + " color-relief.txt color-relief.png"
-        self.client_socket.send(subprocess.check_output(cmd1, shell=True) + ('\n').encode('utf-8'))
-        self.client_socket.send(("Hillshade and color relief generated\n\n").encode('utf-8'))
-        gtif = None
+        self.generate_colorramp(self.filename,1)
 
     def make_popup(self, mode):
         if mode == 1:
@@ -972,6 +995,8 @@ class Application(tk.Frame):
             self.geo_ext=self.ReprojectCoords(ext,src_srs,tgt_srs)
             cmd0 = "gdal_translate xy_tau.txt tau.tif"
             self.client_socket.send(subprocess.check_output(cmd0, shell=True) + ('\n').encode('utf-8'))
+            t1 = Thread(target=self.generate_colorramp("tau.tif",2))
+            t1.start()
             cmd1 = "gdal_translate xy_f.txt f.tif"
             self.client_socket.send(subprocess.check_output(cmd1, shell=True) + ('\n').encode('utf-8'))
             projection = ds.GetProjection()
@@ -1014,6 +1039,7 @@ class Application(tk.Frame):
             ds = None
         else: 
             messagebox.showerror(title="FILE NOT FOUND", message="Please select a file in tab 1")
+        t1.join()
         self.client_socket.send(("Georeferencing complete\n\n").encode('utf-8'))
         self.convert_ppm()
         self.client_socket.send(("Outputs complete\n\n").encode('utf-8'))
@@ -1047,8 +1073,7 @@ class Application(tk.Frame):
         return ext
 
     def ReprojectCoords(self, coords,src_srs,tgt_srs):
-        ''' Reproject a list of x,y coordinates. From srs_srs to tgt_srs
-        '''
+        """Reproject a list of x,y coordinates. From srs_srs to tgt_srs"""
         trans_coords=[]
         transform = osr.CoordinateTransformation( src_srs, tgt_srs)
         for x,y in coords:
@@ -1061,12 +1086,13 @@ class Application(tk.Frame):
         """Generates a folium map based on the bounds of the geotiff file"""
         m = folium.Map(location=[(self.geo_ext[1][1]+self.geo_ext[3][1])/2, (self.geo_ext[1][0]+self.geo_ext[3][0])/2], zoom_start=14, tiles='Stamen Terrain')
 
-        img1 = folium.raster_layers.ImageOverlay(image="hillshade.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.8, interactive=True, name="hillshade")
-        img2 = folium.raster_layers.ImageOverlay(image="color-relief.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.6, interactive=True, name="color-relief")
-        img3 = folium.raster_layers.ImageOverlay(image="f.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.5, interactive=True, show=True, name="f")
-        img4 = folium.raster_layers.ImageOverlay(image="tau.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.5, interactive=True, name="tau")
-        img5 = folium.raster_layers.ImageOverlay(image="rills.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.5, interactive=True, show=True, name="rills")
-        
+        img1 = folium.raster_layers.ImageOverlay(image="hillshade.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.8, interactive=True, show=True, name="hillshade")
+        img2 = folium.raster_layers.ImageOverlay(image="color-relief.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.6, interactive=True, show=False, name="color-relief")
+        img3 = folium.raster_layers.ImageOverlay(image="f.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.5, interactive=True, show=False, name="f")
+        img4 = folium.raster_layers.ImageOverlay(image="tau.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.5, interactive=True, show=True, name="tau")
+        img5 = folium.raster_layers.ImageOverlay(image="rills.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.5, interactive=True, show=False, name="rills")
+        img5 = folium.raster_layers.ImageOverlay(image="color-relief_tau.png", bounds=[[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]], opacity=0.5, interactive=True, show=False, name="color-relief_tau")
+        folium.raster_layers.Layer
         img1.add_to(m)
         img2.add_to(m)
         img3.add_to(m)
@@ -1074,6 +1100,8 @@ class Application(tk.Frame):
         img5.add_to(m)
         
         folium.LayerControl().add_to(m)
+        self.colormap.add_to(m)
+        self.taucolormap.add_to(m)
         m.save("map.html", close_file=True)
         t1 = Thread(target=self.saveOutput)
         t1.start()

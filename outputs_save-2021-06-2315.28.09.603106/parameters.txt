@@ -1,0 +1,23 @@
+1	 /* Flag for equation out */ 
+0	 /* Flag for dynamicmode out */ 
+0	 /* Flag for mask out */ 
+0	 /* Flag for taucsoilandveg out */ 
+0	 /* Flag for d50 out */ 
+0	 /* Flag for rockcover out */ 
+0.01	 /* fillIncrement out */ 
+0.02	 /* minslope out */ 
+2	 /* Expansion out */ 
+0.75	 /* Yellow threshold out */ 
+947	 /* Lattice Size X out */ 
+691	 /* Lattice Size Y out */ 
+0.5	 /* Delta X out */ 
+-9999	 /* nodata out */ 
+1	 /* smoothing length out */ 
+150	 /* Rain out */ 
+30	 /* tauc soil and vege out */ 
+0.1	 /* d50 out */ 
+1	 /* rock cover out */ 
+0.6	 /* tangent of the angle of internal friction out*/ 
+6	 /* b out */ 
+0.61	 /* c out */ 
+0.2	 /* rill width out */ 

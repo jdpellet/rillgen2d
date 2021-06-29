@@ -4,10 +4,10 @@ channels:
   - defaults
   - anaconda
 dependencies:
-  - _libgcc_mutex
-  - _openmp_mutex
+#  - _libgcc_mutex
+#  - _openmp_mutex
   - affine
-  - alsa-lib
+#  - alsa-lib
   - atk-1.0
   - attrs
   - boost-cpp
@@ -80,13 +80,13 @@ dependencies:
   - libev
   - libevent
   - libffi
-  - libgcc-ng
+#  - libgcc-ng
   - libgd
   - libgdal
   - libgfortran-ng
   - libgfortran5
   - libglib
-  - libgomp
+#  - libgomp
   - libiconv
   - libkml
   - liblapack
@@ -102,7 +102,7 @@ dependencies:
   - librttopo
   - libspatialite
   - libssh2
-  - libstdcxx-ng
+#  - libstdcxx-ng
   - libtiff
   - libtool
   - libuuid
@@ -110,7 +110,7 @@ dependencies:
   - libwebp
   - libwebp-base
   - libxcb
-  - libxkbcommon
+#  - libxkbcommon
   - libxml2
   - libzip
   - lz4-c
@@ -147,7 +147,7 @@ dependencies:
   - pyqtchart
   - pyqtwebengine
   - pysocks
-  - python==3.9.4
+  - python
   - python-dateutil
   - python_abi
   - qt
@@ -180,5 +180,6 @@ dependencies:
   - xorg-xextproto
   - xorg-xproto
   - xz
+  
   - zlib
   - zstd

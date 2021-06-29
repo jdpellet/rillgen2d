@@ -13,12 +13,42 @@ The repository is organized (in the attempt) to enable reproducible research as 
 
 You can (re)run these analyses using your own computer, on commercial cloud, or a data science workbench [CyVerse](https://cyverse.org) Discovery Environment.
 
+## Install and run from command line
+
+### Clone Repository
+
 Clone the repo to your local or VM:
 
+With `git` 
 ```
 git clone https://github.com/jdpellet/rillgen2d
+git switch main
 ```
 
+With GitHub CLI:
 ```
 gh repo clone jdpellet/rillgen2d
+```
+
+### Installing with `conda` or `miniconda`
+
+We have provided a `environment.yml` file which can be used with [Conda](https://docs.conda.io/en/latest/) to install the stack.
+
+Example install for Linux command line:
+
+```
+# update conda
+conda update -n base -c defaults conda
+
+# update conda environments 
+conda env update --prefix ./env --file environment.yml  --prune
+
+# or remove old rillgen2d environment
+conda remove --name rillgen2d --all
+
+# (re)create environment for rillgen2d
+conda env create -f environment_linux.yml
+
+# activate conda environment
+conda activate rillgen2d
 ```

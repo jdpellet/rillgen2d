@@ -49,19 +49,35 @@ python3 --version
 python3 rillgen2d.py
 ```
 
+## Note:
+On Linux in the Parameters Tab values may appear with a newline character '\n' at the end of their boxes, leave these present and update the values as needed.
+
+
 ## Docker
 
-Alternately, you can run the entire program with [Docker]()
+Alternately, you can run the program in [Docker](https://docker.com)
 
-## Note:
-On Linux in the Parameters tab values may appear with a newline character '\n' at the end
+### Build 
 
-# Docker run command:
+```
+git clone https://github.com/jdpellet/rillgen2d
+cd rillgen2d
+docker build -t rillgen2d .
+```
 
-Mac: 1.) run brew -a xquartz, go to xquartz preferences, and from the "Security" tab, make sure that "Allow connections from network clients" is selected. If it is not, then select it and restart xquartz
+### Docker run commands:
 
-2.) socat TCP-LISTEN:6000,reuseaddr,fork UNIX-CLIENT:\"$DISPLAY\"
+Linux:
 
-3.)docker run --rm -it -e DISPLAY=docker.for.mac.host.internal:0 rillgen2d:latest
+use the volume flag to mount a folder with input data: `-e DISPLAY -v /home/<username/<data-folder>/:/inputs` 
 
-Linux: 1.) docker run --rm -it -e DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix rillgen2d:latest
+```
+# Install X11 server utils
+sudo apt-get install x11-xserver-utils
+# set display
+export DISPLAY=:0
+# allow X11
+xhost +
+# Run docker with host display settings and data volume
+docker run -it --rm -v /home/tswetnam/Downloads/:/inputs -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=unix$DISPLAY rillgen2d:latest
+```

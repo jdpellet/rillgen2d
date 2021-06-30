@@ -116,11 +116,11 @@ class Application(tk.Frame):
         self.github_button = ttk.Button(self.tab1,text="README",command=self.open_github, style='BLUE.TButton')
         self.github_button.grid(row=0,column=0)
 
-        self.button1 = ttk.Button(self.tab1, text="upload local file (.tif)", command=self.get_image_locally)
+        self.button1 = ttk.Button(self.tab1, text="Upload local DEM (.tif)", command=self.get_image_locally)
         self.button1.grid(row=1, column=0)
 
         self.entry1 = Text(self.tab1, width=60,height=5)
-        self.entry1.insert(1.0,"paste or enter URL (must be .tif or .tar.gz)")
+        self.entry1.insert(1.0,"paste or enter URL to a valid DEM (must be .tif or .tar.gz)")
         self.entry1.first_time_clicked = True
 
         def delete_default_text(event):
@@ -131,7 +131,7 @@ class Application(tk.Frame):
         self.entry1.bind("<Button-1>", delete_default_text)
         self.entry1.grid(row=2, column=0)
 
-        self.button2 = ttk.Button(self.tab1, text="Download from URL", command=self.get_image_from_url)
+        self.button2 = ttk.Button(self.tab1, text="Download DEM from URL", command=self.get_image_from_url)
         self.button2.grid(row=3, column=0)
 
         self.img1 = Label(self.tab1)
@@ -148,7 +148,7 @@ class Application(tk.Frame):
         style.configure('W.TButton', font="Helvetica", foreground='red')
 
         self.save_image = ttk.Button(self.tab1, text="Next: Parameters", command=self.saveimageastxt,style='RED.TButton')
-        self.save_image.grid(row=4, column=1)
+        self.save_image.grid(row=0, column=1)
         self.tab1.columnconfigure(0, weight=1)
         self.tab1.columnconfigure(1, weight=1)
         self.tab1.columnconfigure(2, weight=1)
@@ -266,7 +266,7 @@ class Application(tk.Frame):
             
             # Open existing dataset
             self.client_socket.send(("Filename is: " + Path(self.filename).name + "\n\n").encode('utf-8'))
-            self.client_socket.send(("Saving the image as .txt...\n\n").encode('utf-8'))
+            self.client_socket.send(("GDAL converting .tif to .txt...\n\n").encode('utf-8'))
             self.src_ds = gdal.Open(self.filename)
             band = self.src_ds.GetRasterBand(1)
             arr = band.ReadAsArray()
@@ -278,7 +278,9 @@ class Application(tk.Frame):
             if self.first_time_populating_parameters_tab == True:
                 self.tabControl.add(self.tab2, text="Parameters")
                 self.tabControl.pack(expand=1, fill="both")
-            self.client_socket.send(("Image saved\n\n").encode('utf-8'))
+            self.client_socket.send(("GEO Tiff successfully converted\n\n").encode('utf-8'))
+            self.client_socket.send(("Parameters Tab now available\n\n").encode('utf-8'))
+            self.client_socket.send(("Click Parameters Tab for next selections\n").encode('utf-8'))
 
 
     def populate_parameters_tab(self):
@@ -301,276 +303,276 @@ class Application(tk.Frame):
         rowNumber = 3
 
         # LABELS
-        Label(self.frame2, text='RillGen2D', font='Helvetica 18 bold italic underline').grid(row=1, column=1, sticky=(N), pady=20)
-        Label(self.frame2, text='Inputs', font='Helvetica 18 bold underline').grid(row=2, column=0, sticky=(N,E,S,W), pady=20)
-        Label(self.frame2, text='Input Descriptions', font='Helvetica 18 bold underline').grid(row=2, column=2, sticky=(N,E,S,W), pady=50)
+        Label(self.frame2, text='Inputs', font='Helvetica 18 bold italic underline').grid(row=2, column=0, sticky=(N,E,S,W), padx=5, pady=5)
+        Label(self.frame2, text='Input Descriptions', font='Helvetica 18 bold italic underline').grid(row=2, column=2, sticky=(N,E,S,W), padx=5, pady=5)
 
         # Flag for equation variable
-        Label(self.frame2, text='Equation:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='Should be 0 if the user wishes to implement the rock armor shear strength equation of Haws and Erickson (2020), 1 if the user wishes to implement the equation of Pelletier et al. (2021).', font='Helvetica 18', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='Equation:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, padx=5, pady=5)
+        Label(self.frame2, text='Default: checked, implements the rock armor shear strength equation of Haws and Erickson (2020), if checked uses Pelletier et al. (2021) equation', font='Helvetica 18', justify=CENTER, wraplength=350).grid(row=rowNumber, column=2, padx=5, pady=5)
         
         self.flagForEquationVar = IntVar(value=int(f.readline()))
-        Checkbutton(self.frame2, variable=self.flagForEquationVar, width=5).grid(row=rowNumber, column=1, pady=20)
+        Checkbutton(self.frame2, variable=self.flagForEquationVar, width=5).grid(row=rowNumber, column=1, padx=5, pady=5)
         rowNumber += 1
 
-        Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3, padx=0)
+        Frame(self.frame2, width=350, height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3, padx=0)
         rowNumber += 1
 
         # Flag for dynamic node variable
-        Label(self.frame2, text='Enable Dynamic Mode', font='Helvetica 18 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='Should be 1 if the user wants to implement either the dynamic mode, in which case the file "dynamicinput.txt" must be provided in the same directory as the executable, and/or spatially variable rainfall. If this flag is set to zero then the model is run in "peak mode" with spatially uniform rainfall only.', font='Helvetica 18', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='Enable Dynamic Mode', font='Helvetica 18 bold').grid(row=rowNumber, column=0, padx=5, pady=5)
+        Label(self.frame2, text='Default: unchecked, Note: when checked uses file "dynamicinput.txt". File must be provided in the same directory as the rillgen2d.py. When flag is unchecked uses "peak mode" with spatially uniform rainfall.', font='Helvetica 18', justify=CENTER, wraplength=350).grid(row=rowNumber, column=2, padx=5, pady=5)
         
         self.flagforDynamicModeVar = IntVar(value=int(f.readline()))
-        Checkbutton(self.frame2, variable=self.flagforDynamicModeVar, width=5).grid(row=rowNumber, column=1, pady=20)
+        Checkbutton(self.frame2, variable=self.flagforDynamicModeVar, width=5).grid(row=rowNumber, column=1, padx=5, pady=5)
         rowNumber += 1
 
-        Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3, padx=0)
+        Frame(self.frame2, width=350, height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3, padx=0)
         rowNumber += 1
 
         # Flag for mask variable
-        Label(self.frame2, text='Mask:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='Should be 1 if the user provides a raster (mask.tif) that restricts the model to certain portions of the input DEM (mask = 1 means run the model, 0 means ignore these areas).', font='Helvetica 18', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='Mask:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, padx=5, pady=5)
+        Label(self.frame2, text='Default: unchecked, If a raster (mask.tif) is provided, the run restricts the model to certain portions of the input DEM (mask values = 1 means run the model, 0 means ignore these areas).', font='Helvetica 18', justify=CENTER, wraplength=350).grid(row=rowNumber, column=2, padx=5, pady=5)
         
         self.flagForMaskVar = IntVar(value=int(f.readline()))
-        Checkbutton(self.frame2, variable=self.flagForMaskVar, width=5, command=self.getMask).grid(row=rowNumber, column=1, pady=20)
+        Checkbutton(self.frame2, variable=self.flagForMaskVar, width=5, command=self.getMask).grid(row=rowNumber, column=1, padx=5, pady=5)
         rowNumber += 1
 
-        Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3, padx=0)
+        Frame(self.frame2, width=350, height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3, padx=0)
         rowNumber += 1
 
         # flagForTaucSoilAndVeg variable
-        Label(self.frame2, text='Tau C soil & veg:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='Should be 1 if the user provides a raster (taucsoilandveg.txt) that maps the shear strength of soil and veg, 0 means a fixed value equal to taucsoilandvegfixed will be used.', font='Helvetica 18',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='Tau C soil & veg:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, padx=5, pady=5)
+        Label(self.frame2, text='Default: unchecked, If a raster (taucsoilandveg.txt) is provided the model applies the shear strength of soil and veg, unchecked means a fixed value will be used.', font='Helvetica 18',justify=CENTER, wraplength=350).grid(row=rowNumber, column=2, padx=5, pady=5)
         self.flagForTaucSoilAndVegVar = IntVar(value=int(f.readline()))
-        flagForTaucSoilAndVegInput = Checkbutton(self.frame2, variable=self.flagForTaucSoilAndVegVar, width=5, pady=20)
-        flagForTaucSoilAndVegInput.grid(row=rowNumber, column=1, pady=20)
+        flagForTaucSoilAndVegInput = Checkbutton(self.frame2, variable=self.flagForTaucSoilAndVegVar, width=5, padx=5, pady=5)
+        flagForTaucSoilAndVegInput.grid(row=rowNumber, column=1, padx=5, pady=5)
         rowNumber += 1
 
-        Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
+        Frame(self.frame2, width=350, height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
         rowNumber += 1
 
         # Flag for d50 variable
-        Label(self.frame2, text='d50', font='Helvetica 18 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='Should be 1 if the user provides a raster (d50.txt) that maps the median rock diameter, 0 means a fixed value equal to d50fixed will be used.', font='Helvetica 18',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='d50', font='Helvetica 18 bold').grid(row=rowNumber, column=0, padx=5, pady=5)
+        Label(self.frame2, text='Default: unchecked, If a raster (d50.txt) is provided the model applies the median rock diameter, unchecked means a fixed value will be used.', font='Helvetica 18',justify=CENTER, wraplength=350).grid(row=rowNumber, column=2, padx=5, pady=5)
         self.flagFord50Var = IntVar(value=int(f.readline()))
-        flagFord50Input = Checkbutton(self.frame2, variable=self.flagFord50Var, width=5, pady=20)
+        flagFord50Input = Checkbutton(self.frame2, variable=self.flagFord50Var, width=5, padx=5, pady=5)
         flagFord50Input.grid(row=rowNumber, column=1)
         rowNumber += 1
 
-        Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
+        Frame(self.frame2, width=350, height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
         rowNumber += 1
 
         # Flag for rockcover
-        Label(self.frame2, text='Rock Cover', font='Helvetica 18 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='Should be 1 if the user provides a raster (rockcover.txt) that maps the rock cover fraction, 0 means a fixed value equal to rockcoverfixed will be used.', font='Helvetica 18', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='Rock Cover', font='Helvetica 18 bold').grid(row=rowNumber, column=0, padx=5, pady=5)
+        Label(self.frame2, text='Default: unchecked, If a raster (rockcover.txt) is provided the model applies the rock cover fraction, unchecked means a fixed value  will be used.', font='Helvetica 18', justify=CENTER, wraplength=350).grid(row=rowNumber, column=2, padx=5, pady=5)
         self.flagForRockCoverVar = IntVar(value=int(f.readline()))
-        flagForRockCoverInput = Checkbutton(self.frame2, variable=self.flagForRockCoverVar, width=5, pady=20)
+        flagForRockCoverInput = Checkbutton(self.frame2, variable=self.flagForRockCoverVar, width=5, padx=5, pady=5)
         flagForRockCoverInput.grid(row=rowNumber, column=1)
         rowNumber += 1
 
-        Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
+        Frame(self.frame2, width=350, height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
         rowNumber += 1
 
         # fillIncrement variable
-        Label(self.frame2, text='fill Increment:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='This value (in meters) is used to fill in pits and flats for hydrologic correction. 0.01 is a reasonable default value for most lidar applications.', font='Helvetica 18',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='fill Increment:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, padx=5, pady=5)
+        Label(self.frame2, text='Value in meters (m) used to fill in pits and flats for hydrologic correction. 0.01 m is a reasonable default value for lidar-based DEMs.', font='Helvetica 18',justify=CENTER, wraplength=350).grid(row=rowNumber, column=2, padx=5, pady=5)
         fillIncrementVar = StringVar(root, value=str(f.readline()))
         self.fillIncrementInput = Entry(self.frame2, textvariable=fillIncrementVar, width=5)
-        self.fillIncrementInput.grid(row=rowNumber, column=1, pady=20)
+        self.fillIncrementInput.grid(row=rowNumber, column=1, padx=5, pady=5)
         rowNumber += 1
 
-        Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
+        Frame(self.frame2, width=350, height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
         rowNumber += 1
 
         # minslope variable
-        Label(self.frame2, text='min Slope:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='This value (unitless) is used to halt runoff from areas below a threshold slope steepness. Setting this value larger than 0 is useful for eliminating runoff from portions of the landscape that the user expects are too flat to produce significant runoff.', font='Helvetica 18', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='min Slope:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, padx=5, pady=5)
+        Label(self.frame2, text='Value (unitless) used to halt runoff from areas below a threshold slope steepness. Setting this value larger than 0 is useful for eliminating runoff from portions of the landscape that the user expects are too flat to produce significant runoff.', font='Helvetica 18', justify=CENTER, wraplength=350).grid(row=rowNumber, column=2, padx=5, pady=5)
         minslopeVar = StringVar(value=str(f.readline()))
         self.minslopeInput = Entry(self.frame2, textvariable=minslopeVar, width=5)
-        self.minslopeInput.grid(row=rowNumber, column=1, pady=20)
+        self.minslopeInput.grid(row=rowNumber, column=1, padx=5, pady=5)
         rowNumber += 1
 
-        Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
+        Frame(self.frame2, width=350, height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
         rowNumber += 1
 
         # Expansion variable
-        Label(self.frame2, text='expansion:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='This value (in number of pixels) is used to expand the zones where rills are predicted in the output raster. This is useful for making the areas where rilling is predicted easier to see in the model output.', font='Helvetica 18',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='expansion:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, padx=5, pady=5)
+        Label(self.frame2, text='Value (pixel) used to expand the zones where rills are predicted in the output raster. This is useful for making the areas where rilling is predicted easier to see in the model output.', font='Helvetica 18',justify=CENTER, wraplength=350).grid(row=rowNumber, column=2, padx=5, pady=5)
         expansionVar = StringVar(value=str(f.readline()))
         self.expansionInput = Entry(self.frame2, textvariable=expansionVar, width=5)
-        self.expansionInput.grid(row=rowNumber, column=1, pady=20)
+        self.expansionInput.grid(row=rowNumber, column=1, padx=5, pady=5)
         rowNumber += 1
 
-        Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
+        Frame(self.frame2, width=350, height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
         rowNumber += 1
 
         # yellowThreshold variable
-        Label(self.frame2, text='yellow Threshold:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='This is a threshold value of f used to indicate an area that is close to but less than the threshold for generating rills. The model will visualize any location with a f value between this value and 1 as potentially prone to rill generation (any area with a f value larger than 1 is considered prone to rill generation and is colored red).', font='Helvetica 18',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='yellow Threshold:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, padx=5, pady=5)
+        Label(self.frame2, text='Threshold value of f used to indicate an area that is close to but less than the threshold for generating rills. The model will visualize any location with a f value between this value and 1 as potentially prone to rill generation (any area with a f value larger than 1 is considered prone to rill generation and is colored red).', font='Helvetica 18',justify=CENTER, wraplength=350).grid(row=rowNumber, column=2, padx=5, pady=5)
         yellowThresholdVar = StringVar(value=str(f.readline()))
         self.yellowThresholdInput = Entry(self.frame2, textvariable=yellowThresholdVar, width=5)
-        self.yellowThresholdInput.grid(row=rowNumber, column=1, pady=20)
+        self.yellowThresholdInput.grid(row=rowNumber, column=1, padx=5, pady=5)
         rowNumber += 1
 
-        Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
+        Frame(self.frame2, width=350, height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
         rowNumber += 1
 
         # Lattice_size_x variable
-        Label(self.frame2, text='lattice_size_x:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='The number of pixels along the east-west direction in the DEM.', font='Helvetica 18',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='lattice_size_x:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, padx=5, pady=5)
+        Label(self.frame2, text='Pixels along the east-west direction in the DEM.', font='Helvetica 18',justify=CENTER, wraplength=350).grid(row=rowNumber, column=2, padx=5, pady=5)
         lattice_size_xVar = StringVar(value=self.dimensions[1])
         self.lattice_size_xInput = Entry(self.frame2, textvariable=lattice_size_xVar, width=5)
-        self.lattice_size_xInput.grid(row=rowNumber, column=1, pady=20)
+        self.lattice_size_xInput.grid(row=rowNumber, column=1, padx=5, pady=5)
         self.lattice_size_xInput.config(state=DISABLED)
         rowNumber += 1
 
-        Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
+        Frame(self.frame2, width=350, height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
         rowNumber += 1
 
         # Lattice_size_y variable
-        Label(self.frame2, text='lattice_size_y:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='The number of pixels along the east-west direction in the DEM.', font='Helvetica 18', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='lattice_size_y:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, padx=5, pady=5)
+        Label(self.frame2, text='Pixels along the north-south direction in the DEM.', font='Helvetica 18', justify=CENTER, wraplength=350).grid(row=rowNumber, column=2, padx=5, pady=5)
         lattice_size_yVar = StringVar(value=self.dimensions[0])
         self.lattice_size_yInput = Entry(self.frame2, textvariable=lattice_size_yVar, width=5)
-        self.lattice_size_yInput.grid(row=rowNumber, column=1, pady=20)
+        self.lattice_size_yInput.grid(row=rowNumber, column=1, padx=5, pady=5)
         self.lattice_size_yInput.config(state=DISABLED)
         rowNumber += 1
 
-        Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
+        Frame(self.frame2, width=350, height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
         rowNumber += 1
 
         f.readline() # We do not want to read in the previous lattice_x and lattice_y
         f.readline() # Since they came from another geotiff file
   
         # Deltax variable
-        Label(self.frame2, text='deltax:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='The resolution (in meters/pixel) of the DEM and additional optional raster inputs.', font='Helvetica 18', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='deltax:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, padx=5, pady=5)
+        Label(self.frame2, text='Resolution (meters)  of the DEM and additional optional raster inputs.', font='Helvetica 18', justify=CENTER, wraplength=350).grid(row=rowNumber, column=2, padx=5, pady=5)
         deltaxVar = StringVar(value=str(f.readline()))
         self.deltaxInput = Entry(self.frame2, textvariable=deltaxVar, width=5)
-        self.deltaxInput.grid(row=rowNumber, column=1, pady=20)
+        self.deltaxInput.grid(row=rowNumber, column=1, padx=5, pady=5)
         rowNumber += 1
 
-        Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
+        Frame(self.frame2, width=350, height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
         rowNumber += 1
 
         # Nodata variable
-        Label(self.frame2, text='nodata:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='Any topo less than or equal to this nodata value will be masked out.', font='Helvetica 18', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='nodata:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, padx=5, pady=5)
+        Label(self.frame2, text='Elevation less than or equal to the nodata value will be masked.', font='Helvetica 18', justify=CENTER, wraplength=350).grid(row=rowNumber, column=2, padx=5, pady=5)
         nodataVar = StringVar(value=str(f.readline()))
         self.nodataInput = Entry(self.frame2, textvariable=nodataVar, width=5)
-        self.nodataInput.grid(row=rowNumber, column=1, pady=20)
+        self.nodataInput.grid(row=rowNumber, column=1, padx=5, pady=5)
         rowNumber += 1
 
-        Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
+        Frame(self.frame2, width=350, height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
         rowNumber += 1
 
         # Smoothinglength variable
-        Label(self.frame2, text='smoothinglength:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='The length scale (in pixels) for smoothing of the slope map. Set to 1 if no smoothing is desired.', font='Helvetica 18', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='Smoothing length:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, padx=5, pady=5)
+        Label(self.frame2, text='Length scale (pixels) for smoothing of the slope map. A length of 1 has no smoothing', font='Helvetica 18', justify=CENTER, wraplength=350).grid(row=rowNumber, column=2, padx=5, pady=5)
         smoothinglengthVar = StringVar(value=str(f.readline()))
         self.smoothinglengthInput = Entry(self.frame2, textvariable=smoothinglengthVar, width=5)
-        self.smoothinglengthInput.grid(row=rowNumber, column=1, pady=20)
+        self.smoothinglengthInput.grid(row=rowNumber, column=1, padx=5, pady=5)
         rowNumber += 1
 
-        Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
+        Frame(self.frame2, width=350, height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
         rowNumber += 1
 
         # Rain fixed variable
-        Label(self.frame2, text='rain fixed:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='Peak rainfall intensity (in mm/hr). This value is ignored if flagforrain=1.', font='Helvetica 18', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='rain fixed:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, padx=5, pady=5)
+        Label(self.frame2, text='Peak rainfall intensity (mm/hr). This value is ignored if flag is checked.', font='Helvetica 18', justify=CENTER, wraplength=350).grid(row=rowNumber, column=2, padx=5, pady=5)
         rainVar = StringVar(value=str(f.readline()))
         self.rainInput = Entry(self.frame2, textvariable=rainVar, width=5)
-        self.rainInput.grid(row=rowNumber, column=1, pady=20)
+        self.rainInput.grid(row=rowNumber, column=1, padx=5, pady=5)
         rowNumber += 1
 
-        Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
+        Frame(self.frame2, width=350, height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
         rowNumber += 1
 
         # tauc soil and vege fixed variable
-        Label(self.frame2, text='tauc soil and vege fixed:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='Threshold shear stress for soil and vegetation. This value is ignored if flagfortaucsoilandveg=1.', font='Helvetica 18',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='tauc soil and vege fixed:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, padx=5, pady=5)
+        Label(self.frame2, text='Threshold shear stress for soil and vegetation.', font='Helvetica 18',justify=CENTER, wraplength=350).grid(row=rowNumber, column=2, padx=5, pady=5)
         taucSoilAndVegeVar = StringVar(value=str(f.readline()))
         self.taucSoilAndVegeInput = Entry(self.frame2, textvariable=taucSoilAndVegeVar, width=5)
-        self.taucSoilAndVegeInput.grid(row=rowNumber, column=1, pady=20)
+        self.taucSoilAndVegeInput.grid(row=rowNumber, column=1, padx=5, pady=5)
         rowNumber += 1
 
-        Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
+        Frame(self.frame2, width=350, height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
         rowNumber += 1
 
         # d50 fixed variable
-        Label(self.frame2, text='d50 fixed:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='Median rock armor diameter (in mm). This value is ignored if flagford50=1.', font='Helvetica 18',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='d50 fixed:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, padx=5, pady=5)
+        Label(self.frame2, text='Median rock armor diameter (in mm). This value is ignored if flag for d50 is checked.', font='Helvetica 18',justify=CENTER, wraplength=350).grid(row=rowNumber, column=2, padx=5, pady=5)
         d50Var = StringVar(value=str(f.readline()))
         self.d50Input = Entry(self.frame2, textvariable=d50Var, width=5)
-        self.d50Input.grid(row=rowNumber, column=1, pady=20)
+        self.d50Input.grid(row=rowNumber, column=1, padx=5, pady=5)
         rowNumber += 1
 
-        Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
+        Frame(self.frame2, width=350, height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
         rowNumber += 1
 
         # Rockcover fixed variable
-        Label(self.frame2, text='rockcover:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='This value indicates the fraction of area covered by rock armor. Will be 1 for continuous rock armors, less than one for partial rock cover. This value is ignored if flagforrockcover=1.', font='Helvetica 18',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='rockcover:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, padx=5, pady=5)
+        Label(self.frame2, text='This value indicates the fraction of area covered by rock armor. Will be 1 for continuous rock armors, less than one for partial rock cover. This value is ignored if flag for rock cover is checked', font='Helvetica 18',justify=CENTER, wraplength=350).grid(row=rowNumber, column=2, padx=5, pady=5)
         rockcoverVar = StringVar(value=str(f.readline()))
         self.rockcoverInput = Entry(self.frame2, textvariable=rockcoverVar, width=5)
-        self.rockcoverInput.grid(row=rowNumber, column=1, pady=20)
+        self.rockcoverInput.grid(row=rowNumber, column=1, padx=5, pady=5)
         rowNumber += 1
 
-        Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
+        Frame(self.frame2, width=350, height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
         rowNumber += 1
 
         # tanAngleOfInternalFriction fixed variable
-        Label(self.frame2, text='tanAngleOfInternalFriction:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='Tangent of the angle of internal friction. Values will typically be in the range of 0.5-0.8.  ', font='Helvetica 18',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='tanAngleOfInternalFriction:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, padx=5, pady=5)
+        Label(self.frame2, text='Tangent of the angle of internal friction. Values will typically be in the range of 0.5-0.8.  ', font='Helvetica 18',justify=CENTER, wraplength=350).grid(row=rowNumber, column=2, padx=5, pady=5)
         tanAngleOfInternalFrictionVar = StringVar(value=str(f.readline()))
         self.tanAngleOfInternalFrictionInput = Entry(self.frame2, textvariable=tanAngleOfInternalFrictionVar, width=5)
-        self.tanAngleOfInternalFrictionInput.grid(row=rowNumber, column=1, pady=20)
+        self.tanAngleOfInternalFrictionInput.grid(row=rowNumber, column=1, padx=5, pady=5)
         rowNumber += 1
 
-        Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
+        Frame(self.frame2, width=350, height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
         rowNumber += 1
 
         # b variable
-        Label(self.frame2, text='b:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='This value is the coefficient in the model component that predicts the relationship between runoff and contributing area.', font='Helvetica 18',justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='b:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, padx=5, pady=5)
+        Label(self.frame2, text='This value is the coefficient in the model component that predicts the relationship between runoff and contributing area.', font='Helvetica 18',justify=CENTER, wraplength=350).grid(row=rowNumber, column=2, padx=5, pady=5)
         bVar = StringVar(value=str(f.readline()))
         self.bInput = Entry(self.frame2, textvariable=bVar, width=5)
-        self.bInput.grid(row=rowNumber, column=1, pady=20)
+        self.bInput.grid(row=rowNumber, column=1, padx=5, pady=5)
         rowNumber += 1
 
-        Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
+        Frame(self.frame2, width=350, height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
         rowNumber += 1
 
         # c variable
-        Label(self.frame2, text='c:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='This value is the exponent in the model component that predicts the relationship between runoff and contributing area.', font='Helvetica 18', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='c:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, padx=5, pady=5)
+        Label(self.frame2, text='This value is the exponent in the model component that predicts the relationship between runoff and contributing area.', font='Helvetica 18', justify=CENTER, wraplength=350).grid(row=rowNumber, column=2, padx=5, pady=5)
         cVar = StringVar(value=str(f.readline()))
         self.cInput = Entry(self.frame2, textvariable=cVar, width=5)
-        self.cInput.grid(row=rowNumber, column=1, pady=20)
+        self.cInput.grid(row=rowNumber, column=1, padx=5, pady=5)
         rowNumber += 1
 
-        Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
+        Frame(self.frame2, width=350, height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
         rowNumber += 1
 
         # rillWidth variable
-        Label(self.frame2, text='rillWidth:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, pady=20)
-        Label(self.frame2, text='The width of rills (in m) as they begin to form. This value is used to localize water flow to a width less than the width of a pixel. For example, if deltax = 1 m and rillwidth = 20 cm then the flow entering each pixel is assumed, for the purposes of rill development, to be localized in a width equal to one fifth of the pixel width.', font='Helvetica 18', justify=CENTER, wraplength=750).grid(row=rowNumber, column=2, pady=20)
+        Label(self.frame2, text='rillWidth:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, padx=5, pady=5)
+        Label(self.frame2, text='The width of rills (in m) as they begin to form. This value is used to localize water flow to a width less than the width of a pixel. For example, if deltax = 1 m and rillwidth = 20 cm then the flow entering each pixel is assumed, for the purposes of rill development, to be localized in a width equal to one fifth of the pixel width.', font='Helvetica 18', justify=CENTER, wraplength=350).grid(row=rowNumber, column=2, padx=5, pady=5)
         rillWidthVar = StringVar(value=str(f.readline()))
         self.rillWidthInput = Entry(self.frame2, textvariable=rillWidthVar, width=5)
-        self.rillWidthInput.grid(row=rowNumber, column=1, pady=20)
+        self.rillWidthInput.grid(row=rowNumber, column=1, padx=5, pady=5)
         rowNumber += 1
 
-        Frame(self.frame2, width=self.frame2.winfo_screenwidth(), height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
+        Frame(self.frame2, width=350, height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
         rowNumber += 1
+
         self.parameterButton = ttk.Button(self.frame2, text='Generate Parameters', command=self.generate_parameters)
-        self.parameterButton.grid(row=rowNumber, column=0)
+        self.parameterButton.grid(row=0, column=0)
         self.goButton = ttk.Button(self.frame2, text='Run Model', command=self.generate_input_txt_file,style='RED.TButton')
-        self.goButton.grid(row=rowNumber, column=2)
-        rowNumber += 1
+        self.goButton.grid(row=0, column=2)
+
 
         Label(self.frame2, text='NOTE: The hydrologic correction step can take a long time if there are lots of depressions in the input DEM and/or if the'
-        + ' landscape is very steep. RILLGEN2D can be sped up by increasing the value of fillIncrement or by performing the hydrologic correction step in a'
-        + ' different program (e.g., ArcGIS or TauDEM) prior to input into RILLGEN2D.', justify=CENTER, wraplength=750, font='Helvetica 20 bold').grid(row=rowNumber, column=0, sticky=(N,E,S,W), pady=30, columnspan=3)
+        + ' landscape is very steep. RILLGEN2D can be sped up by increasing the value of "fillIncrement" or by performing the hydrologic correction step in a'
+        + ' different program (e.g., ArcGIS or TauDEM) prior to input into RILLGEN2D.', justify=LEFT, wraplength=350, font='Helvetica 20 bold').grid(row=rowNumber, column=0, sticky=(N,E,S,W), pady=30, columnspan=3)
 
         if self.first_time_populating_parameters_tab == True:
             w = 0
@@ -647,6 +649,7 @@ class Application(tk.Frame):
         f.write(self.cInput.get().replace("\n", "") + '\t /* c out */ \n')
         f.write(self.rillWidthInput.get().replace("\n", "") + '\t /* rill width out */ \n')
         self.client_socket.send(("Generated parameters.txt\n\n").encode('utf-8'))
+        self.client_socket.send(("Click on Run Model\n\n").encode('utf-8'))
         f.close()
 
     
@@ -799,12 +802,12 @@ class Application(tk.Frame):
         elif mode == 2:
             self.taucolormap = colormap
             self.taucolormap = self.taucolormap.to_step(index=indexarr)
-            self.taucolormap.caption = "Tau (in pascals)"
+            self.taucolormap.caption = "Tau (Pascals)"
             cmd1 = "gdaldem color-relief " + filename + " color-relief.txt color-relief_tau.png"
         else:
             self.fcolormap = colormap
             self.fcolormap = self.fcolormap.to_step(index=indexarr)
-            self.fcolormap.caption = "F (in pascals)"
+            self.fcolormap.caption = "F (Pascals)"
             cmd1 = "gdaldem color-relief " + filename + " color-relief.txt color-relief_f.png"
         f.close()
         self.client_socket.send(subprocess.check_output(cmd1, shell=True) + ('\n').encode('utf-8'))
@@ -936,7 +939,7 @@ class Application(tk.Frame):
         if self.first_time_populating_view_output_tab:
             self.canvas3imlbl = Label(self.frame3, image=self.canvas3img)
             self.canvas3imlbl.place(relx=0,rely=0)
-            self.canvas3Label = tk.Label(self.frame3, text='Outputs: Preview model outputs in Leaflet Map or open Outputs folder and view previous models', font='Helvetica 18', justify=CENTER, wraplength=800)
+            self.canvas3Label = tk.Label(self.frame3, text='Outputs: Preview model outputs in Leaflet Map or open Outputs folder and view previous models. Close pop-up map to return to previous Tabs.', font='Helvetica 18', justify=CENTER, wraplength=350)
             self.canvas3Label.place(relx=0.5, rely=0.25, anchor=CENTER)
             self.button3 = ttk.Button(self.frame3, text="View Outputs Map", command=self.generatemap)
             self.button3.place(relx=0.5, rely=0.5, anchor=CENTER)
@@ -1049,7 +1052,8 @@ class Application(tk.Frame):
         t2.join()
         self.client_socket.send(("Georeferencing complete\n\n").encode('utf-8'))
         self.convert_ppm()
-        self.client_socket.send(("Outputs complete\n\n").encode('utf-8'))
+        self.client_socket.send(("Model Output Successfully Created\n\n").encode('utf-8'))
+        self.client_socket.send(("Click on View Outputs Tab\n\n").encode('utf-8'))
 
 
     def convert_ppm(self):
@@ -1090,34 +1094,34 @@ class Application(tk.Frame):
 
 
     def generatemap(self):
-        """Generates a folium map based on the bounds of the geotiff file"""
+        """Generate Leaflet Folium Map"""
         mapbounds = [[self.geo_ext[1][1], self.geo_ext[1][0]], [self.geo_ext[3][1], self.geo_ext[3][0]]]
         m = folium.Map(location=[(self.geo_ext[1][1]+self.geo_ext[3][1])/2, (self.geo_ext[1][0]+self.geo_ext[3][0])/2], zoom_start=14, tiles='Stamen Terrain')
         folium.TileLayer('OpenStreetMap').add_to(m)
         folium.TileLayer('Stamen Toner').add_to(m)
 
         self.layer_control = folium.LayerControl()
-        img1 = folium.raster_layers.ImageOverlay(image="hillshade.png", bounds=mapbounds, opacity=0.8, interactive=True, show=True, name="hillshade")
-        img2 = folium.raster_layers.ImageOverlay(image="color-relief.png", bounds=mapbounds, opacity=0.6, interactive=True, show=False, name="color-relief")
-        img3 = folium.raster_layers.ImageOverlay(image="f.png", bounds=mapbounds, opacity=0.5, interactive=True, show=False, name="f")
-        img4 = folium.raster_layers.ImageOverlay(image="tau.png", bounds=mapbounds, opacity=0.5, interactive=True, show=True, name="tau")
-        img5 = folium.raster_layers.ImageOverlay(image="rills.png", bounds=mapbounds, opacity=0.5, interactive=True, show=False, name="rills")
-        img6 = folium.raster_layers.ImageOverlay(image="color-relief_tau.png", bounds=mapbounds, opacity=0.5, interactive=True, show=False, name="color-relief_tau")
-        img7 = folium.raster_layers.ImageOverlay(image="color-relief_f.png", bounds=mapbounds, opacity=0.5, interactive=True, show=False, name="color-relief_f")
+        img1 = folium.raster_layers.ImageOverlay(image="hillshade.png", bounds=mapbounds, opacity=0.8, interactive=True, show=True, name="Hillshade")
+        # img2 = folium.raster_layers.ImageOverlay(image="color-relief.png", bounds=mapbounds, opacity=0.6, interactive=True, show=False, name="color-relief")
+        # img3 = folium.raster_layers.ImageOverlay(image="f.png", bounds=mapbounds, opacity=0.5, interactive=True, show=False, name="f")
+        # img4 = folium.raster_layers.ImageOverlay(image="tau.png", bounds=mapbounds, opacity=0.5, interactive=True, show=True, name="tau")
+        img5 = folium.raster_layers.ImageOverlay(image="rills.png", bounds=mapbounds, opacity=0.5, interactive=True, show=False, name="Rills")
+        img6 = folium.raster_layers.ImageOverlay(image="color-relief_tau.png", bounds=mapbounds, opacity=0.5, interactive=True, show=False, name="Tau")
+        img7 = folium.raster_layers.ImageOverlay(image="color-relief_f.png", bounds=mapbounds, opacity=0.5, interactive=True, show=False, name="f")
         # geotiff_group = folium.FeatureGroup(name="color-relief")
         # geotiff_group.add_child(img1)
         # geotiff_group.add_child(img2)
         # geotiff_group.add_child(self.colormap)
         img1.add_to(m)
-        img2.add_to(m)
-        img3.add_to(m)
-        img4.add_to(m)
+        # img2.add_to(m)
+        # img3.add_to(m)
+        # img4.add_to(m)
         img5.add_to(m)
         img6.add_to(m)
         img7.add_to(m)
         # geotiff_group.add_to(m)
         # m.add_child(geotiff_group)
-        self.colormap.add_to(m)
+        # self.colormap.add_to(m)
         self.taucolormap.add_to(m)
         self.fcolormap.add_to(m)
         self.layer_control.add_to(m)

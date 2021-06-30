@@ -180,6 +180,5 @@ dependencies:
   - xorg-xextproto
   - xorg-xproto
   - xz
-  
   - zlib
   - zstd

@@ -147,7 +147,7 @@ class Application(tk.Frame):
         style = ttk.Style()
         style.configure('W.TButton', font="Helvetica", foreground='red')
 
-        self.save_image = ttk.Button(self.tab1, text="Next: select parameters", command=self.saveimageastxt,style='RED.TButton')
+        self.save_image = ttk.Button(self.tab1, text="Next: Parameters", command=self.saveimageastxt,style='RED.TButton')
         self.save_image.grid(row=4, column=1)
         self.tab1.columnconfigure(0, weight=1)
         self.tab1.columnconfigure(1, weight=1)
@@ -564,7 +564,7 @@ class Application(tk.Frame):
         rowNumber += 1
         self.parameterButton = ttk.Button(self.frame2, text='Generate Parameters', command=self.generate_parameters)
         self.parameterButton.grid(row=rowNumber, column=0)
-        self.goButton = ttk.Button(self.frame2, text='Run Rillgen', command=self.generate_input_txt_file,style='RED.TButton')
+        self.goButton = ttk.Button(self.frame2, text='Run Model', command=self.generate_input_txt_file,style='RED.TButton')
         self.goButton.grid(row=rowNumber, column=2)
         rowNumber += 1
 
@@ -936,11 +936,11 @@ class Application(tk.Frame):
         if self.first_time_populating_view_output_tab:
             self.canvas3imlbl = Label(self.frame3, image=self.canvas3img)
             self.canvas3imlbl.place(relx=0,rely=0)
-            self.canvas3Label = tk.Label(self.frame3, text='View a map based off of the input DEM with layers generated from rillgen', font='Helvetica 40 bold', justify=CENTER, wraplength=800)
+            self.canvas3Label = tk.Label(self.frame3, text='Outputs: Preview model outputs in Leaflet Map or open Outputs folder and view previous models', font='Helvetica 18', justify=CENTER, wraplength=800)
             self.canvas3Label.place(relx=0.5, rely=0.25, anchor=CENTER)
-            self.button3 = ttk.Button(self.frame3, text="Generate Map", command=self.generatemap)
+            self.button3 = ttk.Button(self.frame3, text="View Outputs Map", command=self.generatemap)
             self.button3.place(relx=0.5, rely=0.5, anchor=CENTER)
-            self.button3 = ttk.Button(self.frame3, text="View Outputs", command=self.view_output_folder)
+            self.button3 = ttk.Button(self.frame3, text="View Outputs Folder", command=self.view_output_folder)
             self.button3.place(relx=0.5, rely=0.75, anchor=CENTER)
             self.canvas3.itemconfig(self.view_output_window, height=self.canvas3.height, width=self.canvas3.width)
             self.canvas3.pack(side="left", fill="both", expand=YES)

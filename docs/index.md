@@ -41,7 +41,7 @@ Example install for Linux command line:
 conda update -n base -c defaults conda
 
 # update conda environments 
-conda env update --prefix ./env --file environment.yml  --prune
+conda env update --prefix ./env --file environment_linux.yml  --prune
 
 # or remove old rillgen2d environment
 conda remove --name rillgen2d --all
@@ -51,4 +51,16 @@ conda env create -f environment_linux.yml
 
 # activate conda environment
 conda activate rillgen2d
+```
+
+### Starting the GUI
+
+Once the appropriate Python environment has been created, you can start the GUI
+
+```
+# check your python version (should be 3.7.*)
+python3 --version
+
+# start the UI
+python3 rillgen2d.py
 ```

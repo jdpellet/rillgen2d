@@ -23,17 +23,17 @@ Example install for Linux
 # update conda
 conda update -n base -c defaults conda
 
-# remove old rillgen2d environment
+# update conda environments 
+conda env update --prefix ./env --file environment.yml  --prune
+
+# or remove old rillgen2d environment
 conda remove --name rillgen2d --all
 
-# create new environment for rillgen2d
+# (re)create environment for rillgen2d
 conda env create -f environment_linux.yml
 
 # activate conda environment
 conda activate rillgen2d
-
-# update conda environment 
-conda env update --prefix ./env --file environment.yml  --prune
 ```
 
 To install on Windows, use the environment_windows.yml instead
@@ -43,10 +43,10 @@ Once the appropriate Python environment has been created, you can start the GUI
 
 ```
 # check your python version (should be 3.7.*)
-python --version
+python3 --version
 
 # start the UI
-python rillgen2d.py
+python3 rillgen2d.py
 ```
 
 ## Docker

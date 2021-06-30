@@ -20,11 +20,18 @@ RUN apt-get update && \
         libxss1 \
         libpci-dev \
         libasound2
-COPY . /root/
+
+# copy contents of repo below this folder
+COPY .. /opt/rillgen2d
+
+# create conda environment for rillgen2d
 RUN conda update -n base -c defaults conda -y && \
-    cd root && \
+    cd /opt/rillgend2d && \
     conda env create -f environment_linux.yml
-# Make RUN commands use the new environment:
+
+# enters conda environment for rillgen2d commands
 SHELL ["conda", "run", "-n", "rillgen2d", "/bin/bash", "-c"]
-WORKDIR /root
-ENTRYPOINT ["conda", "run", "-n", "rillgen2d", "python", "rillgen2d.py"]
+
+WORKDIR /opt/rillgen2d
+
+ENTRYPOINT ["conda", "run", "-n", "rillgen2d", "python3", "rillgen2d.py"]

@@ -5,11 +5,9 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
 # Install applications we need
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        python3-gdal \
-        gdal-bin   \
-        libgdal-dev  \
-        gcc \
         g++ \
+        gcc \
+        git \
         mesa-utils \
         libgl1-mesa-dev \
         libgl1-mesa-glx \
@@ -21,17 +19,27 @@ RUN apt-get update && \
         libpci-dev \
         libasound2
 
-# copy contents of repo below this folder
-COPY .. /opt/rillgen2d
+# copy github repository
+# RUN git clone https://github.com/tyson-swetnam/rillgen2d 
+
+RUN mkdir rillgen2d
+
+COPY input.txt rillgen2d/
+COPY console.py rillgen2d/
+COPY rillgen2d.py rillgen2d/
+COPY rillgen2d.c rillgen2d/
+COPY environment_linux.yml rillgen2d/
 
 # create conda environment for rillgen2d
 RUN conda update -n base -c defaults conda -y && \
-    cd /opt/rillgend2d && \
+    cd rillgen2d && \
     conda env create -f environment_linux.yml
 
-# enters conda environment for rillgen2d commands
-SHELL ["conda", "run", "-n", "rillgen2d", "/bin/bash", "-c"]
+RUN echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
+    echo "conda activate rillgen2d" >> ~/.bashrc
 
-WORKDIR /opt/rillgen2d
+ENV DISPLAY=:0
+
+WORKDIR rillgen2d
 
 ENTRYPOINT ["conda", "run", "-n", "rillgen2d", "python3", "rillgen2d.py"]

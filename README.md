@@ -14,13 +14,25 @@ cd rillgen2d
 
 `rillgen2d` is written in [C](https://en.wikipedia.org/wiki/C_(programming_language)), but uses geospatial data input layers, such as [GeoTiff](https://www.ogc.org/standards/geotiff). These require open-source geospatial software packages such as [GDAL](https://gdal.org/), [GEOS](https://trac.osgeo.org/geos), and [PROJ](https://proj.org/) to manage their projection information. The Graphic User Inferface (GUI) is written in [Python3](https://www.python.org/) using [Tkinter](https://docs.python.org/3/library/tkinter.html).
 
-### Installing with Conda or mini-Conda
+### Installation 
+
+#### Download Source Code
+
+The RillGen2D uses a combination of opensource geospatial tools and python libraries for visualization in the Graphic User Interface (GUI). To install these tools we recommend that you use the `conda` evironment and package manager. 
+
+First, download the latest `.zip` or `.tar.gz` from our [Releases](https://github.com/tyson-swetnam/rillgen2d/releases)
+
+[Source Code v0.1 zip](https://github.com/tyson-swetnam/rillgen2d/archive/refs/tags/0.1.zip)
+
+[Source Code v0.1 tar.gz](https://github.com/tyson-swetnam/rillgen2d/archive/refs/tags/0.1.tar.gz)
+
+Unpack the Zip or Tar file and put them somewhere you can find them from the command prompt or terminal. 
+
+#### Example install for Linux and Mac OS X
 
 We have provided a `environment.yml` file which can be used with [Conda](https://docs.conda.io/en/latest/) to install the stack.
 
 Install [Miniconda](https://docs.conda.io/en/latest/miniconda.html) (recommended) or full [Anaconda](https://www.anaconda.com/products/individual) prior to running the scripts below.
-
-#### Example install for Linux and Mac OS X
 
 Open a Terminal:
 
@@ -69,7 +81,7 @@ To install on Windows, use the `environment_windows.yml` instead of `_linux.yml`
 Once the appropriate Python environment has been created, you can start the GUI from the Terminal or Command Prompt:
 
 ```
-# check your python version (should be 3.9.*)
+# check your python version (should be +3.7.*)
 python3 --version
 
 # start the UI

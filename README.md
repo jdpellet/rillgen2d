@@ -53,9 +53,9 @@ conda env create -f environment_linux.yml
 conda activate rillgen2d
 ```
 
-#### Example for Windows 10 
+#### Example installation for Windows 10 
 
-Open Command Prompt:
+Open Command Prompt or PowerShell:
 
 ```
 # update conda

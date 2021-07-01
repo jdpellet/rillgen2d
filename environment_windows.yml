@@ -1,8 +1,8 @@
 name: rillgen2d
 channels:
-  - anaconda
   - conda-forge
   - defaults
+  - anaconda
 dependencies:
   - affine
   - attrs
@@ -60,6 +60,7 @@ dependencies:
   - libwebp-base
   - libxml2
   - lz4-c
+  - m2w64-gcc
   - markupsafe
   - matplotlib
   - matplotlib-base
@@ -85,7 +86,7 @@ dependencies:
   - pyqtchart
   - pyqtwebengine
   - pysocks
-  - python==3.7.9
+  - python
   - python-dateutil
   - python_abi
   - qt

@@ -18,13 +18,13 @@ cd rillgen2d
 
 We have provided a `environment.yml` file which can be used with [Conda](https://docs.conda.io/en/latest/) to install the stack.
 
-Example install for Linux
+Example install for Linux or Mac OS X
 ```
 # update conda
 conda update -n base -c defaults conda
 
 # update conda environments 
-conda env update --prefix ./env --file environment.yml  --prune
+conda env update --prefix ./env --file environment_linux.yml  --prune
 
 # or remove old rillgen2d environment
 conda remove --name rillgen2d --all
@@ -36,7 +36,29 @@ conda env create -f environment_linux.yml
 conda activate rillgen2d
 ```
 
-To install on Windows, use the environment_windows.yml instead
+Example for Windows 10 with Miniconda or Anaconda installation:
+
+Open Command Prompt:
+
+```
+# update conda
+conda update -n base -c defaults conda
+
+# update conda environments 
+conda env update --prefix ./env --file environment_windows.yml  --prune
+
+# or remove old rillgen2d environment
+conda remove --name rillgen2d --all
+
+# (re)create environment for rillgen2d
+conda env create -f environment_windows.yml
+
+# activate conda environment
+conda activate rillgen2d
+```
+
+To install on Windows, use the `environment_windows.yml` instead of `_linux.yml`
+
 ### Starting the GUI
 
 Once the appropriate Python environment has been created, you can start the GUI

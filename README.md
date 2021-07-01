@@ -55,6 +55,8 @@ conda activate rillgen2d
 
 #### Example installation for Windows 10 
 
+**Important** install [ImageMagick](https://imagemagick.org/script/download.php#windows) for Windows separately -- this package is not available in Windows `conda` package management. 
+
 Open Command Prompt or PowerShell:
 
 ```

@@ -16,9 +16,15 @@ cd rillgen2d
 
 ### Installation 
 
+#### Prerequisites
+
+Regardless of Operating Systsem, install [Miniconda](https://docs.conda.io/en/latest/miniconda.html) (recommended) or full [Anaconda](https://www.anaconda.com/products/individual) prior to running the scripts below. 
+
+If you're on Windows 10, you must install [ImageMagick](https://imagemagick.org/script/download.php#windows) -- this package is not available in Windows `conda` package management. 
+
 #### Download Source Code
 
-The RillGen2D uses a combination of opensource geospatial tools and python libraries for visualization in the Graphic User Interface (GUI). To install these tools we recommend that you use the `conda` evironment and package manager. 
+The RillGen2D uses a combination of opensource python libraries for visualization in the Graphic User Interface (GUI). To install these tools we recommend that you use the `conda` environment and package manager. 
 
 First, download the latest `.zip` or `.tar.gz` from our [Releases](https://github.com/tyson-swetnam/rillgen2d/releases)
 
@@ -26,13 +32,13 @@ First, download the latest `.zip` or `.tar.gz` from our [Releases](https://githu
 
 [Source Code v0.1 tar.gz](https://github.com/tyson-swetnam/rillgen2d/archive/refs/tags/0.1.tar.gz)
 
-Unpack the Zip or Tar file and put them somewhere you can find them from the command prompt or terminal. 
+Next, unpack the Zip or Tar file and put them somewhere you can find them from the command prompt or terminal. 
 
 #### Example install for Linux and Mac OS X
 
-We have provided a `environment.yml` file which can be used with [Conda](https://docs.conda.io/en/latest/) to install the stack.
+We have provided two `environment.yml` files which can be used with [Conda](https://docs.conda.io/en/latest/) to install the stack on Linux and Mac OS X, or Windows10.
 
-Install [Miniconda](https://docs.conda.io/en/latest/miniconda.html) (recommended) or full [Anaconda](https://www.anaconda.com/products/individual) prior to running the scripts below.
+Make sure to add `conda` to your PATH environmental variables.
 
 Open a Terminal:
 
@@ -54,8 +60,6 @@ conda activate rillgen2d
 ```
 
 #### Example installation for Windows 10 
-
-**Important** install [ImageMagick](https://imagemagick.org/script/download.php#windows) for Windows separately -- this package is not available in Windows `conda` package management. 
 
 Open Command Prompt or PowerShell:
 
@@ -92,7 +96,6 @@ python3 rillgen2d.py
 
 ## Note:
 On Linux in the Parameters Tab values may appear with a newline character '\n' at the end of their boxes, leave these present and update the values as needed.
-
 
 ## Docker
 

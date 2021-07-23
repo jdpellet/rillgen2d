@@ -1,11 +1,4 @@
 FROM gitpod/workspace-full-vnc
-
-USER root
-RUN usermod -aG gitpod gitpod && usermod -d /home/gitpod -u 1000 gitpod
-# give gitpod sudo
-RUN apt-get update && apt-get install -y sudo
-RUN echo 'ALL ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
-
 FROM continuumio/miniconda3:4.9.2
 ENV TZ=US/Phoenix
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
@@ -29,5 +22,3 @@ RUN apt-get update && \
         libxss1 \
         libpci-dev \
         libasound2
-
-USER gitpod

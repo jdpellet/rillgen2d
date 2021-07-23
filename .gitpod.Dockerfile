@@ -4,7 +4,7 @@ ENV TZ=US/Phoenix
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     echo $TZ > /etc/timezone
     
-RUN chown -R gitpod /opt/conda
+RUN chown -R 33333:33333 /opt/conda
 
 # Install applications we need
 RUN apt-get update && \

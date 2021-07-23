@@ -3,7 +3,7 @@ FROM continuumio/miniconda3:4.9.2
 ENV TZ=US/Phoenix
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     echo $TZ > /etc/timezone
-    
+USER root    
 RUN chown -R 33333:33333 /opt/conda
 
 # Install applications we need
@@ -22,3 +22,4 @@ RUN apt-get update && \
         libxss1 \
         libpci-dev \
         libasound2
+USER gitpod

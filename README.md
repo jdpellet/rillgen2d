@@ -20,8 +20,6 @@ cd rillgen2d
 
 Regardless of Operating Systsem, install [Miniconda](https://docs.conda.io/en/latest/miniconda.html) (recommended) or full [Anaconda](https://www.anaconda.com/products/individual) prior to running the scripts below. 
 
-If you're on Windows 10, you must install [ImageMagick](https://imagemagick.org/script/download.php#windows) -- this package is not available in Windows `conda` package management. 
-
 #### Download Source Code
 
 The RillGen2D uses a combination of opensource python libraries for visualization in the Graphic User Interface (GUI). To install these tools we recommend that you use the `conda` environment and package manager. 
@@ -43,55 +41,53 @@ Make sure to add `conda` to your PATH environmental variables.
 Open a Terminal:
 
 ```
-# update conda
-conda update -n base -c defaults conda
-
-# update conda environments 
-conda env update --prefix ./env --file environment_linux.yml  --prune
-
-# or remove old rillgen2d environment
-conda remove --name rillgen2d --all
-
-# (re)create environment for rillgen2d
+# create environment for rillgen2d
 conda env create -f environment_linux.yml
 
 # activate conda environment
 conda activate rillgen2d
 ```
 
-#### Example installation for Windows 10 
-
-Open Command Prompt or PowerShell:
+If you have an older installation of `conda` you may need to update
 
 ```
 # update conda
 conda update -n base -c defaults conda
 
-# update conda environments 
-conda env update --prefix ./env --file environment_windows.yml  --prune
+# update conda existing environment 
+conda env update --prefix ./env --file environment_linux.yml  --prune
 
 # or remove old rillgen2d environment
 conda remove --name rillgen2d --all
+```
 
-# (re)create environment for rillgen2d
+#### Example installation for Windows 10 
+
+If you're on Windows 10, you must install [ImageMagick](https://imagemagick.org/script/download.php#windows) -- this package is not available in Windows `conda` package management. 
+
+To install with `conda`, use the `environment_windows.yml` instead of `_linux.yml` file.
+
+Open a [Command](https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/windows-commands), [CygWin](https://www.cygwin.com/), or [PowerShell](https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/powershell) window:
+
+```
+# create environment for rillgen2d
 conda env create -f environment_windows.yml
 
 # activate conda environment
 conda activate rillgen2d
 ```
 
-To install on Windows, use the `environment_windows.yml` instead of `_linux.yml`
-
-### Starting the GUI
+### Start the GUI
 
 Once the appropriate Python environment has been created, you can start the GUI from the Terminal or Command Prompt:
 
 ```
+python3 rillgen2d.py
+```
+
+```
 # check your python version (should be +3.7.*)
 python3 --version
-
-# start the UI
-python3 rillgen2d.py
 ```
 
 ## Note:

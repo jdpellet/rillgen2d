@@ -52,4 +52,5 @@ RUN apt-get update && \
         libasound2
 
 # Create Rillgen2d conda environment
+COPY environment_linux.yml environment_linux.yml
 RUN cd && conda env create -f environment_linux.yml

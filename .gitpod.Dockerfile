@@ -50,3 +50,6 @@ RUN apt-get update && \
         libxss1 \
         libpci-dev \
         libasound2
+
+# Create Rillgen2d conda environment
+RUN cd && conda env create -f environment_linux.yml

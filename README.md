@@ -69,24 +69,6 @@ conda activate rillgen2d
 If `conda` has errors, you may need to add it to the PATH, or set up the `~/.bashrc` and `~/bash_profile` for your user in Cygwin
 
 
-#### Example installation for Windows 10 
-
-In Cygwin Terminal change into the directory where `rillgen2d` is kept.
-
-```
-cd rillgen2d-main
-```
-
-Install with `conda` using the `environment_windows.yml` instead of `_linux.yml` file.
-
-```
-# create environment for rillgen2d
-conda env create -f environment_windows.yml
-
-# activate conda environment
-conda activate rillgen2d
-```
-
 Once the Python environment has been created, you can start the GUI from the Terminal or Command Prompt:
 
 ```

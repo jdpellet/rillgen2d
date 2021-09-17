@@ -3,22 +3,13 @@ Predicts where rills/gullies will occur on a real or proposed landscape as a fun
 
 # Installation
 
-Clone this repository to your local computer
-
-```
-git clone https://github.com/jdpellet/rillgen2d
-cd rillgen2d
-```
-
 ## Dependencies
 
 `rillgen2d` is written in [C](https://en.wikipedia.org/wiki/C_(programming_language)), but uses geospatial data input layers, such as [GeoTiff](https://www.ogc.org/standards/geotiff). These require open-source geospatial software packages such as [GDAL](https://gdal.org/), [GEOS](https://trac.osgeo.org/geos), and [PROJ](https://proj.org/) to manage their projection information. The Graphic User Inferface (GUI) is written in [Python3](https://www.python.org/) using [Tkinter](https://docs.python.org/3/library/tkinter.html).
 
-### Installation 
-
 #### Prerequisites
 
-Regardless of Operating Systsem, install [Miniconda](https://docs.conda.io/en/latest/miniconda.html) (recommended) or full [Anaconda](https://www.anaconda.com/products/individual) prior to running the scripts below. 
+Regardless of Operating System, install [Miniconda](https://docs.conda.io/en/latest/miniconda.html) (recommended) or full [Anaconda](https://www.anaconda.com/products/individual) prior to running the scripts below. 
 
 #### Download Source Code
 
@@ -32,15 +23,25 @@ First, download the latest `.zip` or `.tar.gz` from our [Releases](https://githu
 
 Next, unpack the Zip or Tar file and put them somewhere you can find them from the command prompt or terminal. 
 
+
+If ou want to pull from source, clone this repository to your local computer:
+
+```
+git clone https://github.com/jdpellet/rillgen2d
+cd rillgen2d
+```
+
+The `main` branch has the latest features. The `develop` branch is where testing is taking place. 
+
 ### Setup on Windows 10 OS
 
 We have tested these options for running the platform on Windows 10; note all options require the installation of [Miniconda](https://docs.conda.io/en/latest/miniconda.html) and [ImageMagick](https://imagemagick.org/script/download.php#windows) -- the ImageMagick package is not available in Windows `conda` package management, which handles the other dependencies. 
 
 #### Cygwin
 
-[Cygwin](https://www.cygwin.com/)
+[Cygwin](https://www.cygwin.com/) is recommended.
 
-Run the [Miniconda installer](https://docs.conda.io/en/latest/miniconda.html)select the Cygwin installation path for the miniconda
+Run the [Miniconda installer](https://docs.conda.io/en/latest/miniconda.html) select the Cygwin installation path for the miniconda
 
 ```
 C:\cygwin64\home\your_username\miniconda
@@ -48,16 +49,25 @@ C:\cygwin64\home\your_username\miniconda
 
 Select the 'add to path' option in the installation step.
 
+Open the Cygwin terminal, change directory to the `rillgen2d` installation folder.
 
-#### Windows Subsystem for Linux
+```
+cd rillgen2d-main
+```
+##### create conda environment
 
-TBA
+run `conda` using the `environment_windows.yml` instead of `_linux.yml` file:
 
-[Windows Subsystem for Linux (WSL) v2.0](https://docs.microsoft.com/en-us/windows/wsl/install-win10) installation with the [Ubuntu flavor](https://ubuntu.com/wsl).
+```
+# create environment for rillgen2d
+conda env create -f environment_windows.yml
 
-#### Run with Docker
+# activate conda environment
+conda activate rillgen2d
+```
 
-TBA
+If `conda` has errors, you may need to add it to the PATH, or set up the `~/.bashrc` and `~/bash_profile` for your user in Cygwin
+
 
 #### Example installation for Windows 10 
 
@@ -77,8 +87,21 @@ conda env create -f environment_windows.yml
 conda activate rillgen2d
 ```
 
-If `conda` has errors, you may need to add it to the PATH, or set up the `~/.bashrc` and `~/bash_profile` for your user in Cygwin
+Once the Python environment has been created, you can start the GUI from the Terminal or Command Prompt:
 
+```
+python3 rillgen2d.py
+```
+
+#### Windows Subsystem for Linux
+
+TBA
+
+[Windows Subsystem for Linux (WSL) v2.0](https://docs.microsoft.com/en-us/windows/wsl/install-win10) installation with the [Ubuntu flavor](https://ubuntu.com/wsl).
+
+#### Run with Docker
+
+TBA
 
 #### Install for Linux and Mac OS X
 
@@ -109,27 +132,39 @@ conda env update --prefix ./env --file environment_linux.yml  --prune
 conda remove --name rillgen2d --all
 ```
 
-### Start the GUI
-
 Once the appropriate Python environment has been created, you can start the GUI from the Terminal or Command Prompt:
 
 ```
 python3 rillgen2d.py
 ```
 
+## Debugging
+
 ```
 # check your python version (should be +3.7.*)
 python3 --version
 ```
 
+If `conda` has errors, you may need to add it to the PATH, or set up the `~/.bashrc` and `~/bash_profile` for your user in Cygwin
+
+If you have an older installation of `conda` you may need to update
+
+```
+# update conda
+conda update -n base -c defaults conda
+
+# update conda existing environment 
+conda env update --prefix ./env --file environment_linux.yml  --prune
+
+# or remove old rillgen2d environment
+conda remove --name rillgen2d --all
+```
+
 ## Note:
 On Linux in the Parameters Tab values may appear with a newline character '\n' at the end of their boxes, leave these present and update the values as needed.
 
-## Docker
 
-Alternately, you can run the program in [Docker](https://docker.com)
-
-### Build 
+### Building a Docker container
 
 ```
 git clone https://github.com/jdpellet/rillgen2d
@@ -139,7 +174,7 @@ docker build -t rillgen2d .
 
 ### Docker run commands:
 
-Linux:
+On Linux:
 
 use the volume flag to mount a folder with input data: `-e DISPLAY -v /home/<username/<data-folder>/:/inputs` 
 

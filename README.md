@@ -32,7 +32,55 @@ First, download the latest `.zip` or `.tar.gz` from our [Releases](https://githu
 
 Next, unpack the Zip or Tar file and put them somewhere you can find them from the command prompt or terminal. 
 
-#### Example install for Linux and Mac OS X
+### Setup on Windows 10 OS
+
+We have tested these options for running the platform on Windows 10; note all options require the installation of [Miniconda](https://docs.conda.io/en/latest/miniconda.html) and [ImageMagick](https://imagemagick.org/script/download.php#windows) -- the ImageMagick package is not available in Windows `conda` package management, which handles the other dependencies. 
+
+#### Cygwin
+
+[Cygwin](https://www.cygwin.com/)
+
+Run the [Miniconda installer](https://docs.conda.io/en/latest/miniconda.html)select the Cygwin installation path for the miniconda
+
+```
+C:\cygwin64\home\your_username\miniconda
+```
+
+Select the 'add to path' option in the installation step.
+
+
+#### Windows Subsystem for Linux
+
+TBA
+
+[Windows Subsystem for Linux (WSL) v2.0](https://docs.microsoft.com/en-us/windows/wsl/install-win10) installation with the [Ubuntu flavor](https://ubuntu.com/wsl).
+
+#### Run with Docker
+
+TBA
+
+#### Example installation for Windows 10 
+
+In Cygwin Terminal change into the directory where `rillgen2d` is kept.
+
+```
+cd rillgen2d-main
+```
+
+Install with `conda` using the `environment_windows.yml` instead of `_linux.yml` file.
+
+```
+# create environment for rillgen2d
+conda env create -f environment_windows.yml
+
+# activate conda environment
+conda activate rillgen2d
+```
+
+If `conda` has errors, you may need to add it to the PATH, or set up the `~/.bashrc` and `~/bash_profile` for your user in Cygwin
+
+
+#### Install for Linux and Mac OS X
 
 We have provided two `environment.yml` files which can be used with [Conda](https://docs.conda.io/en/latest/) to install the stack on Linux and Mac OS X, or Windows10.
 
@@ -59,22 +107,6 @@ conda env update --prefix ./env --file environment_linux.yml  --prune
 
 # or remove old rillgen2d environment
 conda remove --name rillgen2d --all
-```
-
-#### Example installation for Windows 10 
-
-If you're on Windows 10, you must install [ImageMagick](https://imagemagick.org/script/download.php#windows) -- this package is not available in Windows `conda` package management. 
-
-To install with `conda`, use the `environment_windows.yml` instead of `_linux.yml` file.
-
-Open a [Command](https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/windows-commands), [CygWin](https://www.cygwin.com/), or [PowerShell](https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/powershell) window:
-
-```
-# create environment for rillgen2d
-conda env create -f environment_windows.yml
-
-# activate conda environment
-conda activate rillgen2d
 ```
 
 ### Start the GUI

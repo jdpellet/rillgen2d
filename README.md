@@ -17,9 +17,9 @@ The RillGen2D uses a combination of opensource python libraries for visualizatio
 
 First, download the latest `.zip` or `.tar.gz` from our [Releases](https://github.com/tyson-swetnam/rillgen2d/releases)
 
-[Source Code v0.1 zip](https://github.com/tyson-swetnam/rillgen2d/archive/refs/tags/0.1.zip)
+[Source Code v0.2 zip](https://github.com/tyson-swetnam/rillgen2d/archive/refs/tags/0.2.zip)
 
-[Source Code v0.1 tar.gz](https://github.com/tyson-swetnam/rillgen2d/archive/refs/tags/0.1.tar.gz)
+[Source Code v0.2 tar.gz](https://github.com/tyson-swetnam/rillgen2d/archive/refs/tags/0.2.tar.gz)
 
 Next, unpack the Zip or Tar file and put them somewhere you can find them from the command prompt or terminal. 
 

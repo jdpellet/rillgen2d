@@ -76,11 +76,13 @@ Download the image from [DockerHub](https://hub.docker.com/u/tswetnam/rillgen2d)
 
 The image is very large - because it contains an entire remote desktop in addition to miniconda and the rillgen2d conda environment (geospatial packages). 
 
-Run the image and open the Optional Settings and select Local Host port - the container runs port `9876` but you can select any port you choose.
+Run the image and open the Optional Settings and select Local Host Port - the container runs port `9876` but you can select any port you choose.
 
 Select a Host Path - this is necessary to ensure that the data you input and output from Rillgen will be saved back to your host. 
 
 Select a Container Path - the host folder will be renamed inside the container; suggest loading into the `/home/user/workspace` folder name. When you run rillgen, you can look for that `workspace` folder.
+
+Open in Browser - select the open in browser option once the container is running. The remote desktop can also be found at `localhost:<port>` that you defined in the Host Port setting.
 
 #### Run from Windows Subsystem for Linux
 

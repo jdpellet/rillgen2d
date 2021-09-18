@@ -28,8 +28,6 @@ jobs:
         id: docker_build_latest
         uses: docker/build-push-action@v2
         with:
-          context: latest
-          file: Dockerfile
           push: true
           tags: tswetnam/rillgen2d:latest
       -

@@ -38,5 +38,3 @@ RUN echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
 ENV DISPLAY=:0
 
 WORKDIR rillgen2d
-
-ENTRYPOINT ["conda", "run", "-n", "rillgen2d", "python3", "rillgen2d.py"]

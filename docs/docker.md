@@ -1,8 +1,12 @@
-## Docker
+## Docker Desktop (Windows)
 
-Alternately, you can run the program in [Docker](https://docker.com)
+Rillgen2d has been containerized using a full remote desktop with XPRA
 
-### Build 
+It can be run from Docker Desktop on a localhost port address which is accessed via the browser. 
+
+### Build from Source
+
+Use the `main` branch
 
 ```
 git clone https://github.com/jdpellet/rillgen2d
@@ -24,5 +28,5 @@ export DISPLAY=:0
 # allow X11
 xhost +
 # Run docker with host display settings and data volume
-docker run -it --rm -v /home/tswetnam/Downloads/:/inputs -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=unix$DISPLAY rillgen2d:latest
+docker run -it --rm -v /home/$USER/Downloads/:/inputs -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=unix$DISPLAY rillgen2d:latest
 ```

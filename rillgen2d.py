@@ -247,7 +247,7 @@ class Application(tk.Frame):
                 os.chdir("..")
             """This portion compiles the rillgen2d.c file in order to import it as a module"""
             if self.rillgen == None:
-                cmd = "gcc -Wall -shared -fPIC rillgen2d.c -o rillgen.so" # compile the c file so that it will be useable later
+                cmd = "gcc -Wall -shared rillgen2d.c -o rillgen.exe" # compile the c file so that it will be useable later
                 self.client_socket.send(subprocess.check_output(cmd, shell=True) + ('\n').encode('utf-8'))
             path = Path.cwd() / "tmp"
             if path.exists():
@@ -674,7 +674,7 @@ class Application(tk.Frame):
         cmd1 = "gdal_translate -of XYZ " + filename + ".tif " + filename + ".asc"
         self.client_socket.send(subprocess.check_output(cmd1, shell=True) + ('\n').encode('utf-8'))
 
-        cmd2 = "awk '{print $3}' " + filename + ".asc > " + filename + ".txt"
+        cmd2 = "cut -f 3 -d ' ' " + filename + ".asc > " + filename + ".txt"
         self.client_socket.send(subprocess.check_output(cmd2, shell=True) + ('\n').encode('utf-8'))
 
         # remove temporary .asc file to save space
@@ -858,12 +858,12 @@ class Application(tk.Frame):
         mode = 1
         self.client_socket.send(("Running rillgen.c...\n\n").encode('utf-8'))
         self.make_popup(mode)
-        cmd0 = "awk '{print $3}' " + self.imagefile.stem + ".asc > topo.txt"
+        cmd0 = "cut -f 3 -d ' ' " + self.imagefile.stem + ".asc > topo.txt"
         self.client_socket.send(subprocess.check_output(cmd0, shell=True) + ('\n').encode('utf-8'))
-        cmd1 = "awk '{print $1, $2}' " + self.imagefile.stem + ".asc > xy.txt"
+        cmd1 = "cut -f 1,2 -d ' ' " + self.imagefile.stem + ".asc > xy.txt"
         self.client_socket.send(subprocess.check_output(cmd1, shell=True) + ('\n').encode('utf-8'))
         if self.rillgen == None:
-            self.rillgen = CDLL(str(Path.cwd().parent / 'rillgen.so'))
+            self.rillgen = CDLL(str(Path.cwd().parent / 'rillgen.exe'))
         t1 = Thread(target=self.run_rillgen)
         t1.start()
         still_update = True

@@ -164,6 +164,8 @@ echo "conda activate base" >> ~/.bashrc
 source ~/.bashrc
 ```
 
+We provide an example `bash_profile` in the `/test` sub-folder in this repository.
+
 If you have an older installation of `conda` you may need to update
 
 ```

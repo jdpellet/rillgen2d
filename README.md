@@ -154,6 +154,14 @@ python3 --version
 
 If `conda` has errors, you may need to add it to the PATH, or set up the `~/.bashrc` and `~/bash_profile` for your user in Cygwin
 
+Set the `conda` path to wherever you installed it - in linux, this is typically in `/opt` in Windows it may be in `C:/cygwin64/miniconda/`
+
+```
+echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc
+echo "conda activate base" >> ~/.bashrc
+source ~/.bashrc
+```
+
 If you have an older installation of `conda` you may need to update
 
 ```
@@ -167,8 +175,7 @@ conda env update --prefix ./env --file environment_linux.yml  --prune
 conda remove --name rillgen2d --all
 ```
 
-## Note:
-On Linux in the Parameters Tab values may appear with a newline character '\n' at the end of their boxes, leave these present and update the values as needed.
+**Note: In Linux the Parameters tab number values may appear with a newline character `\n` at the end of their boxes, leave these present and update the values as needed.**
 
 
 ### Building a Docker container

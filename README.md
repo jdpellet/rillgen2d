@@ -54,7 +54,7 @@ Select the 'add to path' option in the installation step.
 Open the Cygwin terminal, change directory to the `rillgen2d` installation folder.
 
 ```
-cd rillgen2d-main
+cd rillgen2d-windows
 ```
 ##### create conda environment
 

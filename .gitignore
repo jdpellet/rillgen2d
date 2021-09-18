@@ -1,8 +1,14 @@
 /env
 /tmp
 
-# output files
+# output folders and temp files
 output*
+*.tif
+*.ppm
+dem.txt
+slope.txt
+mask.txt
+topo.txt
 
 # Prerequisites
 *.d
@@ -63,6 +69,3 @@ dkms.conf
 # MacOS-created folders
 *.idea
 
-slope.txt
-mask.txt
-topo.txt

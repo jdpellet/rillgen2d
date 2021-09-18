@@ -1,7 +1,7 @@
-FROM continuumio/miniconda3:4.9.2
-ENV TZ=US/Phoenix
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
-    echo $TZ > /etc/timezone
+FROM harbor.cyverse.org/vice/xpra/ubuntu:20.04
+
+USER root
+
 # Install applications we need
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -19,11 +19,8 @@ RUN apt-get update && \
         libpci-dev \
         libasound2
 
-# copy github repository
-# RUN git clone https://github.com/tyson-swetnam/rillgen2d 
-
-RUN mkdir rillgen2d
-
+# Create Rillgen2d conda environment
+RUN cd && mkdir rillgen2d
 COPY input.txt rillgen2d/
 COPY console.py rillgen2d/
 COPY rillgen2d.py rillgen2d/

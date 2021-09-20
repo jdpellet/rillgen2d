@@ -159,12 +159,20 @@ If `conda` has errors, you may need to add it to the PATH, or set up the `~/.bas
 Set the `conda` path to wherever you installed it - in linux, this is typically in `/opt` in Windows it may be in `C:/cygwin64/miniconda/`
 
 ```
-echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc
+echo ". /home/${USER}/miniconda3/etc/profile.d/conda.sh" >> ~/.bashrc
 echo "conda activate base" >> ~/.bashrc
 source ~/.bashrc
 ```
 
 We provide an example `bash_profile` in the `/test` sub-folder in this repository.
+
+You can add the following for Cygwin, this will correct any errors around `\r` 
+
+```
+#  IMPORTANT - Ignore carriage returns when using a Cygwin environment.
+export SHELLOPTS
+set -o igncr
+```
 
 If you have an older installation of `conda` you may need to update
 

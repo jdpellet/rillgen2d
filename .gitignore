@@ -1,5 +1,7 @@
 /env
 /tmp
+.devcontainer
+.venv
 
 # Prerequisites
 *.d

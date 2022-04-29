@@ -126,6 +126,7 @@ dependencies:
   - olefile
   - openjpeg
   - openssl
+  - osgeo
   - pango
   - pcre
   - perl

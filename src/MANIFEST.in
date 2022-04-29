@@ -1,0 +1,13 @@
+include pyproject.toml
+
+# Include README
+include *.md
+
+# Include LICENSE
+include LICENSE
+
+# Include setup
+include setup.py
+
+# Include data
+recursive-include data *

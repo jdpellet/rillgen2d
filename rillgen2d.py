@@ -885,7 +885,7 @@ class Application(tk.Frame):
             if mode == 1:
                 currentPercentage = self.rillgen.hydrologiccorrection()
             else:
-                currentPercentage = self.rillgen.hydrologiccorrectionß()
+                currentPercentage = self.rillgen.hydrologiccorrection()
             if currentPercentage == 0:
                 time.sleep(0.5)
             elif currentPercentage > 0 and currentPercentage < 100:

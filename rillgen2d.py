@@ -704,15 +704,23 @@ class Application(tk.Frame):
         if self.t1 != None:
             self.t1.join()
             self.t1 = None
+        
         path = Path.cwd() / 'input.txt'
+        
         if path.exists():
             Path.unlink(path)
+        
         path = Path.cwd()
+        
         f = open('input.txt', 'w')
+
         f.write(str(self.flagForEquationVar.get()) + '\n')
+
         f.write(str(self.flagforDynamicModeVar.get()) + '\n')
+
         if (path / "dynamicinput.txt").exists():
             Path.unlink(path / "dynamicinput.txt")
+        
         if self.flagforDynamicModeVar.get() == 1:
             if (path.parent / "dynamicinput.txt").exists():
                 shutil.copyfile(path.parent / "dynamicinput.txt", path / "dynamicinput.txt")
@@ -720,8 +728,8 @@ class Application(tk.Frame):
             else:
                 self.client_socket.send(("dynamicinput.txt not found\n\n").encode('utf-8'))
 
-
         f.write(str(self.flagForMaskVar.get())+'\n')  
+        
         if self.flagForMaskVar.get() == 1:
             if (path / "mask.tif").exists():
                 self.convert_geotiff_to_txt("mask")
@@ -731,32 +739,41 @@ class Application(tk.Frame):
                 self.flagForMaskVar = 0
 
         f.write(str(self.flagForTaucSoilAndVegVar.get())+'\n')
+        
         if (path / "taucsoilandvegfixed.txt").exists():
             Path.unlink(path / "taucsoilandvegfixed.txt")
+        
         if self.flagForTaucSoilAndVegVar.get() == 1:
             if (path.parent / "taucsoilandvegfixed.txt").exists():
                 shutil.copyfile(path.parent / "taucsoilandvegfixed.txt", path / "taucsoilandvegfixed.txt")
                 self.client_socket.send(("taucsoilandvegfixed.txt found and copied to inner directory\n\n").encode('utf-8'))
             else:
                 self.client_socket.send(("taucsoilandvegfixed.txt not found\n\n").encode('utf-8'))
+        
         f.write(str(self.flagFord50Var.get())+'\n')
+        
         if (path / "d50.txt").exists():
             Path.unlink(path / "d50.txt")
+        
         if self.flagFord50Var.get() == 1:
             if (path.parent / "d50.txt").exists():
                 shutil.copyfile(path.parent / "d50.txt", path / "d50.txt")
                 self.client_socket.send(("d50.txt found and copied to inner directory\n\n").encode('utf-8'))
             else:
                 self.client_socket.send(("d50.txt not found\n\n").encode('utf-8'))
+        
         f.write(str(self.flagForRockCoverVar.get())+'\n')
+        
         if (path / "rockcover.txt").exists():
             path.unlink(path / "rockcover.txt")
+        
         if self.flagForRockCoverVar.get() == 1:
             if (path.parent / "rockcover.txt").exists():
                 shutil.copyfile(path.parent / "rockcover.txt", path / "rockcover.txt")
                 self.client_socket.send(("rockcover.txt found and copied to inner directory\n\n").encode('utf-8'))
             else:
                 self.client_socket.send(("rockcover.txt not found\n\n").encode('utf-8'))
+        
         f.write(self.fillIncrementInput.get().replace("\n", "")+'\n')
         f.write(self.minslopeInput.get().replace("\n", "")+'\n')
         f.write(self.expansionInput.get().replace("\n", "")+'\n')
@@ -775,7 +792,7 @@ class Application(tk.Frame):
         f.write(self.cInput.get().replace("\n", "")+'\n')
         f.write(self.rillwidthcoefficientInput.get().replace("\n", "")+'\n')
         f.write(self.rillwidthexponentInput.get().replace("\n", "")+'\n')
-        self.client_socket.send(("Generated input.txt\n\n").encode('utf-8'))
+        self.client_socket.send(("Generated new input.txt\n\n").encode('utf-8'))
         f.close()
         
         t1 = Thread(target=self.hillshade_and_color_relief)

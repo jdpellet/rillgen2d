@@ -113,7 +113,7 @@ class Application(tk.Frame):
         The first tab allows a user to select an geotiff image from either their 
         local filesystem or from a url."""
         
-        self.github_button = ttk.Button(self.tab1,text="README",command=self.open_github, style='BLUE.TButton')
+        self.github_button = ttk.Button(self.tab1,text="View User Manual",command=self.open_github, style='BLUE.TButton')
         self.github_button.grid(row=0,column=0)
 
         self.button1 = ttk.Button(self.tab1, text="Upload local DEM (.tif)", command=self.get_image_locally)
@@ -158,7 +158,7 @@ class Application(tk.Frame):
         self.tab1.rowconfigure(3, weight=1)
 
     def open_github(self):
-        webbrowser.open("https://github.com/jdpellet/rillgen2d",new=1,autoraise=True)
+        webbrowser.open("https://tyson-swetnam.github.io/rillgen2d",new=1,autoraise=True)
 
     def get_image_locally(self):
         """Given a geotiff image, either in .tar format or directly, extract the image and display
@@ -575,9 +575,9 @@ class Application(tk.Frame):
         Frame(self.frame2, width=350, height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
         rowNumber += 1
 
-        self.parameterButton = ttk.Button(self.frame2, text='Generate Parameters', command=self.generate_parameters)
+        self.parameterButton = ttk.Button(self.frame2, text='Export Input parameters (optional)', command=self.generate_parameters)
         self.parameterButton.grid(row=0, column=0)
-        self.goButton = ttk.Button(self.frame2, text='Run Model', command=self.generate_input_txt_file,style='RED.TButton')
+        self.goButton = ttk.Button(self.frame2, text='Generate RillGen2d Model', command=self.generate_input_txt_file,style='RED.TButton')
         self.goButton.grid(row=0, column=2)
 
 
@@ -631,39 +631,38 @@ class Application(tk.Frame):
                 self.client_socket.send(("Invalid mask.tif file\n\n").encode('utf-8'))
 
     def generate_parameters(self):
-        """Generate the parameters.txt file using the flags from the second tab"""
-        path = Path.cwd() / 'parameters.txt'
+        """Export the parameters used for the input.txt file"""
+        path = Path.cwd() / 'input_parameters.txt'
         if path.exists():
             Path.unlink(path)
-        f = open('parameters.txt', 'w+')
-        f.write(str(self.flagForEquationVar.get()) + '\t /* Flag for equation out */ \n')
-        f.write(str(self.flagforDynamicModeVar.get()) + '\t /* Flag for dynamicmode out */ \n')
-        f.write(str(self.flagForMaskVar.get()) + '\t /* Flag for mask out */ \n')
-        f.write(str(self.flagForTaucSoilAndVegVar.get()) + '\t /* Flag for taucsoilandveg out */ \n')
-        f.write(str(self.flagFord50Var.get()) + '\t /* Flag for d50 out */ \n')
-        f.write(str(self.flagForRockCoverVar.get()) + '\t /* Flag for rockcover out */ \n')
-        f.write(self.fillIncrementInput.get().replace("\n", "") + '\t /* fillIncrement out */ \n')
-        f.write(self.minslopeInput.get().replace("\n", "") + '\t /* minslope out */ \n')
-        f.write(self.expansionInput.get().replace("\n", "") + '\t /* Expansion out */ \n')
-        f.write(self.yellowThresholdInput.get().replace("\n", "") + '\t /* Yellow threshold out */ \n')
-        f.write(self.lattice_size_xInput.get().replace("\n", "") + '\t /* Lattice Size X out */ \n')
-        f.write(self.lattice_size_yInput.get().replace("\n", "") + '\t /* Lattice Size Y out */ \n')
-        f.write(self.deltaxInput.get().replace("\n", "") + '\t /* Delta X out */ \n')
-        f.write(self.nodataInput.get().replace("\n", "") + '\t /* nodata out */ \n')
-        f.write(self.smoothinglengthInput.get().replace("\n", "") + '\t /* smoothing length out */ \n')
-        f.write(self.rainInput.get().replace("\n", "") + '\t /* Rain out */ \n')
-        f.write(self.taucSoilAndVegeInput.get().replace("\n", "") + '\t /* tauc soil and vege out */ \n')
-        f.write(self.d50Input.get().replace("\n", "") + '\t /* d50 out */ \n')
-        f.write(self.rockcoverInput.get().replace("\n", "") + '\t /* rock cover out */ \n')
-        f.write(self.tanAngleOfInternalFrictionInput.get().replace("\n", "") + '\t /* tangent of the angle of internal friction out*/ \n')
-        f.write(self.bInput.get().replace("\n", "") + '\t /* b out */ \n')
-        f.write(self.cInput.get().replace("\n", "") + '\t /* c out */ \n')
-        f.write(self.rillwidthcoefficientInput.get().replace("\n", "") + '\t /* rill width out */ \n')
-        f.write(self.rillwidthexponentInput.get().replace("\n", "") + '\t /* rill width out */ \n')
-        self.client_socket.send(("Generated parameters.txt\n\n").encode('utf-8'))
+        f = open('input_parameters.txt', 'w+')
+        f.write(str(self.flagForEquationVar.get()) + '\t equation\n')
+        f.write(str(self.flagforDynamicModeVar.get()) + '\t dynamicmode\n')
+        f.write(str(self.flagForMaskVar.get()) + '\t mask\n')
+        f.write(str(self.flagForTaucSoilAndVegVar.get()) + '\t taucsoilandveg\n')
+        f.write(str(self.flagFord50Var.get()) + '\t d50\n')
+        f.write(str(self.flagForRockCoverVar.get()) + '\t rockcover\n')
+        f.write(self.fillIncrementInput.get().replace("\n", "") + '\t fillincrement\n')
+        f.write(self.minslopeInput.get().replace("\n", "") + '\t minslope\n')
+        f.write(self.expansionInput.get().replace("\n", "") + '\t expansion\n')
+        f.write(self.yellowThresholdInput.get().replace("\n", "") + '\t yellowthresh\n')
+        f.write(self.lattice_size_xInput.get().replace("\n", "") + '\t latticeX\n')
+        f.write(self.lattice_size_yInput.get().replace("\n", "") + '\t latticeY\n')
+        f.write(self.deltaxInput.get().replace("\n", "") + '\t deltax\n')
+        f.write(self.nodataInput.get().replace("\n", "") + '\t nodata\n')
+        f.write(self.smoothinglengthInput.get().replace("\n", "") + '\t smoothinglength\n')
+        f.write(self.rainInput.get().replace("\n", "") + '\t rain\n')
+        f.write(self.taucSoilAndVegeInput.get().replace("\n", "") + '\t taucsoilvege\n')
+        f.write(self.d50Input.get().replace("\n", "") + '\t d50\n')
+        f.write(self.rockcoverInput.get().replace("\n", "") + '\t rockcover\n')
+        f.write(self.tanAngleOfInternalFrictionInput.get().replace("\n", "") + '\t tanfric out*/ \n')
+        f.write(self.bInput.get().replace("\n", "") + '\t b\n')
+        f.write(self.cInput.get().replace("\n", "") + '\t c\n')
+        f.write(self.rillwidthcoefficientInput.get().replace("\n", "") + '\t rillwidthcoefficient\n')
+        f.write(self.rillwidthexponentInput.get().replace("\n", "") + '\t rillwidthexponent\n')
+        self.client_socket.send(("Generated input parameters used in run\n\n").encode('utf-8'))
         self.client_socket.send(("Click on Run Model\n\n").encode('utf-8'))
         f.close()
-
     
     def convert_geotiff_to_txt(self, filename):
         
@@ -902,7 +901,7 @@ class Application(tk.Frame):
             if mode == 1:
                 currentPercentage = self.rillgen.hydrologiccorrection()
             else:
-                currentPercentage = self.rillgen.hydrologiccorrection()
+                print('hydrologiccorrection not started')
             if currentPercentage == 0:
                 time.sleep(0.5)
             elif currentPercentage > 0 and currentPercentage < 100:

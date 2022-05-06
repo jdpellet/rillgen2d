@@ -505,7 +505,7 @@ int main()
        fscanf(fpin,"%f",&durationofdata);
 	   fscanf(fpin,"%f",&timestep);
 	   fscanf(fpin,"%d",&numberofraingages);
-	   fscanf(fpin,"%f %f",&ulx,&uly);
+	   fscanf(fpin,"%f",&ulx,&uly);
 	   inciseddepth=matrix(1,lattice_size_x,1,lattice_size_y);
 	   rainl=matrix(1,lattice_size_x,1,lattice_size_y);
 	   for (j=1;j<=lattice_size_y;j++)

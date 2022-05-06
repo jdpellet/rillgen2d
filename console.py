@@ -50,7 +50,7 @@ class Console(tk.Frame):
     def network_function(self):
         """Handles the connection between rillgen2d.py and console.py in a host/client
         structure with rillgen2d.py as the host and console.py as the client"""
-        port = 5000  # socket server port number
+        port = 65432  # socket server port number
 
         client_socket = socket()  # instantiate
         client_socket.connect(("127.0.0.1", port))  # connect to the server

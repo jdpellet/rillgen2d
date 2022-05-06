@@ -95,7 +95,7 @@ class Application(tk.Frame):
         host/client structure with rillgen2d.py as the host and console.py as the
         client"""
         Popen([sys.executable, "console.py"], universal_newlines=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
-        port = 5000  # initiate port no above 1024
+        port = 65432 # initiate port no above 1024
         self.socket = socket()  # get instance
         self.socket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1) # allows for a port to be used
         # even if it was previously being used
@@ -553,17 +553,6 @@ class Application(tk.Frame):
         Frame(self.frame2, width=350, height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
         rowNumber += 1
 
-        # rillWidth variable
-        Label(self.frame2, text='rillWidth:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, padx=5, pady=5)
-        Label(self.frame2, text='The width of rills (in m) as they begin to form. This value is used to localize water flow to a width less than the width of a pixel. For example, if deltax = 1 m and rillwidth = 20 cm then the flow entering each pixel is assumed, for the purposes of rill development, to be localized in a width equal to one fifth of the pixel width.', font='Helvetica 18', justify=CENTER, wraplength=350).grid(row=rowNumber, column=2, padx=5, pady=5)
-        rillWidthVar = StringVar(value=str(f.readline()))
-        self.rillWidthInput = Entry(self.frame2, textvariable=rillWidthVar, width=5)
-        self.rillWidthInput.grid(row=rowNumber, column=1, padx=5, pady=5)
-        rowNumber += 1
-
-        Frame(self.frame2, width=350, height=5, background="PeachPuff").grid(row=rowNumber, column=0, columnspan=3)
-        rowNumber += 1
-
         # rillwidthcoefficient variable
         Label(self.frame2, text='rillwidthcoefficient:', font='Helvetica 18 bold').grid(row=rowNumber, column=0, padx=5, pady=5)
         Label(self.frame2, text='coefficient in the power-law relationship between rill width and discharge', font='Helvetica 18', justify=CENTER, wraplength=350).grid(row=rowNumber, column=2, padx=5, pady=5)
@@ -669,7 +658,8 @@ class Application(tk.Frame):
         f.write(self.tanAngleOfInternalFrictionInput.get().replace("\n", "") + '\t /* tangent of the angle of internal friction out*/ \n')
         f.write(self.bInput.get().replace("\n", "") + '\t /* b out */ \n')
         f.write(self.cInput.get().replace("\n", "") + '\t /* c out */ \n')
-        f.write(self.rillWidthInput.get().replace("\n", "") + '\t /* rill width out */ \n')
+        f.write(self.rillwidthcoefficientInput.get().replace("\n", "") + '\t /* rill width out */ \n')
+        f.write(self.rillwidthexponentInput.get().replace("\n", "") + '\t /* rill width out */ \n')
         self.client_socket.send(("Generated parameters.txt\n\n").encode('utf-8'))
         self.client_socket.send(("Click on Run Model\n\n").encode('utf-8'))
         f.close()
@@ -783,7 +773,8 @@ class Application(tk.Frame):
         f.write(self.tanAngleOfInternalFrictionInput.get().replace("\n", "")+'\n')
         f.write(self.bInput.get().replace("\n", "")+'\n')
         f.write(self.cInput.get().replace("\n", "")+'\n')
-        f.write(self.rillWidthInput.get().replace("\n", "")+'\n')
+        f.write(self.rillwidthcoefficientInput.get().replace("\n", "")+'\n')
+        f.write(self.rillwidthexponentInput.get().replace("\n", "")+'\n')
         self.client_socket.send(("Generated input.txt\n\n").encode('utf-8'))
         f.close()
         
@@ -892,9 +883,9 @@ class Application(tk.Frame):
         self.client_socket.send(("Starting hydrologic correction step...\n\n").encode('utf-8'))
         while still_update:
             if mode == 1:
-                currentPercentage = self.rillgen.hydrologic_percentage()
+                currentPercentage = self.rillgen.hydrologiccorrection()
             else:
-                currentPercentage = self.rillgen.dynamic_percentage()
+                currentPercentage = self.rillgen.hydrologiccorrectionß()
             if currentPercentage == 0:
                 time.sleep(0.5)
             elif currentPercentage > 0 and currentPercentage < 100:

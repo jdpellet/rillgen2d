@@ -1,8 +1,6 @@
 /env
 /tmp
-.devcontainer
-.venv
-
+/outputs_*
 # Prerequisites
 *.d
 

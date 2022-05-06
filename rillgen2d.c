@@ -248,7 +248,7 @@ void hydrologiccorrection()
 	 while (count==stacksize)
 	  {count=0;
        for (j=1;j<=lattice_size_y;j++)
-	   {if (j%(lattice_size_y/10)==0) {printf("%d ",10*j/(lattice_size_y/10));fflush(stdout);}
+	   {if (j%(lattice_size_y/10)==0) {printf("%ld ",10*j/(lattice_size_y/10));fflush(stdout);}
         for (i=1;i<=lattice_size_x;i++)
 	     {push(i,j);
 	      while (count>0) 
@@ -274,6 +274,8 @@ void hydrologiccorrection()
 			  push(idown[ic],jup[jc]);
 	          push(iup[ic],jdown[jc]);}}}}}
 }
+
+
 
 void smoothslope()
 {    long i,j,i2,j2,il,jl;

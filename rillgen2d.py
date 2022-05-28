@@ -901,7 +901,7 @@ class Application(tk.Frame):
             if mode == 1:
                 currentPercentage = self.rillgen.hydrologiccorrection()
             else:
-                print('hydrologiccorrection not started')
+                currentPercentage = self.rillgen.smoothslope()
             if currentPercentage == 0:
                 time.sleep(0.5)
             elif currentPercentage > 0 and currentPercentage < 100:

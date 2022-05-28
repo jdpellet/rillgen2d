@@ -364,7 +364,7 @@ int main()
 {
      FILE *fpin,*fp0,*fp1,*fp2,*fp3,*fp4,*fp5;
 	 long i,j,m,n;
-     char temp[50];	 
+/*    char temp[50];	 */
 	 fpin=fopen("./input.txt","r");
 	 fp0=fopen("./topo.txt","r");
 	 fp1=fopen("./f.txt","w");

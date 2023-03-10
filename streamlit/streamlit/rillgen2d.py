@@ -131,19 +131,17 @@ class Rillgen2d():
                 self.console.put(100)
                 if mode == 1 and self.flagForDynamicVar == 1:
                     mode = 2
-                    (
-                        ("Hydrologic correction step completed.\n\n"))
+                    self.console.put("Hydrologic correction step completed.")
                     currentPercentage = 0
-                    self.console.put(currentPercentage, text=(
-                        "Starting dynamic mode...\n\n"))
+                    self.console.put("Starting dynamic mode...")
                     self.make_popup(mode)
                 else:
                     if self.flagForDynamicVar == 1:
                         self.console.put(
-                            "Dynamic mode completed. Creating outputs...\n")
+                            "Dynamic mode completed. Creating outputs...")
                     else:
                         self.console.put(
-                            ("Hydrologic correction step completed. Creating outputs...\n\n"))
+                            ("Hydrologic correction step completed. Creating outputs..."))
                     still_update = False
         t1.join()
 
@@ -156,7 +154,7 @@ class Rillgen2d():
             str(subprocess.check_output(cmd4, shell=True), "UTF-8"))
         cmd5 = "paste xy.txt f.txt > xy_f.txt"
         self.console.put(
-            subprocess.check_output(cmd5, shell=True))
+            str(subprocess.check_output(cmd5, shell=True), "UTF-8"))
 
     def populate_view_output_tab(self):
         """Populate the third tab with tkinter widgets. The third tab allows
@@ -481,7 +479,7 @@ def save_image_as_txt(imagePath, console):
 
         # compile the c file so that it will be useable later
         cmd = "gcc -Wall -shared -fPIC ../rillgen2d.c -o rillgen.so"
-        console.put(str(subprocess.check_output(cmd, shell=True),"UTF-8"))
+        console.put(str(subprocess.check_output(cmd, shell=True), "UTF-8"))
 
         for fname in Path.cwd().iterdir():
             if fname.suffix == ".tif":

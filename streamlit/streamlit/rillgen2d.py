@@ -1,5 +1,12 @@
 
 
+from wand.image import Image as im
+from threading import Thread
+from socket import *
+from pathlib import Path
+from osgeo import gdal, osr
+from datetime import datetime
+from ctypes import CDLL
 import branca
 import os
 import subprocess
@@ -10,15 +17,8 @@ import folium
 import osgeo
 import PIL
 # Apparently this API is supposed to be internal atm and seems to rapidly change without documentation between upadtes
-
-from ctypes import CDLL
-from datetime import datetime
-from osgeo import gdal, osr
-from pathlib import Path
-from socket import *
+PIL.Image.MAX_IMAGE_PIXELS = 933120000
 # multiprocessing might be good instead, depedning on the function
-from threading import Thread
-from wand.image import Image as im
 
 """This is the main rillgen2d file which handles the gui and communicates with console.py
 and rillgen.c in order to perform the rillgen calculations"""
@@ -51,6 +51,7 @@ class Rillgen2d():
     def generate_color_ramp(self, filename, mode):
         """generates a color ramp from a geotiff image and then uses that in order to produce
         a color-relief for the geotiff"""
+        self.console.put("Generating color ramp")
         gtif = gdal.Open(filename)
         srcband = gtif.GetRasterBand(1)
         # Get raster statistics
@@ -87,7 +88,8 @@ class Rillgen2d():
             cmd1 = "gdaldem color-relief " + filename + \
                 " color-relief.txt color-relief_f.png"
         f.close()
-        self.console.put(subprocess.check_output(cmd1, shell=True))
+        self.run_command(cmd1)
+        self.console.put(str(subprocess.check_output(cmd1, shell=True)))
         self.console.put("Hillshade and color relief generated\n")
         gtif = None
 
@@ -102,13 +104,13 @@ class Rillgen2d():
     def setup_rillgen(self):
         """Sets up files for the rillgen.c code by creating topo.txt and xy.txt, and
         imports the rillgen.c code using the CDLL library"""
+        self.console.put("Setting up Rillgen")
         mode = 1
         self.make_popup(mode)
         cmd0 = "awk '{print $3}' " + self.imagePath.stem + ".asc > topo.txt"
-        self.console.put(str(subprocess.check_output(cmd0, shell=True)))
+        self.run_command(cmd0)
         cmd1 = "awk '{print $1, $2}' " + self.imagePath.stem + ".asc > xy.txt"
-        self.console.put(str(
-            subprocess.check_output(cmd1, shell=True)))
+        self.run_command(cmd1)
         if self.rillgen == None:
             self.rillgen = CDLL(
                 str(Path.cwd().parent / 'rillgen.so'))
@@ -147,10 +149,11 @@ class Rillgen2d():
 
     def run_rillgen(self):
         """Runs the rillgen.c library using the CDLL module"""
+        self.console.put("Running Rillgen")
         self.rillgen.main()
         cmd4 = "paste xy.txt tau.txt > xy_tau.txt"
         self.console.put(
-            subprocess.check_output(cmd4, shell=True))
+            str(subprocess.check_output(cmd4, shell=True), "UTF-8"))
         cmd5 = "paste xy.txt f.txt > xy_f.txt"
         self.console.put(
             subprocess.check_output(cmd5, shell=True))
@@ -171,6 +174,11 @@ class Rillgen2d():
         # some tkinter versions do not support .png images
         (("Preview Complete\n\n"))
         return self.generatemap()
+
+    def run_command(self, command):
+        self.console.put(command)
+        self.console.put(
+            str(subprocess.check_output(command, shell=True), "UTF-8"))
 
     def set_georeferencing_information(self):
         """Sets the georeferencing information for f.tif and tau.tif (and incised depth.t if self.flagForDynamicVar==1) to be the same as that
@@ -195,12 +203,11 @@ class Rillgen2d():
 
         self.geo_ext = self.ReprojectCoords(ext, src_srs, tgt_srs)
         cmd0 = "gdal_translate xy_tau.txt tau.tif"
-        self.console.put(subprocess.check_output(cmd0, shell=True))
+        self.run_command(cmd0)
         t1 = Thread(target=self.generate_color_ramp("tau.tif", 2))
         t1.start()
         cmd1 = "gdal_translate xy_f.txt f.tif"
-        self.console.put(
-            subprocess.check_output(cmd1, shell=True))
+        self.run_command(cmd1)
         t2 = Thread(target=self.generate_color_ramp("f.tif", 3))
         t2.start()
         projection = ds.GetProjection()
@@ -247,7 +254,7 @@ class Rillgen2d():
                     cmd2 = "gdal_translate -a_nodata 255 -ot Byte -of PNG " + \
                         elem.split(sep='.')[0] + ".tif " + \
                         elem.split(sep='.')[0] + ".png"
-                self.console.put(subprocess.check_output(cmd2, shell=True))
+                self.run_command(cmd2)
             ds2 = None
 
         ds = None
@@ -269,8 +276,7 @@ class Rillgen2d():
             with im(filename="rills.ppm") as img:
                 img.save(filename="P6.ppm")
             cmd = "gdal_translate -of PNG -a_nodata 255 P6.ppm rills.png"
-            (
-                subprocess.check_output(cmd, shell=True))
+            self.run_command(cmd)
 
     def GetExtent(self, gt, cols, rows):
         """Return list of corner coordinates from a geotransform given the number
@@ -475,7 +481,8 @@ def save_image_as_txt(imagePath, console):
 
         # compile the c file so that it will be useable later
         cmd = "gcc -Wall -shared -fPIC ../rillgen2d.c -o rillgen.so"
-        console.put(str(subprocess.check_output(cmd, shell=True), "UTF-8"))
+        console.put(str(subprocess.check_output(cmd, shell=True),"UTF-8"))
+
         for fname in Path.cwd().iterdir():
             if fname.suffix == ".tif":
                 Path(fname).unlink()
@@ -489,14 +496,14 @@ def save_image_as_txt(imagePath, console):
         band = src_ds.GetRasterBand(1)
         arr = band.ReadAsArray()
         dimensions = [arr.shape[0], arr.shape[1]]
-        console.put("GEO Tiff successfully converted" +
-                    "\n" + "Parameters Tab now available" +
-                    '\n' + "Click Parameters Tab for next selections\n"
-                    )
+        console.put("GEO Tiff successfully converted")
+        console.put("Parameters Tab now available")
+        console.put("Click Parameters Tab for next selections")
         return (filename, dimensions[1], dimensions[0])
 
 
 def convert_geotiff_to_txt(filename, console):
+    console.put("Converting geotiff to txt")
     src_ds = gdal.Open(filename + ".tif")
     if src_ds is None:
         console.put("ERROR: Unable to open " +

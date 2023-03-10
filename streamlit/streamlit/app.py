@@ -1,6 +1,8 @@
-import subprocess
 import shutil
 import PIL
+import requests
+import os
+import tarfile
 from pathlib import Path
 # Threading makes sense here, since C code doesn't have global interpreter lock?
 from threading import Thread
@@ -20,6 +22,9 @@ class App:
             st.session_state.console = Queue()
         if "rillgen2d" not in st.session_state:
             st.session_state.rillgen2d = None
+        if "imagePath" not in st.session_state:
+            st.session_state.imagePath = None
+
         self.initialize_parameter_fields()
 
     def initialize_parameter_fields(self, force=False):
@@ -86,13 +91,57 @@ class App:
         st.session_state.show_parameters = True
         f.close()
 
+    def get_image_from_url(self, url):
+        """Given the url of an image when a raster is generated or located online,
+        extract the geotiff image from the url and display it on the canvas """
+        try:
+            r = requests.get(url, allow_redirects=True)
+            path = Path.cwd()
+            if path.as_posix().endswith('tmp'):
+                path = path.parent
+            downloaded = os.path.basename(url)
+            img = downloaded
+            open((path / downloaded), 'wb').write(r.content)
+            if downloaded.endswith(".gz"):
+                tarpath = path / downloaded
+                imagefile = self.extract_geotiff_from_tarfile(tarpath, path)
+                os.remove(path / downloaded)
+            else:
+                imagefile = (path / img)
+
+        except Exception:
+            st.sesson_state.console.put("Error downloading from url")
+        else:
+            return imagefile
+
+    def extract_geotiff_from_tarfile(self, tarpath, outputpath):
+        img = tarpath
+        tar = tarfile.open(tarpath)
+        for filename in tar.getnames():
+            if filename.endswith('.tif'):
+                tar.extract(filename, path=str(outputpath))
+                img = filename
+                break
+        desiredfile = (outputpath / img)
+        return desiredfile
+
     def generate_parameters_button_callback(self):
-        imagePath = Path(st.session_state.imagePath)
+        imagePath = st.session_state.imagePathInput
+        if imagePath.startswith("http"):
+            print("here")
+            imagePath = str(self.get_image_from_url(imagePath))
+        if imagePath.endswith("gz"):
+            tarpath = imagePath
+            imagePath = self.extract_geotiff_from_tarfile(
+                tarpath, Path(imagePath))
+        else:
+            imagePath = Path(imagePath)
         self.get_parameter_values()
         filename, st.session_state.lattice_size_xVar, st.session_state.lattice_size_yVar =\
             rg2d.save_image_as_txt(imagePath, st.session_state.console)
         rg2d.hillshade_and_color_relief(filename, st.session_state.console)
         st.session_state.hillshade_generated = True
+        st.session_state.imagePath = imagePath
 
     def save_callback(self):
         rg2d.save_output()
@@ -362,7 +411,7 @@ class App:
         t = Thread(target=self.delete_temp_dir)
         t.start()
         for key in st.session_state:
-            if key == "imagePath":
+            if key == "imagePathInput" or key == "imagePath":
                 continue
             del st.session_state[key]
         t.join()
@@ -472,7 +521,7 @@ with st.sidebar:
     st.header("Parameters")
     st.text_input(
         "Image Path",
-        key="imagePath",
+        key="imagePathInput",
         value="/Users/elliothagyard/Downloads/output2.tif",
         on_change=app.input_change_callback
     )
@@ -490,19 +539,24 @@ with st.sidebar:
 with app_tab:
     with console_col:
         with st.expander("Console", True):
-            for line in st.session_state.console_log[-1:-5:-1]:
+            for line in st.session_state.console_log[-5:-1:1]:
                 st.write(line)
     with preview_col:
         with st.expander("Hillshade", True):
             if st.session_state.hillshade_generated:
-                st.image(PIL.Image.open(r"./hillshade.png"), width=400)
+                st.image(
+                    PIL.Image.open(r"./hillshade.png"),
+                    caption="Simulated lighting to visualize selected area",
+                    width=400
+                )
     with st.container():
         if Path("./map.html").exists() and "rillgen2d" in st.session_state and st.session_state.rillgen2d:
             components.html(Path("./map.html").read_text(),
                             height=500, width=700)
             st.button(
                 "Save Output", key="saveButton",
-                on_click=App.save_callback
+                on_click=app.save_callback
             )
-    if "rillgen2d" in st.session_state and st.session_state.rillgen2d and st.session_state.rillgen2d.is_alive():
-        st.experimental_rerun()
+    if "rillgen2d" in st.session_state and st.session_state.rillgen2d:
+        if st.session_state.rillgen2d.is_alive():
+            st.experimental_rerun()

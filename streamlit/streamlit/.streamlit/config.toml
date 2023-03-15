@@ -1,3 +1,0 @@
-[server]
-port = 5000
-maxMessageSize=1000

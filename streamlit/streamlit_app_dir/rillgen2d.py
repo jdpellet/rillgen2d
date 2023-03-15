@@ -150,11 +150,9 @@ class Rillgen2d():
         self.console.put("Running Rillgen")
         self.rillgen.main()
         cmd4 = "paste xy.txt tau.txt > xy_tau.txt"
-        self.console.put(
-            str(subprocess.check_output(cmd4, shell=True), "UTF-8"))
+        self.run_command(cmd4)
         cmd5 = "paste xy.txt f.txt > xy_f.txt"
-        self.console.put(
-            str(subprocess.check_output(cmd5, shell=True), "UTF-8"))
+        self.run_command(cmd5)
 
     def populate_view_output_tab(self):
         """Populate the third tab with tkinter widgets. The third tab allows

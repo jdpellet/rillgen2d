@@ -571,11 +571,18 @@ class App:
                 components.html((Path(output_path) / "map.html").read_text(),
                                 height=500, width=700)
 
+    def app_is_running(self):
+        return \
+            "rillgen2d" in st.session_state \
+            and st.session_state.rillgen2d\
+            and st.session_state.rillgen2d.is_alive()
+
     def main_page(self):
         """Main page of the app."""
         st.title("Rillgen2d")
         app_tab, readme = st.tabs(["Rillgen2d App", "Readme"])
         preview_col, console_col = st.columns([4, 3])
+
         self.populate_parameters_tab()
         with app_tab:
             if st.session_state.view_output_checkbox and st.session_state.view_output:
@@ -585,9 +592,8 @@ class App:
                 self.display_preview(preview_col)
                 if Path("./map.html").exists() and "rillgen2d" in st.session_state and st.session_state.rillgen2d:
                     self.display_map()
-        if "rillgen2d" in st.session_state and st.session_state.rillgen2d:
-            if st.session_state.rillgen2d.is_alive():
-                st.experimental_rerun()
+        if self.app_is_running():
+            st.experimental_rerun()
 
 
 app = App()

@@ -156,6 +156,7 @@ dependencies:
   - requests
   - setuptools
   - six
+  - streamlit >=1.18
   - snuggs
   - sqlite
   - tiledb

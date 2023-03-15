@@ -120,6 +120,7 @@ dependencies:
   - mysql-common
   - mysql-libs
   - ncurses
+  - networkx
   - nspr
   - nss
   - numpy

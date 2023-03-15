@@ -214,3 +214,18 @@ xhost +
 # Run docker with host display settings and data volume
 docker run -it --rm -v /home/tswetnam/Downloads/:/inputs -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=unix$DISPLAY rillgen2d:latest
 ```
+## Create Streamlit version of the Rillgen2d app.
+
+To get it running (on Mac and Linux, havent worked with windows yet), you'll need to do the following (assuming you already have conda installed)
+
+```
+ conda env create -f ./environment_linux.yml
+ conda activate rillgen2d
+
+ cd ./streamlit/streamlit_app_dir
+
+# This is to fix an issue with the app moving to the temp directory and messing up the relative import. Not actually necessary if you don't encounter an error
+ 
+ export PYTHONPATH=$PYTHONPATH:$(PWD)/rillgen2d.py
+ streamlit run app.py
+ ```

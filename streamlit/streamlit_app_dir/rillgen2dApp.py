@@ -170,7 +170,7 @@ class App:
                 shutil.copyfile(maskfile, Path.cwd() / "mask.tif")
                 st.session_state.console.put("maskfile: is: " + str(maskfile))
             except Exception:
-                st.error("Invalid mask.tif file\n\n")
+                raise Exception("Invalid mask.tif file")
 
     def populate_parameters_tab(self):
         """Populate the second tab in the application with tkinter widgets. This tab holds editable parameters
@@ -223,6 +223,11 @@ class App:
                             spatially uniform rainfall.',
                     key="flagforDynamicModeVar"
                 )
+                if st.session_state.flagforDynamicModeVar:
+                    st.text_input("Path to dynamicinput.txt",
+                                  key="dynamicInputPath",
+
+                                  help="Path to the directory of dynamicinput.txt")
                 # Flag for mask variable
                 st.checkbox(
                     "Mask",
@@ -243,6 +248,11 @@ class App:
                     help="Default: unchecked, If a raster (taucsoilandveg.txt) is provided the model applies the shear strength of soil and veg, unchecked means a fixed value will be used.",
                     key="flagForTaucSoilAndVegVar"
                 )
+                if st.session_state.flagForTaucSoilAndVegVar:
+                    st.text_input("Path to taucsoilandveg.txt",
+                                  key="taucSoilAndVegPath",
+
+                                  help="Path to the directory of taucsoilandveg.txt")
                 # Flag for d50 variable
                 st.checkbox(
                     "d50:",
@@ -251,7 +261,11 @@ class App:
                     help='Default: unchecked, If a raster (d50.txt) is provided the model applies the median rock diameter, unchecked means a fixed value will be used.',
                     key="flagFord50Var"
                 )
+                if st.session_state.flagFord50Var:
+                    st.text_input("Path to d50.txt",
+                                  key="d50InputPath",
 
+                                  help="Path to the directory of d50.txt")
                 # Flag for rockcover
                 st.checkbox(
                     "Rock Cover:",
@@ -260,11 +274,18 @@ class App:
                     help="Default: unchecked, If a raster (rockcover.txt) is provided the model applies the rock cover fraction, unchecked means a fixed value  will be used.",
                     key="flagForRockCoverVar",
                 )
+                if st.session_state.flagForRockCoverVar:
+                    st.text_input("Path to rockcover.txt",
+                                  key="rockCoverPath",
+
+                                  help="Path to the directory of rockcover.txt")
 
                 # fillIncrement variable
                 st.number_input(
                     "Fill increment:",
                     value=st.session_state.fillIncrementVar,
+                    step=0.001,
+                    format="%.3f",
                     disabled=not st.session_state.show_parameters,
                     help="Value in meters (m) used to fill in pits and flats for hydrologic correction. 0.01 m is a reasonable default value for lidar-based DEMs.",
                     key="fillIncrementVar"
@@ -274,6 +295,8 @@ class App:
                 st.number_input(
                     "Min Slope:",
                     value=st.session_state.minSlopeVar,
+                    step=0.001,
+                    format="%.3f",
                     disabled=not st.session_state.show_parameters,
                     help="Value (unitless) used to halt runoff from areas below a threshold slope steepness. Setting this value larger than 0 is useful for eliminating runoff from portions of the landscape that the user expects are too flat to produce significant runoff.",
                     key="minSlopeVar"
@@ -433,6 +456,22 @@ class App:
         # For example, if deltax = 1 m and rillwidth = 20 cm then the flow entering each pixel is assumed, for the purposes of rill development, to be localized in a width equal to one fifth of the pixel width.
         ########################### ^MAIN TAB^ ###########################
 
+    def validate_file_paths(self):
+        flag_path_pairs = [
+            ("flagforDynamicModeVar", "dynamicInputPath"),
+            ("flagFord50Var", "d50InputPath"),
+            ("flagForRockCoverVar", "rockCoverPath"),
+            ("flagForTaucSoilAndVegVar", "taucSoilAndVegPath"),
+        ]
+        valid_paths = True
+        for flag, path in flag_path_pairs:
+
+            if st.session_state[flag] and not (st.session_state[path] or Path.is_file(Path(st.session_state[path]))):
+                valid_paths = False
+                st.error(
+                    f"Invalid path for {path}, if you don't want to use this input, uncheck {flag}")
+        return valid_paths
+
     def delete_temp_dir(self):
         path = Path.cwd() / "tmp"
         if path.exists():
@@ -508,6 +547,18 @@ class App:
 
     def run_callback(self, imagePath, console, flagForDyanmicModeVar):
         """Run Rillgen2d"""
+        no_error = True
+        if not self.validate_file_paths():
+            no_error = False
+        if st.session_state.flagForMaskVar:
+            try:
+                self.getMask(st.session_state.maskPath)
+            except:
+                st.error(
+                    "Error: Mask file not found. Please upload a mask file.")
+                return
+        if not no_error:
+            return
         rg2d.generate_input_txt_file(
             st.session_state.flagForEquationVar,
             st.session_state.flagforDynamicModeVar,
@@ -534,8 +585,7 @@ class App:
             st.session_state.rillWidthVar,
             st.session_state.console
         )
-        if st.session_state.flagForMaskVar:
-            self.getMask(st.session_state.maskPath)
+
         if st.session_state.rillgen2d is None or not st.session_state.rillgen2d.is_alive():
             st.session_state.rillgen2d = Thread(
                 target=rg2d.main, args=(imagePath, console, flagForDyanmicModeVar))

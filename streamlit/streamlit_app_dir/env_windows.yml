@@ -1,0 +1,17 @@
+# Before creating the conda env, install ImageMagick from here: https://imagemagick.org/script/download.php
+name: rillgen2d
+channels:
+  - conda-forge
+  - defaults
+  - anaconda
+dependencies:
+  - folium
+  - gdal
+  - m2w64-gcc
+  - m2-gawk
+  - m2-coreutils
+  - pillow
+  - streamlit>=1.18
+  - pip
+  - pip:
+    - wand

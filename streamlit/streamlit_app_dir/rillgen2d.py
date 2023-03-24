@@ -490,6 +490,7 @@ def save_image_as_txt(imagePath, console):
                     (Path(filename).name + "\n\n"))
         src_ds = gdal.Open(filename)
         band = src_ds.GetRasterBand(1)
+
         arr = band.ReadAsArray()
         dimensions = [arr.shape[0], arr.shape[1]]
         console.put("GEO Tiff successfully converted")

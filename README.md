@@ -28,7 +28,7 @@ Download the current repository to your computer.
 Open the Conda terminal, change directory to the `rillgen2d` installation folder.
 
 ```
-cd C:\\path\to\rillgen2d
+cd C:\path\to\rillgen2d
 ```
 
 ##### Set up the conda environment

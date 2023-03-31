@@ -36,7 +36,7 @@ cd C:\path\to\rillgen2d
 Run the following commands to create adn activate the conda environment
 ```
 # create environment for rillgen2d
-conda env create -f env_streamlit_windows.yml
+conda env create -f environment_windows.yml
 
 # activate conda environment
 conda activate rillgen2d

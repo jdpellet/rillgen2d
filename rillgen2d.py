@@ -2,7 +2,6 @@
 
 from wand.image import Image as im
 from threading import Thread
-from socket import *
 from pathlib import Path
 from osgeo import gdal, osr
 from datetime import datetime
@@ -89,7 +88,7 @@ class Rillgen2d():
                 " color-relief.txt color-relief_f.png"
         f.close()
         self.run_command(cmd1)
-        self.console.put(str(subprocess.check_output(cmd1, shell=True)))
+
         self.console.put("Hillshade and color relief generated\n")
         gtif = None
 
@@ -168,8 +167,8 @@ class Rillgen2d():
         self.fgcpy = self.fgcpy.convert("RGBA")
         self.alphablended = PIL.Image.blend(self.bgcpy, self.fgcpy, alpha=.4)
         # some tkinter versions do not support .png images
-        (("Preview Complete\n\n"))
-        return self.generatemap()
+        self.console.put("Preview Complete")
+        return self.generate_map()
 
     def run_command(self, command):
         self.console.put(command)
@@ -211,7 +210,7 @@ class Rillgen2d():
 
         if projection is None and geotransform is None:
             self.console.put(
-                "No projection or geotransform found on file" + str(self.filename) + "\n\n")
+                "No projection or geotransform found on file" + str(self.filename))
             sys.exit(1)
 
         for elem in ["tau.tif", "f.tif", "inciseddepth.tif"]:
@@ -298,10 +297,10 @@ class Rillgen2d():
             trans_coords.append([x, y])
         return trans_coords
 
-    def generatemap(self):
+    def generate_map(self):
         """Generate Leaflet Folium Map"""
-        mapbounds = [[self.geo_ext[1][1], self.geo_ext[1][0]],
-                     [self.geo_ext[3][1], self.geo_ext[3][0]]]
+        map_bounds = [[self.geo_ext[1][1], self.geo_ext[1][0]],
+                      [self.geo_ext[3][1], self.geo_ext[3][0]]]
         self.m = folium.Map(location=[(self.geo_ext[1][1]+self.geo_ext[3][1])/2,
                                       (self.geo_ext[1][0]+self.geo_ext[3][0])/2], zoom_start=14, tiles='Stamen Terrain')
         folium.TileLayer('OpenStreetMap').add_to(self.m)
@@ -309,16 +308,16 @@ class Rillgen2d():
 
         self.layer_control = folium.LayerControl()
         img1 = folium.raster_layers.ImageOverlay(
-            image="hillshade.png", bounds=mapbounds, opacity=0.8, interactive=True, show=True, name="Hillshade")
-        # img2 = folium.raster_layers.ImageOverlay(image="color-relief.png", bounds=mapbounds, opacity=0.6, interactive=True, show=False, name="color-relief")
-        # img3 = folium.raster_layers.ImageOverlay(image="f.png", bounds=mapbounds, opacity=0.5, interactive=True, show=False, name="f")
-        # img4 = folium.raster_layers.ImageOverlay(image="tau.png", bounds=mapbounds, opacity=0.5, interactive=True, show=True, name="tau")
+            image="hillshade.png", bounds=map_bounds, opacity=0.8, interactive=True, show=True, name="Hillshade")
+        # img2 = folium.raster_layers.ImageOverlay(image="color-relief.png", bounds=map_bounds, opacity=0.6, interactive=True, show=False, name="color-relief")
+        # img3 = folium.raster_layers.ImageOverlay(image="f.png", bounds=map_bounds, opacity=0.5, interactive=True, show=False, name="f")
+        # img4 = folium.raster_layers.ImageOverlay(image="tau.png", bounds=map_bounds, opacity=0.5, interactive=True, show=True, name="tau")
         img5 = folium.raster_layers.ImageOverlay(
-            image="rills.png", bounds=mapbounds, opacity=0.5, interactive=True, show=False, name="Rills")
+            image="rills.png", bounds=map_bounds, opacity=0.5, interactive=True, show=False, name="Rills")
         img6 = folium.raster_layers.ImageOverlay(
-            image="color-relief_tau.png", bounds=mapbounds, opacity=0.5, interactive=True, show=False, name="Tau")
+            image="color-relief_tau.png", bounds=map_bounds, opacity=0.5, interactive=True, show=False, name="Tau")
         img7 = folium.raster_layers.ImageOverlay(
-            image="color-relief_f.png", bounds=mapbounds, opacity=0.5, interactive=True, show=False, name="f")
+            image="color-relief_f.png", bounds=map_bounds, opacity=0.5, interactive=True, show=False, name="f")
         # geotiff_group = folium.FeatureGroup(name="color-relief")
         # geotiff_group.add_child(img1)
         # geotiff_group.add_child(img2)
@@ -476,7 +475,7 @@ def save_image_as_txt(imagePath, console):
         """This portion compiles the rillgen2d.c file in order to import it as a module"""
 
         # compile the c file so that it will be useable later
-        cmd = "gcc -Wall -shared -fPIC ../rillgen2d.c -o rillgen.so"
+        cmd = "gcc -Wall -shared -fPIC ./rillgen2d.c -o rillgen.so"
         console.put(str(subprocess.check_output(cmd, shell=True), "UTF-8"))
 
         for fname in Path.cwd().iterdir():

@@ -49,6 +49,7 @@ Once the Python environment has been created and activated, you can start the GU
 ```
 streamlit run rillgen2dApp.py
 ```
+[Open localhost:5000](http://localhost:5000/)
 
 #### Run with Docker Desktop (Windows)
 

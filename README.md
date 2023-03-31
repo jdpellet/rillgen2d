@@ -33,7 +33,7 @@ cd C:\path\to\rillgen2d
 
 ##### Set up the conda environment
 
-Run the following commands to create adn activate the conda enviornment
+Run the following commands to create adn activate the conda environment
 ```
 # create environment for rillgen2d
 conda env create -f env_streamlit_windows.yml
@@ -49,7 +49,7 @@ Once the Python environment has been created and activated, you can start the GU
 ```
 streamlit run rillgen2dApp.py
 ```
-[Open localhost:5000](http://localhost:5000/)
+[Search localhost:5000 on your preferred browser](http://localhost:5000/)
 
 #### Run with Docker Desktop (Windows)
 
@@ -79,7 +79,7 @@ TBA
 
 We have provided two `environment.yml` files which can be used with [Conda](https://docs.conda.io/en/latest/) to install the stack on Linux and Mac OS X, or Windows10.
 
-Make sure to add `conda` to your PATH environmental variables.
+Make sure to add `conda` to your PATH ir variables.
 
 Open a Terminal:
 

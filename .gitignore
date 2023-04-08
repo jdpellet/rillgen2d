@@ -1,7 +1,9 @@
 /env
 /tmp
 /data
-
+/test
+/.streamlit
+/.devcontainer
 # Prerequisites
 *.d
 

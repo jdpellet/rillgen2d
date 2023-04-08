@@ -1,9 +1,9 @@
 /env
-/tmp
 /data
 /test
 /.streamlit
 /.devcontainer
+/__pycache__
 # Prerequisites
 *.d
 
@@ -66,3 +66,7 @@ dkms.conf
 slope.txt
 mask.txt
 topo.txt
+
+# Rillgen Outputs
+/outputs_*
+/tmp

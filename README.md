@@ -12,7 +12,7 @@ Predicts where rills/gullies will occur on a real or proposed landscape as a fun
 
 Regardless of Operating System, we suggest you install [Miniconda](https://docs.conda.io/en/latest/miniconda.html) (recommended) or full [Anaconda](https://www.anaconda.com/products/individual) prior to running the scripts below. The Docker option does not require conda installation.
 
-### Setup on Windows 10
+## Setup on Windows 10
 
 We have tested these options for running the platform on Windows 11.
 
@@ -30,7 +30,7 @@ Open the Conda terminal, change directory to the `rillgen2d` installation folder
 cd C:\path\to\rillgen2d
 ```
 
-#### Set up the conda environment
+### Set up the conda environment
 
 Run the following commands to create adn activate the conda environment
 
@@ -52,7 +52,7 @@ conda remove --name rillgen2d --all
 
 ```
 
-#### Run the Rillgen2d GUI
+### Run the Rillgen2d GUI
 
 Requires: Conda, ImageMagick, rillgen2d conda env.
 Once the Python environment has been created and activated, you can start the GUI from the Terminal or Command Prompt:
@@ -73,7 +73,7 @@ TBA
 
 TBA
 
-### Install for Linux and Mac OS X
+## Install for Linux and Mac OS X
 
 We have provided two `environment.yml` files which can be used with [Conda](https://docs.conda.io/en/latest/) to install the stack on Linux and Mac OS X, or Windows10.
 
@@ -112,7 +112,7 @@ streamlit run rillgen2dApp.py
 
 ```
 
-### Download Source Code
+## Download Source Code
 
 The RillGen2D uses a combination of opensource python libraries for visualization in the Graphic User Interface (GUI). To install these tools we recommend that you use the `conda` environment and package manager. 
 
@@ -172,10 +172,10 @@ conda remove --name rillgen2d --all
 
 **Note: In Linux the Parameters tab number values may appear with a newline character `\n` at the end of their boxes, leave these present and update the values as needed.**
 
-
 ### Building a Docker container
 
 TBA
-### Docker run commands:
+
+### Docker run commands
 
 TBA

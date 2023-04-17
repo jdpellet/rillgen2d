@@ -193,7 +193,7 @@ class App:
                 st.text_input(
                     "Image Path",
                     key="imagePathInput",
-                    value="https://data.cyverse.org/dav-anon/iplant/home/elliothagyard/geoSpatialTiffFiles/output_srtm.tif",
+                    value="https://data.cyverse.org/dav-anon/iplant/home/elliothagyard/geoSpatialTiffFiles/2mb.tif",
                     help="URL or filepath",
                     on_change=app.input_change_callback
                 )

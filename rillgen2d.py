@@ -73,19 +73,17 @@ class Rillgen2d():
             self.colormap = colormap
             self.colormap = self.colormap.to_step(index=indexarr)
             self.colormap.caption = "Elevation (in meters)"
-            cmd1 = "gdaldem color-relief " + filename + " color-relief.txt color-relief.png"
+            cmd1 = f"gdaldem color-relief \"{filename}\" color-relief.txt color-relief.png"
         elif mode == 2:
             self.taucolormap = colormap
             self.taucolormap = self.taucolormap.to_step(index=indexarr)
             self.taucolormap.caption = "Tau (Pascals)"
-            cmd1 = "gdaldem color-relief " + filename + \
-                " color-relief.txt color-relief_tau.png"
+            cmd1 = f"gdaldem color-relief \"{filename}\" color-relief.txt color-relief_tau.png"
         else:
             self.fcolormap = colormap
             self.fcolormap = self.fcolormap.to_step(index=indexarr)
             self.fcolormap.caption = "F (Pascals)"
-            cmd1 = "gdaldem color-relief " + filename + \
-                " color-relief.txt color-relief_f.png"
+            cmd1 = f"gdaldem color-relief \"{filename}\" color-relief.txt color-relief_f.png"
         f.close()
         self.run_command(cmd1)
 
@@ -536,7 +534,8 @@ def hillshade_and_color_relief(filename, console):
 
     console.put(
         "Generating hillshade and color relief...\n")
-    cmd0 = "gdaldem hillshade " + filename + " hillshade.png"
+    cmd0 = f"gdaldem hillshade \"{filename}\" hillshade.png"
+    print(cmd0)
     console.put(cmd0)
     console.put(str(subprocess.check_output(cmd0, shell=True), 'UTF-8'))
 

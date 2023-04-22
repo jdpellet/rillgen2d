@@ -15,6 +15,7 @@ import time
 import folium
 import osgeo
 import PIL
+from parameters import Parameters
 # Apparently this API is supposed to be internal atm and seems to rapidly change without documentation between upadtes
 PIL.Image.MAX_IMAGE_PIXELS = 933120000
 # multiprocessing might be good instead, depedning on the function
@@ -24,28 +25,25 @@ and rillgen.c in order to perform the rillgen calculations"""
 
 
 class Rillgen2d():
-    def __init__(self, imagePath, queueObject, flagForDynamicVar):
+    def __init__(self, params, message_queue, filename):
         """Initializing the tkinter application and its tabs.
         The PyQt5 Application must go where it can be initialized
         only once in order to avoid bugs; otherwise the garbage
         collector does not handle it correctly."""
-        self.console = queueObject
-        self.imagePath = Path(imagePath)
+        self.console = message_queue
+        self.imagePath = filename
         path = Path.cwd()
-        self.filename = str(path / Path(self.imagePath).name)
+        
         self.geo_ext = None  # used to get corner coordinates for the projection
         self.dimensions = None  # These are the dimensions of the input file that the user chooses
         # socket for the connection between rillgen2d.py and console.py; client socket
         self.rillgen = None  # Used to import the rillgen.c code
 
         self.img1 = None
-        self.flagForDynamicVar = flagForDynamicVar
+        # PARAMS
+        self.params = params
         # figure that will preview the image via rasterio
 
-        """We only want the first tab for now; the others appear in order after the 
-        processes carried out in a previous tab are completed"""
-        self.first_time_populating_parameters_tab = True
-        self.first_time_populating_view_output_tab = True
 
     def generate_color_ramp(self, filename, mode):
         """generates a color ramp from a geotiff image and then uses that in order to produce
@@ -339,120 +337,6 @@ class Rillgen2d():
         return self.m
 
 
-def generate_input_txt_file(
-        flagForEquationVar,
-        flagforDynamicModeVar,
-        flagForMaskVar,
-        flagForTaucSoilAndVegVar,
-        flagFord50Var,
-        flagForRockCoverVar,
-        fillIncrementVar,
-        minSlopeVar,
-        expansionVar,
-        yellowThresholdVar,
-        lattice_size_xVar,
-        lattice_size_yVar,
-        deltaXVar,
-        noDataVar,
-        smoothingLengthVar,
-        rainVar,
-        taucSoilAndVegeVar,
-        d50Var,
-        rockCoverVar,
-        tanAngleOfInternalFrictionVar,
-        bVar,
-        cVar,
-        rillWidthVar,
-        console
-):
-    """Generate the input.txt file using the flags from the second tab.
-
-    There are then helper functions, the first of which runs the rillgen.c script
-    in order to create xy_f.txt and xy_tau.txt (and xy_inciseddepth.txt if flagforDynamicModeVar==1)
-
-    The second helper function then sets the georeferencing information from the original
-    geotiff file to xy_f.txt and xy_tau.txt (and xy_inciseddepth.txt if flagforDynamicModeVar==1) in order to generate f.tif and tau.tif"""
-    path = Path.cwd() / 'input.txt'
-    if path.exists():
-        Path.unlink(path)
-    path = Path.cwd()
-    f = open('input.txt', 'w')
-    f.write(str(int(flagForEquationVar)) + '\n')
-    f.write(str(int(flagforDynamicModeVar)) + '\n')
-    if (path / "dynamicinput.txt").exists():
-        Path.unlink(path / "dynamicinput.txt")
-    if flagforDynamicModeVar == 1:
-        if (path.parent / "dynamicinput.txt").exists():
-            shutil.copyfile(path.parent / "dynamicinput.txt",
-                            path / "dynamicinput.txt")
-            console.put(
-                "dynamicinput.txt found and copied to inner directory\n\n")
-        else:
-            console.put("dynamicinput.txt not found\n")
-
-    f.write(str(int(flagForMaskVar))+'\n')
-    if flagForMaskVar == 1:
-        if (path / "mask.tif").exists():
-            convert_geotiff_to_txt("mask")
-            console.put("mask.txt generated\n")
-        else:
-            console.put("mask.tif not found\n")
-            flagForMaskVar = 0
-
-    f.write(str(int(flagForTaucSoilAndVegVar))+'\n')
-    if (path / "taucsoilandvegfixed.txt").exists():
-        Path.unlink(path / "taucsoilandvegfixed.txt")
-    if int(flagForTaucSoilAndVegVar) == 1:
-        if (path.parent / "taucsoilandvegfixed.txt").exists():
-            shutil.copyfile(
-                path.parent / "taucsoilandvegfixed.txt", path / "taucsoilandvegfixed.txt")
-            console.put(
-                ("taucsoilandvegfixed.txt found and copied to inner directory\n\n"))
-        else:
-            console.put("taucsoilandvegfixed.txt not found\n")
-    f.write(str(int(flagFord50Var))+'\n')
-    if (path / "d50.txt").exists():
-        Path.unlink(path / "d50.txt")
-    if int(flagFord50Var) == 1:
-        if (path.parent / "d50.txt").exists():
-            shutil.copyfile(path.parent / "d50.txt", path / "d50.txt")
-            console.put(
-                ("d50.txt found and copied to inner directory\n\n"))
-        else:
-            console.put(
-                ("d50.txt not found\n\n"))
-    f.write(str(int(flagForRockCoverVar))+'\n')
-    if (path / "rockcover.txt").exists():
-        path.unlink(path / "rockcover.txt")
-    if int(flagForRockCoverVar) == 1:
-        if (path.parent / "rockcover.txt").exists():
-            shutil.copyfile(path.parent / "rockcover.txt",
-                            path / "rockcover.txt")
-            console.put(
-                "rockcover.txt found and copied to inner directory\n\n")
-        else:
-            console.put("rockcover.txt not found\n")
-    f.write(str(fillIncrementVar)+'\n')
-    f.write(str(minSlopeVar)+'\n')
-    f.write(str(expansionVar)+'\n')
-    f.write(str(yellowThresholdVar)+'\n')
-    f.write(str(lattice_size_xVar)+'\n')
-    f.write(str(lattice_size_yVar)+'\n')
-    f.write(str(deltaXVar)+'\n')
-    f.write(str(noDataVar)+'\n')
-    f.write(str(smoothingLengthVar)+'\n')
-    f.write(str(rainVar)+'\n')
-    f.write(str(taucSoilAndVegeVar)+'\n')
-    f.write(str(d50Var)+'\n')
-    f.write(str(rockCoverVar)+'\n')
-    f.write(str(tanAngleOfInternalFrictionVar)+'\n')
-    f.write(str(bVar)+'\n')
-    f.write(str(cVar)+'\n')
-    f.write(str(rillWidthVar)+'\n')
-    console.put(("Generated input.txt\n"))
-    f.close()
-
-
 def save_image_as_txt(imagePath, console):
     """Prepares the geotiff file for the rillgen2D code by getting its dimensions (for the input.txt file) and converting it to
     .txt format"""
@@ -536,7 +420,7 @@ def hillshade_and_color_relief(filename, console):
 
     console.put(
         "Generating hillshade and color relief...\n")
-    cmd0 = "gdaldem hillshade " + filename + " hillshade.png"
+    cmd0 = f"gdaldem hillshade '{filename}' hillshade.png"
     console.put(cmd0)
     console.put(str(subprocess.check_output(cmd0, shell=True), 'UTF-8'))
 
@@ -555,7 +439,7 @@ def save_output():
             shutil.copy(file_name, saveDir / file_name)
 
 
-def main(imagePath, console, flagForDyanmicModeVar):
+def main(params, console):
     rillgen = Rillgen2d(
         imagePath,
         console,

@@ -8,44 +8,87 @@ from pathlib import Path
 from threading import Thread
 from queue import Queue
 import streamlit as st
+import time
 try:
-    import rillgen2d as rg2d
+    from rillgen2d import Rillgen2d
     from parameters import Parameters
-except ModuleNotFoundError:
-    os.chdir("..")
-    import rillgen2d as rg2d
-    from parameters import Parameters
+    st.session_state.base_dir = Path.cwd()
+except ModuleNotFoundError as e:
+    if(Path.cwd().name == "tmp"):
+        if "base_dir" in st.session_state:
+            base_dir = st.session_state.base_dir
+        else:
+            base_dir = Path.cwd().parent
+        os.chdir(base_dir)
+        from rillgen2d import Rillgen2d
+        from parameters import Parameters
+    else:
+        print("Error moving to correct dir on error")
+        print(Path.cwd())
+        raise e
 import streamlit.components.v1 as components
 
-def callback_exception_wrapper(callback):
+st.set_page_config(page_title="Rillgen2d", page_icon=None, layout="wide", initial_sidebar_state="auto", menu_items=None)
+
+
+def reset_session_state():
+    """
+    Clear the session state, and delete the tmp directory.
+    Only called when handling exceptions
+    """
+    path = Path.cwd() / "tmp"
+    if path.exists():
+        shutil.rmtree(path.as_posix())
+    for key in st.session_state:
+        if key == "imagePathInput":
+            continue
+        del st.session_state[key]
+
+
+def exception_wrapper(callback):
+    """
+    Broad error handling for callbacks. This is probably a terrible way to do this
+    """
     def wrapper(*args, **kwargs):
+ 
         try:
             callback(*args, **kwargs)
+        #TODO Add more specific exceptions. This seems like obviously practice
         except Exception as e:
+            print(e)
             st.error(e)
             st.error(
                 str(type(e).__name__)
             )       
             # TypeError
             st.error( str(__file__)) 
-            if os.curdir.endswith("tmp"):
-                os.chdir("..")
+            os.chdir(st.session_state.base_dir)
+            if st.session_state.rillgen2d is not None and st.session_state.rillgen2d.is_alive():
+                st.session_state.rillgen2d.join()
+            reset_session_state()
+            raise e
     return wrapper
+
 
 
 class Frontend:
     def __init__(self):
-    
         if "parameters" not in st.session_state:
             st.session_state.parameters = Parameters()
+        if "base_dir" not in st.session_state:
+            st.session_state.base_dir = Path.cwd()
+        if "console" not in st.session_state:
             st.session_state.console_log = []
             st.session_state.console = Queue()
-            st.session_state.rillgen2d = None
+        if "rillgen2d" not in st.session_state:
+            st.session_state.rillgen2d = Rillgen2d(
+                params=st.session_state.parameters,
+                message_queue=st.session_state.console
+            )
         # Alias for session state Parameters object, to make it easier to access
         self.params = st.session_state.parameters
-    """
-        Broad error handling for callbacks
-    """
+        self.rillgen2d = st.session_state.rillgen2d
+
 
     def get_image_from_url(self, url):
         """Given the url of an image when a raster is generated or located online,
@@ -84,32 +127,36 @@ class Frontend:
         desiredfile = (outputpath / img)
         return desiredfile
     
-    @callback_exception_wrapper
+    @exception_wrapper
     def generate_parameters_callback(self):
-        imagePath = st.session_state.imagePathInput
-        if imagePath.startswith("http"):
-            imagePath = str(self.get_image_from_url(imagePath))
+        path = Path.cwd() / "tmp"
+        if path.exists():
+            shutil.rmtree(path.as_posix())
+        print(Path.cwd())
+        path = st.session_state.imagePathInput
+        if path.startswith("http"):
+            path = str(self.get_image_from_url(path))
             
-        if imagePath.endswith("gz"):
-            tarpath = imagePath
-            imagePath = self.extract_geotiff_from_tarfile(tarpath, Path(imagePath))
-        else:
-            imagePath = Path(imagePath)
-        self.params.getParametersFromFile("input.txt")
+        if path.endswith("gz"):
+            tarpath = path
+            path = self.extract_geotiff_from_tarfile(tarpath, Path(path))
+        else: 
+            path = Path(path)
+        self.params.getParametersFromFile(Path.cwd() / "input.txt")
 
-        filename, lattice_size_xVar, lattice_size_yVar = rg2d.save_image_as_txt(imagePath, st.session_state.console)
+        filename, lattice_size_xVar, lattice_size_yVar = self.rillgen2d.save_image_as_txt(path)
         self.params.update_value("lattice_size_x", lattice_size_xVar)
         self.params.update_value("lattice_size_y", lattice_size_yVar)
         if filename is None:
             raise Exception("Invalid image file")
-        
-        rg2d.hillshade_and_color_relief(filename, st.session_state.console)
+        self.rillgen2d.filename = filename
+        self.rillgen2d.hillshade_and_color_relief()
         st.session_state.hillshade_generated = True
-        st.session_state.imagePath = imagePath
+        self.params.image_path = path
         self.params.display_parameters = True
 
     def save_callback(self):
-        rg2d.save_output()
+        self.rillgen2d.save_output()
 
     def getMask(self, filepath):
         # TODO Figure out input for filepath
@@ -126,7 +173,8 @@ class Frontend:
                 raise Exception("Invalid mask.tif file")
 
     def update_value_from_input(self, attribute):
-        self.params.update_value(attribute, st.session_state[attribute])
+        if attribute in st.session_state:
+            self.params.update_value(attribute, st.session_state[attribute])
     
     def create_check_box(self, input):
         return st.checkbox(
@@ -165,12 +213,14 @@ class Frontend:
     def create_dropdown(self, input, options):
         # Want to use dropdowns for inputs with specific options for user clarity, but Rillgen2d expects integers
         def callback(self, attribute, dropdown_options):
-            option = st.session_state[attribute]
-            value = dropdown_options.index(option)
-            self.params.update_value(attribute, value)
+            if attribute in st.session_state:
+                option = st.session_state[attribute]
+                value = dropdown_options.index(option)
+                self.params.update_value(attribute, value)
         return st.selectbox(
             input["display_name"],
             options=options,
+            index=input["value"],
             disabled=not self.params.display_parameters,
             help=input["help"],
             args=(self, input["name"], options),
@@ -185,13 +235,13 @@ class Frontend:
             geometry of the geotiff file
         """
         st.header("Parameters")
-        self.view_output = st.checkbox("View Output Directory")
-        if self.view_output:
+        self.existing_output = st.checkbox("View Output Directory")
+        if self.existing_output:
             st.text_input("Output Directory Path",
                           value=Path.cwd(), key="output_path")
             st.button(
                 "View Output Directory",
-                key="view_output"
+                key="view_output_button"
             )
             return
 
@@ -200,7 +250,7 @@ class Frontend:
             key="imagePathInput",
             value="https://data.cyverse.org/dav-anon/iplant/home/elliothagyard/geoSpatialTiffFiles/2mb.tif",
             help="URL or filepath",
-            on_change=self.input_change_callback
+            on_change=reset_session_state
         )
         # If I switch to the file upload look at this for rasterio docs on in memoroy files: https://rasterio.readthedocs.io/en/latest/topics/memory-files.html
         st.button(
@@ -220,9 +270,9 @@ class Frontend:
             "file": lambda input_dict: self.create_conditional_text_input(input_dict)
         }
         for field in self.params.mutable_input_fields():
-            parameter = self.params.get_attribute_object(field)
+            parameter = self.params.get_attribute_object(field) 
             create_st_element[parameter["input_field_type"]](parameter)
-        st.button("Run Rillgen2d", on_click=self.run_callback, args=(self.params, st.session_state.console))
+        st.button("Run Rillgen2d", on_click=self.run_callback, args=(self.params,))
         st.caption(
             'NOTE: The hydrologic correction step can take a long time if there are lots of depressions in the input DEM and/or if the' + 
             ' landscape is very steep. RILLGEN2D can be sped up by increasing the value of "fillIncrement" or by performing the hydrologic correction step in a'+
@@ -240,28 +290,9 @@ class Frontend:
                 invalid_files.append(path)
         if invalid_files:
             raise FileNotFoundError(f"The following filepaths are invalid: {invalid_files}")
-
-    def delete_temp_dir(self):
-        path = Path.cwd() / "tmp"
-        if path.exists():
-            shutil.rmtree(path.as_posix())
     
-    @callback_exception_wrapper
-    def input_change_callback(self):
-        self.initialize_parameter_fields(force=True)
-        t = Thread(target=self.delete_temp_dir)
-        t.start()
-        for key in st.session_state:
-            if key == "imagePathInput" or key == "imagePath":
-                continue
-            del st.session_state[key]
-        t.join()
-        st.session_state.console_log = []
-        st.session_state.console = Queue()
-        st.session_state.rillgen2d = None
-    
-    @callback_exception_wrapper
-    def run_callback(self, params, console):
+    @exception_wrapper
+    def run_callback(self, params):
         """Run Rillgen2d"""
         invalid_paths = []
         for path in self.params.getEnabledFilePaths():
@@ -271,35 +302,30 @@ class Frontend:
             raise FileNotFoundError(f"The following filepaths are invalid: {invalid_paths}")
         if params.get_value("mask_flag") == 1:
             self.getMask(params.get_associated_filepath("mask_flag"))
-        
-        rg2d.generate_input_txt_file(
-            st.session_state.console,
-            *self.params.parametersAsArray()
-        )
+        params.writeParametersToFile(Path.cwd() / "tmp" / "input.txt")
+        if self.rillgen2d.ident: 
+            st.session_state.rillgen2d = Rillgen2d(st.session_state.console, self.params)
+        self.rillgen2d.start()
 
-        if st.session_state.rillgen2d is None or not st.session_state.rillgen2d.is_alive():
-            st.session_state.rillgen2d = Thread(
-                target=rg2d.main, args=(imagePath, console, params))
-            st.session_state.rillgen2d.start()
 
+    @exception_wrapper
     def display_console(self):
         """Update the console with the latest 4 messages from Rillgen2d"""
-        if "console" in st.session_state:
-            while not st.session_state.console.empty():
-                message = st.session_state.console.get()
-                if message:
-                    st.session_state.console_log.append(message)
-            with st.expander("Console", True):
-                for line in st.session_state.console_log[-5:-1:1]:
-                    st.write(line)
+        while not st.session_state.console.empty():
+            message = st.session_state.console.get()
+            if type(message) is Exception:
+                raise message
+            elif message:
+                st.session_state.console_log.append(message)
+        with st.expander("Console", True):
+            for line in st.session_state.console_log[-5:-1:1]:
+                st.write(line)
 
     def display_preview(self):
         """Display the preview of the Geotiff as a hillshade."""
         if "hillshade_generated" not in st.session_state:
             return
-        imagePath = "hillshade.png"
-        imagePath = r"./" + "tmp/" * \
-            int(not Path(imagePath).is_file()) + imagePath
+        imagePath = r"./" + "tmp/hillshade.png" if Path.cwd().name != "tmp" else "hillshade.png"
         with st.expander("Hillshade", True):
             if st.session_state.hillshade_generated:
                 st.image(
@@ -310,7 +336,7 @@ class Frontend:
         """Display the raster map """
         with st.container():
             components.html(Path("./map.html").read_text(),
-                            height=500, width=700)
+                            height=600)
             st.button(
                 "Save Output", key="saveButton",
                 on_click=self.save_callback
@@ -321,13 +347,10 @@ class Frontend:
             st.warning("Output file not found at " + output_path)
         else:
             with st.container():
-                components.html((Path(output_path) / "map.html").read_text())
+                components.html((Path(output_path) / "map.html").read_text(), height=600)
 
     def app_is_running(self):
-        return \
-            "rillgen2d" in st.session_state \
-            and st.session_state.rillgen2d\
-            and st.session_state.rillgen2d.is_alive()
+        return self.rillgen2d and self.rillgen2d.is_alive()
 
     def main_page(self):
         """Main page of the app."""
@@ -337,7 +360,7 @@ class Frontend:
         with st.sidebar:
             self.populate_parameters_tab()
         with app_tab:
-            if self.view_output and Path.is_file(st.session_state.view_output):
+            if self.existing_output:
                 self.view_output(st.session_state.output_path)
             else:
                 self.display_console()
@@ -345,6 +368,7 @@ class Frontend:
                 if Path("./map.html").exists() and "rillgen2d" in st.session_state and st.session_state.rillgen2d:
                     self.display_map()
         if self.app_is_running():
+            time.sleep(.5)
             st.experimental_rerun()
 
 app = Frontend()

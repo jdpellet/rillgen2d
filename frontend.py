@@ -66,7 +66,6 @@ def exception_wrapper(callback):
             if st.session_state.rillgen2d is not None and st.session_state.rillgen2d.is_alive():
                 st.session_state.rillgen2d.join()
             reset_session_state()
-            raise e
     return wrapper
 
 
@@ -75,8 +74,6 @@ class Frontend:
     def __init__(self):
         if "parameters" not in st.session_state:
             st.session_state.parameters = Parameters()
-        if "base_dir" not in st.session_state:
-            st.session_state.base_dir = Path.cwd()
         if "console" not in st.session_state:
             st.session_state.console_log = []
             st.session_state.console = Queue()
@@ -100,8 +97,8 @@ class Frontend:
                 str(r.status_code) + " " + r.reason
             )
         path = Path.cwd()
-        if path.as_posix().endswith('tmp'):
-            path = path.parent
+        if not path.as_posix().endswith('tmp'):
+            path = path / "tmp"
         downloaded = os.path.basename(url)
         img = downloaded
         if not any([downloaded.endswith(ext) for ext in [".tif", ".tiff", ".gz"]]):
@@ -132,7 +129,7 @@ class Frontend:
         path = Path.cwd() / "tmp"
         if path.exists():
             shutil.rmtree(path.as_posix())
-        print(Path.cwd())
+        os.mkdir("tmp")
         path = st.session_state.imagePathInput
         if path.startswith("http"):
             path = str(self.get_image_from_url(path))
@@ -150,7 +147,7 @@ class Frontend:
         if filename is None:
             raise Exception("Invalid image file")
         self.rillgen2d.filename = filename
-        self.rillgen2d.hillshade_and_color_relief()
+        st.session_state.hillshade =  self.rillgen2d.hillshade_and_color_relief()
         st.session_state.hillshade_generated = True
         self.params.image_path = path
         self.params.display_parameters = True
@@ -320,12 +317,12 @@ class Frontend:
         with st.expander("Console", True):
             for line in st.session_state.console_log[-5:-1:1]:
                 st.write(line)
-
+    @exception_wrapper
     def display_preview(self):
         """Display the preview of the Geotiff as a hillshade."""
-        if "hillshade_generated" not in st.session_state:
+        if "hillshade" not in st.session_state:
             return
-        imagePath = r"./" + "tmp/hillshade.png" if Path.cwd().name != "tmp" else "hillshade.png"
+        imagePath = st.session_state.hillshade
         with st.expander("Hillshade", True):
             if st.session_state.hillshade_generated:
                 st.image(

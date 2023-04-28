@@ -104,7 +104,7 @@ class Rillgen2d(Thread):
         
         self.console.put("Generating hillshade and color relief...")
         self.run_command(f"gdaldem hillshade '{self.filename}' hillshade.png")
-        
+        return Path.cwd() / "hillshade.png"
     
     @function_decorator
     def update_image_path(self):
@@ -400,10 +400,13 @@ class Rillgen2d(Thread):
         path = Path.cwd() 
         filename = str(path / Path(image_path).name)
         print(filename)
-        shutil.copyfile(str(image_path), filename)
-        if Path(str(image_path) + ".aux.xml").exists():
-            shutil.copyfile(str(image_path) + ".aux.xml",
-                            str(path / image_path.stem) + ".aux.xml")
+        # Not sure if the os.path.normapath is necessary here, but it's here just in case
+        # This is to account for downloading the GeoTiff directly into the tmp folder
+        if not os.path.normpath(path / filename) == os.path.normpath(image_path):
+            shutil.copyfile(str(image_path), filename)
+            if Path(str(image_path) + ".aux.xml").exists():
+                shutil.copyfile(str(image_path) + ".aux.xml",
+                                str(path / image_path.stem) + ".aux.xml")
         
         # Open existing dataset
         self.console.put("GDAL converting .tif to .txt...")

@@ -1,0 +1,27 @@
+name: rillgen2d
+channels:
+  - conda-forge
+dependencies:
+  - branca
+  - gdal
+  - geos
+  - geotiff
+  - folium
+  - imagemagick
+  - jpeg
+  - libcurl
+  - libgdal
+  - libgfortran5
+  - libtiff
+  - matplotlib
+  - numpy
+  - openssl
+  - pillow
+  - pip
+  - pkg-config
+  - proj
+  - python=3.9
+  - requests
+  - pip:
+    - streamlit
+    - watchdog

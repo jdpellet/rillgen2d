@@ -1,11 +1,15 @@
 import shutil
 import PIL
+from PIL import Image, ImageDraw, ImageFont
 import requests
 import os
 import tarfile
+
 from pathlib import Path
+
 # Threading makes sense here, since C code doesn't have global interpreter lock?
 from threading import Thread
+
 from queue import Queue
 import streamlit as st
 try:
@@ -33,17 +37,17 @@ class App:
 
     def initialize_parameter_fields(self, force=False):
         """
-        Initialize the parameter fields to the correct types
+        Initialize the parameter fields to the correct types, set values to null
         """
-        if 'flagForEquationVar' not in st.session_state or force:
-            st.session_state.flagForEquationVar = True
-        if 'flagforDynamicModeVar' not in st.session_state or force:
-            st.session_state.flagforDynamicModeVar = False
-        if 'flagForMaskVar' not in st.session_state or force:
-            st.session_state.flagForMaskVar = False
-            st.session_state.flagForTaucSoilAndVegVar = False
-            st.session_state.flagFord50Var = False
-            st.session_state.flagForRockCoverVar = False
+        if 'flagforequationVar' not in st.session_state or force:
+            st.session_state.flagforequationVar = True
+        if 'flagfordynamicmodeVar' not in st.session_state or force:
+            st.session_state.flagfordynamicmodeVar = False
+        if 'flagformaskVar' not in st.session_state or force:
+            st.session_state.flagformaskVar = False
+            st.session_state.flagfortaucsoilandvegVar = False
+            st.session_state.flagford50Var = False
+            st.session_state.flagforrockcoverVar = False
             st.session_state.fillIncrementVar = 0.0
             st.session_state.minSlopeVar = 0.0
             st.session_state.expansionVar = 0
@@ -54,7 +58,7 @@ class App:
             st.session_state.noDataVar = 0
             st.session_state.smoothingLengthVar = 0
             st.session_state.rainVar = 0
-            st.session_state.taucSoilAndVegeVar = 0
+            st.session_state.taucsoilandvegeVar = 0
             st.session_state.d50Var = 0.0
             st.session_state.rockCoverVar = 0
             st.session_state.tanAngleOfInternalFrictionVar = 0.0
@@ -64,14 +68,14 @@ class App:
             st.session_state.show_parameters = False
 
     def get_parameter_values(self):
-        # TODO I can just hardcode these values? I guess the value is that the user can define the defaults?
+        # we want to keep the values that a user optinally provides for reproducibility 
         f = open('input.txt', 'r')
-        st.session_state.flagForEquationVar = int(f.readline().strip())
-        st.session_state.flagforDynamicModeVar = int(f.readline().strip())
-        st.session_state.flagForMaskVar = int(f.readline().strip())
-        st.session_state.flagForTaucSoilAndVegVar = int(f.readline().strip())
-        st.session_state.flagFord50Var = int(f.readline().strip())
-        st.session_state.flagForRockCoverVar = int(f.readline().strip())
+        st.session_state.flagforequationVar = int(f.readline().strip())
+        st.session_state.flagfordynamicmodeVar = int(f.readline().strip())
+        st.session_state.flagformaskVar = int(f.readline().strip())
+        st.session_state.flagfortaucsoilandvegVar = int(f.readline().strip())
+        st.session_state.flagford50Var = int(f.readline().strip())
+        st.session_state.flagforrockcoverVar = int(f.readline().strip())
         st.session_state.fillIncrementVar = float(f.readline().strip())
         st.session_state.minSlopeVar = float(f.readline().strip())
         st.session_state.expansionVar = int(f.readline().strip())
@@ -84,7 +88,7 @@ class App:
         st.session_state.noDataVar = int(f.readline().strip())
         st.session_state.smoothingLengthVar = int(f.readline().strip())
         st.session_state.rainVar = int(f.readline().strip())
-        st.session_state.taucSoilAndVegeVar = int(f.readline().strip())
+        st.session_state.taucsoilandvegeVar = int(f.readline().strip())
         st.session_state.d50Var = float(f.readline().strip())
         st.session_state.rockCoverVar = int(f.readline().strip())
         st.session_state.tanAngleOfInternalFrictionVar = float(
@@ -130,7 +134,7 @@ class App:
         return desiredfile
 
     def generate_parameters_button_callback(self):
-        imagePath = st.session_state.imagePathInput
+        imagePath = st.session_state.imagePathInput1 or st.session_state.imagePathInput2
         if imagePath.startswith("http"):
             imagePath = str(self.get_image_from_url(imagePath))
         if not Path(imagePath).is_file():
@@ -160,7 +164,7 @@ class App:
 
     def getMask(self, filepath):
         # TODO Figure out input for filepath
-        if st.session_state.flagForMaskVar == 1:
+        if st.session_state.flagformaskVar == 1:
             try:
                 maskfile = Path(filepath)
                 if maskfile.suffix == '.tar' or maskfile.suffix == '.gz':
@@ -172,15 +176,18 @@ class App:
             except Exception:
                 raise Exception("Invalid mask.tif file")
 
+    
     def populate_parameters_tab(self):
         """Populate the second tab in the application with tkinter widgets. This tab holds editable parameters
         that will be used to run the rillgen2dwitherode.c script. lattice_size_x and lattice_size_y are read in from the
         geometry of the geotiff file"""
         with st.sidebar:
-            st.header("Parameters")
             # On click the app will rerun and the other parameters will not display
             view_output = st.checkbox(
-                "View Existing Output Directory", value=False, key="view_output_checkbox")
+                "Reload a Prior Model Run", 
+                value=False, 
+                help="Load a prior model run by selecting a valid directory",
+                key="view_output_checkbox")
             if view_output:
                 st.text_input("Output Directory Path",
                               value=Path.cwd(), key="output_path")
@@ -190,172 +197,211 @@ class App:
                     key="view_output"
                 )
             else:
+                st.header("Input DEM")
                 st.text_input(
-                    "Image Path",
-                    key="imagePathInput",
-                    value="https://data.cyverse.org/dav-anon/iplant/home/elliothagyard/geoSpatialTiffFiles/2mb.tif",
-                    help="URL or filepath",
+                    "Load DEM (`.tif`) from Web URL (`https://`)",
+                    key="imagePathInput1",
+                    value="",
+                    help="Load valid raster (`.tif`) from a URL (`https://`), the file will be downloaded",
+                    on_change=app.input_change_callback
+                ),  
+                st.text_input(
+                    "Locally saved DEM file (`.tif`)",
+                    key="imagePathInput2",
+                    value="",
+                    help="Load valid DEM raster (`.tif`) in the same directory as `rillgen2d.py` or use a full path (e.g., `C:/yourname/Downloads/rasters/dem.tif`, or `/Users/yourname/Downloads/rasters/dem.tif`)",
                     on_change=app.input_change_callback
                 )
-                # If I switch to the file upload look at this for rasterio docs on in memoroy files: https://rasterio.readthedocs.io/en/latest/topics/memory-files.html
+                st.header("Parameters")
+                #####            
+                # If I switch to the file upload look at this for rasterio docs on in memory files: https://rasterio.readthedocs.io/en/latest/topics/memory-files.html
                 st.button(
                     "Generate Parameters",
                     on_click=app.generate_parameters_button_callback,
                     key="genParameter")
+
+                # Run Model
+                st.button(
+                    "Run Model",
+                    disabled=not st.session_state.show_parameters,
+                    on_click=self.run_callback,
+                    args=(
+                        st.session_state.imagePath,
+                        st.session_state.console,
+                        st.session_state.flagfordynamicmodeVar,
+                    ),
+                    key="goButton1"
+                )
+                
+                # Open Map
+
                 # Flag for equation variable
                 st.checkbox(
-                    "Equation",
-                    value=st.session_state.flagForEquationVar,
+                    "Rock Armor Sheer Strength",
+                    value=st.session_state.flagforequationVar,
                     disabled=not st.session_state.show_parameters,
-                    help="Default: checked,\
-                            implements the rock armor shear strength equation of Haws and Erickson (2020),\
-                            if checked uses Pelletier et al. (2021) equation",
-                    key="flagForEquationVar"
+                    help="Default: checked, checked uses [Pelletier et al. (2021)]() equation, \
+                          unchecked implements the rock armor shear strength equation of [Haws and Erickson (2020)]()", 
+                    key="flagforequationVar"
                 )
 
                 # Flag for dynamic node variable
                 st.checkbox(
-                    "Enable Dynamic Mode",
-                    value=st.session_state.flagforDynamicModeVar,
+                    "Enable Dynamic Mode (optional)",
+                    value=st.session_state.flagfordynamicmodeVar,
                     disabled=not st.session_state.show_parameters,
-                    help='Default: unchecked, Note: when checked uses file "dynamicinput.txt".\
-                            File must be provided in the same directory as the rillgen2d.py. When flag is unchecked uses "peak mode" with \
-                            spatially uniform rainfall.',
-                    key="flagforDynamicModeVar"
+                    help="Default: unchecked, checked requires file named `dynamicinput`, \
+                            unchecked uses 'peak mode' with spatially uniform rainfall",
+                    key="flagfordynamicmodeVar"
                 )
-                if st.session_state.flagforDynamicModeVar:
-                    st.text_input("Path to dynamicinput.txt",
+                if st.session_state.flagfordynamicmodeVar:
+                    st.text_input("Path to required file named `dynamicinput`",
                                   key="dynamicInputPath",
-
-                                  help="Path to the directory of dynamicinput.txt")
+                                  help="Path to required file named `dynamicinput` as either `.tif` or `.txt`")
                 # Flag for mask variable
                 st.checkbox(
-                    "Mask",
-                    value=st.session_state.flagForMaskVar,
+                    "Mask (optional)",
+                    value=st.session_state.flagformaskVar,
                     disabled=not st.session_state.show_parameters,
-                    help='Default: unchecked, If a raster (mask.tif) is provided, the run restricts the model to certain portions of the input DEM\
-                            (mask values = 1 means run the model, 0 means ignore these areas).',
-                    key="flagForMaskVar"
+                    help="Default: unchecked, checked requires file named `mask`. If a raster (`mask`) is provided, \
+                          the run restricts the model to certain portions of the input DEM \
+                          (`mask values = 1` means run the model, `0` means ignore these areas).",
+                    key="flagformaskVar"
                 )
-                if st.session_state.flagForMaskVar:
-                    st.text_input("Path to mask file", key="maskPath")
+                if st.session_state.flagformaskVar:
+                    st.text_input("Path to required file named `mask`", key="maskPath")
 
-                # flagForTaucSoilAndVeg variable
+                # flagfortaucsoilandveg variable
                 st.checkbox(
-                    "Tau C soil & veg:",
-                    value=st.session_state.flagForTaucSoilAndVegVar,
+                    "Soil & Vegetation Layer (optional):",
+                    value=st.session_state.flagfortaucsoilandvegVar,
                     disabled=not st.session_state.show_parameters,
-                    help="Default: unchecked, If a raster (taucsoilandveg.txt) is provided the model applies the shear strength of soil and veg, unchecked means a fixed value will be used.",
-                    key="flagForTaucSoilAndVegVar"
+                    help="Default: unchecked,checked requires file named `taucsoilandveg`. If a raster `taucsoilandveg` \
+                          is provided the model applies the shear strength of soil and veg, \
+                          unchecked means a fixed value will be used.",
+                    key="flagfortaucsoilandvegVar"
                 )
-                if st.session_state.flagForTaucSoilAndVegVar:
-                    st.text_input("Path to taucsoilandveg.txt",
-                                  key="taucSoilAndVegPath",
+                if st.session_state.flagfortaucsoilandvegVar:
+                    st.text_input("Path to required file named `taucsoilandveg`",
+                                  key="taucsoilandvegPath",
 
-                                  help="Path to the directory of taucsoilandveg.txt")
+                                  help="Path to required file named `taucsoilandveg` as either `.tif` or `.txt`")
                 # Flag for d50 variable
                 st.checkbox(
-                    "d50:",
-                    value=st.session_state.flagFord50Var,
+                    "Rock Armor Layer (optional):",
+                    value=st.session_state.flagford50Var,
                     disabled=not st.session_state.show_parameters,
-                    help='Default: unchecked, If a raster (d50.txt) is provided the model applies the median rock diameter, unchecked means a fixed value will be used.',
-                    key="flagFord50Var"
+                    help="Default: unchecked, checked requires file named `d50`. If a raster `d50` is provided the model \
+                          applies the median rock diameter, unchecked means a fixed value will be used.",
+                    key="flagford50Var"
                 )
-                if st.session_state.flagFord50Var:
-                    st.text_input("Path to d50.txt",
+                if st.session_state.flagford50Var:
+                    st.text_input("Path to required file named `d50`",
                                   key="d50InputPath",
 
-                                  help="Path to the directory of d50.txt")
+                                  help="Path to required file named `d50` as either `.tif` or `.txt")
                 # Flag for rockcover
                 st.checkbox(
-                    "Rock Cover:",
-                    value=st.session_state.flagForRockCoverVar,
+                    "Rock Cover (optional):",
+                    value=st.session_state.flagforrockcoverVar,
                     disabled=not st.session_state.show_parameters,
-                    help="Default: unchecked, If a raster (rockcover.txt) is provided the model applies the rock cover fraction, unchecked means a fixed value  will be used.",
-                    key="flagForRockCoverVar",
+                    help="Default: unchecked, checked requires file named `rockcover`. If a raster (`rockcover`) is provided \
+                          the model applies the rock cover fraction, unchecked means \
+                          a fixed value  will be used.",
+                    key="flagforrockcoverVar",
                 )
-                if st.session_state.flagForRockCoverVar:
-                    st.text_input("Path to rockcover.txt",
+                if st.session_state.flagforrockcoverVar:
+                    st.text_input("Path to required file named `rockcover`",
                                   key="rockCoverPath",
-
-                                  help="Path to the directory of rockcover.txt")
+                                  help="Path to required file named `rockcover` as either `.tif` or `.txt")
 
                 # fillIncrement variable
                 st.number_input(
-                    "Fill increment:",
+                    "Fill increment (m):",
                     value=st.session_state.fillIncrementVar,
                     step=0.001,
                     format="%.3f",
                     disabled=not st.session_state.show_parameters,
-                    help="Value in meters (m) used to fill in pits and flats for hydrologic correction. 0.01 m is a reasonable default value for lidar-based DEMs.",
+                    help="Value in meters (m) used to fill pits and flats for the hydrologic correction step. \
+                          `0.01` is a reasonable default value for lidar-based DEMs.",
                     key="fillIncrementVar"
                 )
 
                 # minslope variable
                 st.number_input(
-                    "Min Slope:",
+                    "Minimum Slope Angle (degrees):",
                     value=st.session_state.minSlopeVar,
                     step=0.001,
                     format="%.3f",
                     disabled=not st.session_state.show_parameters,
-                    help="Value (unitless) used to halt runoff from areas below a threshold slope steepness. Setting this value larger than 0 is useful for eliminating runoff from portions of the landscape that the user expects are too flat to produce significant runoff.",
+                    help="Value used to halt runoff from areas below a threshold slope steepness. \
+                          Setting this value larger than 0 is useful for eliminating runoff from \
+                          portions of the landscape that the user expects are too flat to produce \
+                          significant runoff.",
                     key="minSlopeVar"
                 )
                 # Expansion variable
                 st.number_input(
-                    "Expansion:",
+                    "Expansion (pixels):",
                     value=st.session_state.expansionVar,
                     disabled=not st.session_state.show_parameters,
-                    help="Value (pixel) used to expand the zones where rills are predicted in the output raster. This is useful for making the areas where rilling is predicted easier to see in the model output.",
+                    help="Value (pixels) used to expand the zone where rills are predicted in \
+                          the output raster. This is useful for making the areas where rilling \
+                          is predicted easier to see in the model output.",
                     key="expansionVar"
                 )
                 # yellowThreshold variable
                 st.number_input(
-                    "Yellow Threshold:",
+                    "Rilling Threshold (f):",
                     value=st.session_state.yellowThresholdVar,
                     disabled=not st.session_state.show_parameters,
-                    help="Threshold value of f used to indicate an area that is close to but less than the threshold for generating rills. The model will visualize any location with a f value between this value and 1 as potentially prone to rill generation (any area with a f value larger than 1 is considered prone to rill generation and is colored red).",
+                    help="Threshold value of `f` used to indicate an area that is close to but \
+                          less than the threshold for generating rills (yellow). The model will \
+                          visualize any location with a `f` value between this value and 1 as \
+                          potentially prone to rill generation (any area with a `f` value larger \
+                          than 1 is considered prone to rill generation and is colored red).",
                     key='yellowThresholdVar'
                 )
 
                 # Lattice_size_x variable
                 st.number_input(
-                    "Lattice Size X:",
+                    "Lattice X (pixels):",
                     value=st.session_state.lattice_size_xVar,
                     disabled=True,
-                    help="Pixels along the east-west direction in the DEM.",
+                    help="Pixels along the East to West direction in the DEM.",
                     key="lattice_size_xVar"
                 )
                 # Lattice_size_y variable
                 st.number_input(
-                    "Lattice Size Y:",
+                    "Lattice Y (pixels):",
                     value=st.session_state.lattice_size_yVar,
                     disabled=True,
                     key="lattice_size_yVar",
-                    help="Pixels along the north-south direction in the DEM.",
+                    help="Pixels along the North to South direction in the DEM.",
                 )
 
                 # Deltax variable
                 st.number_input(
-                    "$\Delta$X",
+                    "DEM Resolution (m)",
                     value=st.session_state.deltaXVar,
                     disabled=not st.session_state.show_parameters,
-                    help="Resolution (meters)  of the DEM and additional optional raster inputs.",
+                    help="Resolution (m) $\Delta$X of the DEM is derived from the `.tif` file metadata. \
+                          Review for accuracy, do not change unless something looks wrong.",
                     key="deltaXVar"
                 )
 
                 # Nodata variable
                 st.number_input(
-                    "nodata",
+                    "NoData (null)",
                     value=st.session_state.noDataVar,
                     disabled=not st.session_state.show_parameters,
-                    help="Elevation less than or equal to the nodata value will be masked.",
+                    help="the NoData null value of the DEM (m) which will be masked, defaults to `-9999`",
                     key="noDataVar",
                 )
 
                 # Smoothinglength variable
                 st.number_input(
-                    "Smoothing Length",
+                    "Smoothing Length (pixels)",
                     value=st.session_state.smoothingLengthVar,
                     disabled=not st.session_state.show_parameters,
                     help="Length scale (pixels) for smoothing of the slope map. A length of 1 has no smoothing",
@@ -363,51 +409,53 @@ class App:
                 )
                 # Rain fixed variable
                 st.number_input(
-                    "Rain Fixed",
+                    "Peak rainfall intensity (mm/hr).",
                     value=st.session_state.rainVar,
                     disabled=not st.session_state.show_parameters,
-                    help="Peak rainfall intensity (mm/hr). This value is ignored if flag is checked.",
+                    help="Uniform rainfall used in 'peak' mode. This value is ignored if 'Enable Dynamic Mode' flag is checked above.",
                     key="rainVar"
                 )
 
                 # tauc soil and vege fixed variable
                 st.number_input(
-                    "tauc soil and vege fixed",
-                    value=st.session_state.taucSoilAndVegeVar,
+                    "Threshold shear stress for soil and vegetation (Pa)",
+                    value=st.session_state.taucsoilandvegeVar,
                     disabled=not st.session_state.show_parameters,
-                    help="Threshold shear stress for soil and vegetation.",
-                    key="taucSoilAndVegeVar"
+                    help="Tau C for soil and vegetation",
+                    key="taucsoilandvegeVar"
                 )
 
                 # d50 fixed
                 st.number_input(
-                    "d50 Fixed",
+                    "Median rock armor diameter (mm)",
                     value=st.session_state.d50Var,
                     disabled=not st.session_state.show_parameters,
-                    help="Median rock armor diameter (in mm). This value is ignored if flag for d50 is checked.",
+                    help="This value is ignored if Rock Armor Flag (`d50`) is checked above.",
                     key="d50Var"
                 )
 
                 # Rockcover fixed variable
                 st.number_input(
-                    "Rock Cover",
+                    "Rock Cover (ratio)",
                     value=st.session_state.rockCoverVar,
                     disabled=not st.session_state.show_parameters,
-                    help="This value indicates the fraction of area covered by rock armor. Will be 1 for continuous rock armors, less than one for partial rock cover. This value is ignored if flag for rock cover is checked",
+                    help="This value indicates the fraction of area covered by rock armor. \
+                          Will be 1 for continuous rock armors, <1 for partial rock cover. \
+                          This value is ignored if flag for 'Rock Cover' is checked above.",
                     key="rockCoverVar"
                 )
                 # tanAngleOfInternalFriction fixed variable
                 st.number_input(
-                    "tanAngleOfInternalFriction",
+                    "Tangent of the angle of internal friction",
                     value=st.session_state.tanAngleOfInternalFrictionVar,
                     disabled=not st.session_state.show_parameters,
-                    help="Tangent of the angle of internal friction. Values will typically be in the range of 0.5-0.8.",
+                    help="Values typically in the range of 0.5 to 0.8.",
                     key="tanAngleOfInternalFrictionVar"
                 )
 
                 # b variable
                 st.number_input(
-                    "b",
+                    "Coefficient of runoff to contributing area (b)",
                     value=st.session_state.bVar,
                     disabled=not st.session_state.show_parameters,
                     help="This value is the coefficient in the model component that predicts the relationship between runoff and contributing area.",
@@ -415,7 +463,7 @@ class App:
                 )
                 # c variable
                 st.number_input(
-                    "c",
+                    "Exponent of runoff to contributing area (c)",
                     value=st.session_state.cVar,
                     disabled=not st.session_state.show_parameters,
                     help="This value is the exponent in the model component that predicts the relationship between runoff and contributing area.",
@@ -424,10 +472,10 @@ class App:
 
                 # rillWidth variable
                 st.number_input(
-                    "rillWidth",
+                    "Rill Width (m)",
                     value=st.session_state.rillWidthVar,
                     disabled=not st.session_state.show_parameters,
-                    help="The width of rills (in m) as they begin to form. This value is used to localize water flow to a width less than the width of a pixel. For example, if deltax = 1 m and rillwidth = 20 cm then the flow entering each pixel is assumed, for the purposes of rill development, to be localized in a width equal to one fifth of the pixel width.",
+                    help="The width of rills (m) as they begin to form. This value is used to localize water flow to a width less than the width of a pixel. For example, if deltax = 1 m and rillwidth = 20 cm then the flow entering each pixel is assumed, for the purposes of rill development, to be localized in a width equal to one fifth of the pixel width.",
                     key="rillWidthVar"
                 )
 
@@ -444,9 +492,9 @@ class App:
                     args=(
                         st.session_state.imagePath,
                         st.session_state.console,
-                        st.session_state.flagforDynamicModeVar,
+                        st.session_state.flagfordynamicmodeVar,
                     ),
-                    key="goButton"
+                    key="goButton2"
                 )
 
                 st.caption('NOTE: The hydrologic correction step can take a long time if there are lots of depressions in the input DEM and/or if the'
@@ -458,10 +506,10 @@ class App:
 
     def validate_file_paths(self):
         flag_path_pairs = [
-            ("flagforDynamicModeVar", "dynamicInputPath"),
-            ("flagFord50Var", "d50InputPath"),
-            ("flagForRockCoverVar", "rockCoverPath"),
-            ("flagForTaucSoilAndVegVar", "taucSoilAndVegPath"),
+            ("flagfordynamicmodeVar", "dynamicInputPath"),
+            ("flagford50Var", "d50InputPath"),
+            ("flagforrockcoverVar", "rockCoverPath"),
+            ("flagfortaucsoilandvegVar", "taucsoilandvegPath"),
         ]
         valid_paths = True
         for flag, path in flag_path_pairs:
@@ -482,7 +530,7 @@ class App:
         t = Thread(target=self.delete_temp_dir)
         t.start()
         for key in st.session_state:
-            if key == "imagePathInput" or key == "imagePath":
+            if key == "imagePathInput1" or key == "imagePathInput2" or key == "imagePath":
                 continue
             del st.session_state[key]
         t.join()
@@ -491,22 +539,22 @@ class App:
         st.session_state.rillgen2d = None
 
     def generate_parameters(self):
-        """Generate the parameters.txt file using the flags from the second tab"""
+        """Generate parameters.txt file"""
         path = Path.cwd() / 'parameters.txt'
         if path.exists():
             Path.unlink(path)
         f = open('parameters.txt', 'w+')
-        f.write(str(int(st.session_state.flagForEquationVar)) +
+        f.write(str(int(st.session_state.flagforequationVar)) +
                 '\t /* Flag for equation out */ \n')
-        f.write(str(int((st.session_state.flagforDynamicModeVar))) +
+        f.write(str(int((st.session_state.flagfordynamicmodeVar))) +
                 '\t /* Flag for dynamicmode out */ \n')
-        f.write(str(int(st.session_state.flagForMaskVar)) +
+        f.write(str(int(st.session_state.flagformaskVar)) +
                 '\t /* Flag for mask out */ \n')
-        f.write(str(int(st.session_state.flagForTaucSoilAndVegVar)) +
+        f.write(str(int(st.session_state.flagfortaucsoilandvegVar)) +
                 '\t /* Flag for taucsoilandveg out */ \n')
-        f.write(str(int(st.session_state.flagFord50Var)) +
+        f.write(str(int(st.session_state.flagford50Var)) +
                 '\t /* Flag for d50 out */ \n')
-        f.write(str(int(st.session_state.flagForRockCoverVar)) +
+        f.write(str(int(st.session_state.flagforrockcoverVar)) +
                 '\t /* Flag for rockcover out */ \n')
         f.write(str(st.session_state.fillIncrementVar).replace(
             "\n", "") + '\t /* fillIncrement out */ \n')
@@ -528,7 +576,7 @@ class App:
             "\n", "") + '\t /* smoothing length out */ \n')
         f.write(str(st.session_state.rainVar).replace(
             "\n", "") + '\t /* Rain out */ \n')
-        f.write(str(st.session_state.taucSoilAndVegeVar).replace(
+        f.write(str(st.session_state.taucsoilandvegeVar).replace(
             "\n", "") + '\t /* tauc soil and vege out */ \n')
         f.write(str(st.session_state.d50Var).replace(
             "\n", "") + '\t /* d50 out */ \n')
@@ -545,27 +593,27 @@ class App:
         st.success("Generated parameters.txt\n\n"+'\n'+"Click on Run Model\n")
         f.close()
 
-    def run_callback(self, imagePath, console, flagForDyanmicModeVar):
-        """Run Rillgen2d"""
+    def run_callback(self, imagePath, console, flagfordyanmicmodeVar):
+        """Run callback"""
         no_error = True
         if not self.validate_file_paths():
             no_error = False
-        if st.session_state.flagForMaskVar:
+        if st.session_state.flagformaskVar:
             try:
                 self.getMask(st.session_state.maskPath)
             except:
                 st.error(
-                    "Error: Mask file not found. Please upload a mask file.")
+                    "Error: Mask file not found. Please check the path and try again.")
                 return
         if not no_error:
             return
         rg2d.generate_input_txt_file(
-            st.session_state.flagForEquationVar,
-            st.session_state.flagforDynamicModeVar,
-            st.session_state.flagForMaskVar,
-            st.session_state.flagForTaucSoilAndVegVar,
-            st.session_state.flagFord50Var,
-            st.session_state.flagForRockCoverVar,
+            st.session_state.flagforequationVar,
+            st.session_state.flagfordynamicmodeVar,
+            st.session_state.flagformaskVar,
+            st.session_state.flagfortaucsoilandvegVar,
+            st.session_state.flagford50Var,
+            st.session_state.flagforrockcoverVar,
             st.session_state.fillIncrementVar,
             st.session_state.minSlopeVar,
             st.session_state.expansionVar,
@@ -576,7 +624,7 @@ class App:
             st.session_state.noDataVar,
             st.session_state.smoothingLengthVar,
             st.session_state.rainVar,
-            st.session_state.taucSoilAndVegeVar,
+            st.session_state.taucsoilandvegeVar,
             st.session_state.d50Var,
             st.session_state.rockCoverVar,
             st.session_state.tanAngleOfInternalFrictionVar,
@@ -588,31 +636,45 @@ class App:
 
         if st.session_state.rillgen2d is None or not st.session_state.rillgen2d.is_alive():
             st.session_state.rillgen2d = Thread(
-                target=rg2d.main, args=(imagePath, console, flagForDyanmicModeVar))
+                target=rg2d.main, args=(imagePath, console, flagfordyanmicmodeVar))
             st.session_state.rillgen2d.start()
 
+# update display of the bash console
+# change the color of the background of display_console to black
     def display_console(self):
-        """Update the console with the latest 4 messages from Rillgen2d"""
+        """Update the console with the latest 4 messages"""
         while not st.session_state.console.empty():
             message = st.session_state.console.get()
             if message:
                 st.session_state.console_log.append(message)
-        with st.expander("Console", True):
+        with st.expander("Terminal", True):
             for line in st.session_state.console_log[-5:-1:1]:
                 st.write(line)
+            st.markdown(
+            """
+            <style>
+            .streamlit-expanderContent > div > div > div {
+                background-color: black;
+                color: white;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
 
     def display_preview(self):
-        """Display the preview of the Geotiff as a hillshade."""
-
+        """Preview of the landscape."""
         imagePath = "hillshade.png"
         imagePath = "./" + "tmp/" * \
             int(not Path(imagePath).is_file()) + imagePath
-        with st.expander("Hillshade", True):
+        with st.expander("Check DEM landscape", True):
             if st.session_state.hillshade_generated:
                 st.image(
                     PIL.Image.open(r"./hillshade.png"),
-                    caption="Simulated lighting to visualize selected area")
+                    caption="Hillshade generated from expected DEM raster")
 
+
+    # display the Leaflet Folium Map
     def display_map(self):
         """Display the raster map """
         with st.container():
@@ -622,6 +684,17 @@ class App:
                 "Save Output", key="saveButton",
                 on_click=self.save_callback
             )
+    # Add the Legend below the Leaflet Map for Tau and F
+    def display_tau(self):
+        """Display the legends"""
+        imagePath = "color-relief_tau.png"
+        imagePath = "./" + "tmp/" * \
+            int(not Path(imagePath).is_file()) + imagePath
+        with st.expander("Check Tau Results", True):
+            if st.session_state.hillshade_generated:
+                st.image(
+                    PIL.Image.open(r"color-relief_tau.png"),
+                    caption="Tau C (Pa)")
 
     def view_output(self, output_path):
         if not (Path(output_path) / "map.html").exists():
@@ -638,9 +711,8 @@ class App:
 
     def main_page(self):
         """Main page of the app."""
-        st.title("Rillgen2d")
-        app_tab, readme = st.tabs(["Rillgen2d App", "Readme"])
-
+        st.title("rillgen2d")
+        app_tab, readme = st.tabs(["Parameters", "User Manual"])
         self.populate_parameters_tab()
         with app_tab:
             if st.session_state.view_output_checkbox and st.session_state.view_output:
@@ -650,6 +722,8 @@ class App:
                 self.display_preview()
                 if Path("./map.html").exists() and "rillgen2d" in st.session_state and st.session_state.rillgen2d:
                     self.display_map()
+                    self.display_tau()
+
         if self.app_is_running():
             st.experimental_rerun()
 

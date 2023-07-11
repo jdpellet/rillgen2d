@@ -20,8 +20,9 @@ dependencies:
   - pip
   - pkg-config
   - proj
-  - python=3.9
+  - python=3.10
   - requests
-  - pip:
-    - streamlit
-    - watchdog
+  - streamlit
+  - streamlit-folium
+  - wand
+  - watchdog

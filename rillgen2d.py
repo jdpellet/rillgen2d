@@ -1,5 +1,15 @@
+# check whether modules are loaded into the current Python environment.
+# create environment: `mamba env create -f environment_<distro>.yml`
+# then run run `conda activate rillgen2d`
+import importlib
+modules = ['wand', 'threading', 'pathlib', 'osgeo', 'datetime', 'ctypes', 'branca', 'os', 'subprocess', 'shutil', 'sys', 'time', 'folium', 'PIL']
+for module in modules:
+    try:
+        importlib.import_module(module)
+    except ImportError:
+        print(f"The '{module}' module is not installed.")
 
-
+# load dependency modules
 from wand.image import Image as im
 from threading import Thread
 from pathlib import Path
@@ -15,16 +25,17 @@ import time
 import folium
 import osgeo
 import PIL
+
 # Apparently this API is supposed to be internal atm and seems to rapidly change without documentation between upadtes
 PIL.Image.MAX_IMAGE_PIXELS = 933120000
-# multiprocessing might be good instead, depedning on the function
+# multiprocessing might be good instead, depending on the function
 
 """This is the main rillgen2d file which handles the gui and communicates with console.py
 and rillgen.c in order to perform the rillgen calculations"""
 
 
-class Rillgen2d():
-    def __init__(self, imagePath, queueObject, flagForDynamicVar):
+class rillgen2d():
+    def __init__(self, imagePath, queueObject, flagfordynamicVar):
         """Initializing the tkinter application and its tabs.
         The PyQt5 Application must go where it can be initialized
         only once in order to avoid bugs; otherwise the garbage
@@ -39,7 +50,7 @@ class Rillgen2d():
         self.rillgen = None  # Used to import the rillgen.c code
 
         self.img1 = None
-        self.flagForDynamicVar = flagForDynamicVar
+        self.flagfordynamicVar = flagfordynamicVar
         # figure that will preview the image via rasterio
 
         """We only want the first tab for now; the others appear in order after the 
@@ -50,7 +61,7 @@ class Rillgen2d():
     def generate_color_ramp(self, filename, mode):
         """generates a color ramp from a geotiff image and then uses that in order to produce
         a color-relief for the geotiff"""
-        self.console.put("Generating color ramp")
+        self.console.put("Generating legends")
         gtif = gdal.Open(filename)
         srcband = gtif.GetRasterBand(1)
         # Get raster statistics
@@ -72,17 +83,17 @@ class Rillgen2d():
         if mode == 1:
             self.colormap = colormap
             self.colormap = self.colormap.to_step(index=indexarr)
-            self.colormap.caption = "Elevation (in meters)"
+            self.colormap.caption = "Elevation"
             cmd1 = f"gdaldem color-relief \"{filename}\" color-relief.txt color-relief.png"
         elif mode == 2:
             self.taucolormap = colormap
             self.taucolormap = self.taucolormap.to_step(index=indexarr)
-            self.taucolormap.caption = "Tau (Pascals)"
+            self.taucolormap.caption = "Tau"
             cmd1 = f"gdaldem color-relief \"{filename}\" color-relief.txt color-relief_tau.png"
         else:
             self.fcolormap = colormap
             self.fcolormap = self.fcolormap.to_step(index=indexarr)
-            self.fcolormap.caption = "F (Pascals)"
+            self.fcolormap.caption = "F"
             cmd1 = f"gdaldem color-relief \"{filename}\" color-relief.txt color-relief_f.png"
         f.close()
         self.run_command(cmd1)
@@ -126,14 +137,14 @@ class Rillgen2d():
                 time.sleep(0.5)
             else:
                 self.console.put(100)
-                if mode == 1 and self.flagForDynamicVar == 1:
+                if mode == 1 and self.flagfordynamicVar == 1:
                     mode = 2
                     self.console.put("Hydrologic correction step completed.")
                     currentPercentage = 0
                     self.console.put("Starting dynamic mode...")
                     self.make_popup(mode)
                 else:
-                    if self.flagForDynamicVar == 1:
+                    if self.flagfordynamicVar == 1:
                         self.console.put(
                             "Dynamic mode completed. Creating outputs...")
                     else:
@@ -174,7 +185,7 @@ class Rillgen2d():
             str(subprocess.check_output(command, shell=True), "UTF-8"))
 
     def set_georeferencing_information(self):
-        """Sets the georeferencing information for f.tif and tau.tif (and incised depth.t if self.flagForDynamicVar==1) to be the same as that
+        """Sets the georeferencing information for f.tif and tau.tif (and incised depth.t if self.flagfordynamicVar==1) to be the same as that
         from the original geotiff file"""
 
         self.console.put("Setting georeferencing information\n")
@@ -255,8 +266,7 @@ class Rillgen2d():
         t2.join()
         self.console.put("Georeferencing complete\n")
         self.convert_ppm()
-        self.console.put("Model Output Successfully Created\n")
-        self.console.put("Click on View Outputs Tab\n")
+        self.console.put("Success!\n")
 
     def convert_ppm(self):
         """Convert the rills.ppm file to png so that it can be displayed on the map"""
@@ -297,57 +307,40 @@ class Rillgen2d():
 
     def generate_map(self):
         """Generate Leaflet Folium Map"""
-        map_bounds = [[self.geo_ext[1][1], self.geo_ext[1][0]],
-                      [self.geo_ext[3][1], self.geo_ext[3][0]]]
+        map_bounds = [(self.geo_ext[1][1], self.geo_ext[1][0]),
+                      (self.geo_ext[3][1], self.geo_ext[3][0])]
         self.m = folium.Map(location=[(self.geo_ext[1][1]+self.geo_ext[3][1])/2,
-                                      (self.geo_ext[1][0]+self.geo_ext[3][0])/2], zoom_start=14, tiles='Stamen Terrain')
+                                      (self.geo_ext[1][0]+self.geo_ext[3][0])/2], zoom_start=16, tiles='Stamen Terrain')
         folium.TileLayer('OpenStreetMap').add_to(self.m)
         folium.TileLayer('Stamen Toner').add_to(self.m)
-
         self.layer_control = folium.LayerControl()
         img1 = folium.raster_layers.ImageOverlay(
-            image="hillshade.png", bounds=map_bounds, opacity=0.8, interactive=True, show=True, name="Hillshade")
-        # img2 = folium.raster_layers.ImageOverlay(image="color-relief.png", bounds=map_bounds, opacity=0.6, interactive=True, show=False, name="color-relief")
-        # img3 = folium.raster_layers.ImageOverlay(image="f.png", bounds=map_bounds, opacity=0.5, interactive=True, show=False, name="f")
-        # img4 = folium.raster_layers.ImageOverlay(image="tau.png", bounds=map_bounds, opacity=0.5, interactive=True, show=True, name="tau")
-        img5 = folium.raster_layers.ImageOverlay(
-            image="rills.png", bounds=map_bounds, opacity=0.5, interactive=True, show=False, name="Rills")
-        img6 = folium.raster_layers.ImageOverlay(
-            image="color-relief_tau.png", bounds=map_bounds, opacity=0.5, interactive=True, show=False, name="Tau")
-        img7 = folium.raster_layers.ImageOverlay(
-            image="color-relief_f.png", bounds=map_bounds, opacity=0.5, interactive=True, show=False, name="f")
-        # geotiff_group = folium.FeatureGroup(name="color-relief")
-        # geotiff_group.add_child(img1)
-        # geotiff_group.add_child(img2)
-        # geotiff_group.add_child(self.colormap)
+            image="hillshade.png", bounds=map_bounds, opacity=1.0, interactive=True, show=False, name="Hillshade")
+        img2 = folium.raster_layers.ImageOverlay(
+            image="rills.png", bounds=map_bounds, opacity=0.5, interactive=True, show=True, name="Rills")
+        img3 = folium.raster_layers.ImageOverlay(
+            image="color-relief_tau.png", bounds=map_bounds, opacity=0.5, interactive=True, show=True, name="Tau")
+        img4 = folium.raster_layers.ImageOverlay(
+            image="color-relief_f.png", bounds=map_bounds, opacity=0.5, interactive=True, show=True, name="f")
         img1.add_to(self.m)
-        # img2.add_to(m)
-        # img3.add_to(m)
-        # img4.add_to(m)
-        img5.add_to(self.m)
-        img6.add_to(self.m)
-        img7.add_to(self.m)
-        # geotiff_group.add_to(m)
-        # m.add_child(geotiff_group)
-        # self.colormap.add_to(m)
-        self.taucolormap.add_to(self.m)
-        self.fcolormap.add_to(self.m)
+        img2.add_to(self.m)
+        img3.add_to(self.m)
+        img4.add_to(self.m)
         self.layer_control.add_to(self.m)
         self.m.save("map.html", close_file=False)
         return self.m
 
-
 def generate_input_txt_file(
-        flagForEquationVar,
-        flagforDynamicModeVar,
-        flagForMaskVar,
-        flagForTaucSoilAndVegVar,
-        flagFord50Var,
-        flagForRockCoverVar,
-        fillIncrementVar,
-        minSlopeVar,
+        flagforequationVar,
+        flagfordynamicmodeVar,
+        flagformaskVar,
+        flagfortaucsoilandvegVar,
+        flagford50Var,
+        flagforrockcoverVar,
+        fillincrementVar,
+        minslopeVar,
         expansionVar,
-        yellowThresholdVar,
+        yellowthresholdVar,
         lattice_size_xVar,
         lattice_size_yVar,
         deltaXVar,
@@ -366,20 +359,20 @@ def generate_input_txt_file(
     """Generate the input.txt file using the flags from the second tab.
 
     There are then helper functions, the first of which runs the rillgen.c script
-    in order to create xy_f.txt and xy_tau.txt (and xy_inciseddepth.txt if flagforDynamicModeVar==1)
+    in order to create xy_f.txt and xy_tau.txt (and xy_inciseddepth.txt if flagfordynamicmodeVar==1)
 
     The second helper function then sets the georeferencing information from the original
-    geotiff file to xy_f.txt and xy_tau.txt (and xy_inciseddepth.txt if flagforDynamicModeVar==1) in order to generate f.tif and tau.tif"""
+    geotiff file to xy_f.txt and xy_tau.txt (and xy_inciseddepth.txt if flagfordynamicmodeVar==1) in order to generate f.tif and tau.tif"""
     path = Path.cwd() / 'input.txt'
     if path.exists():
         Path.unlink(path)
     path = Path.cwd()
     f = open('input.txt', 'w')
-    f.write(str(int(flagForEquationVar)) + '\n')
-    f.write(str(int(flagforDynamicModeVar)) + '\n')
+    f.write(str(int(flagforequationVar)) + '\n')
+    f.write(str(int(flagfordynamicmodeVar)) + '\n')
     if (path / "dynamicinput.txt").exists():
         Path.unlink(path / "dynamicinput.txt")
-    if flagforDynamicModeVar == 1:
+    if flagfordynamicmodeVar == 1:
         if (path.parent / "dynamicinput.txt").exists():
             shutil.copyfile(path.parent / "dynamicinput.txt",
                             path / "dynamicinput.txt")
@@ -388,30 +381,72 @@ def generate_input_txt_file(
         else:
             console.put("dynamicinput.txt not found\n")
 
-    f.write(str(int(flagForMaskVar))+'\n')
-    if flagForMaskVar == 1:
+# convert `mask.tif` to `mask.txt`
+    f.write(str(int(flagformaskVar))+'\n')
+    if flagformaskVar == 1:
         if (path / "mask.tif").exists():
             convert_geotiff_to_txt("mask")
             console.put("mask.txt generated\n")
         else:
             console.put("mask.tif not found\n")
-            flagForMaskVar = 0
+            flagformaskVar = 0
 
-    f.write(str(int(flagForTaucSoilAndVegVar))+'\n')
-    if (path / "taucsoilandvegfixed.txt").exists():
-        Path.unlink(path / "taucsoilandvegfixed.txt")
-    if int(flagForTaucSoilAndVegVar) == 1:
-        if (path.parent / "taucsoilandvegfixed.txt").exists():
+### convert `dynamicinput.tif` to `dynamicinput.txt`
+##    f.write(str(int(flagfordynamicinputVar))+'\n')
+##    if flagfordynamicinputVar == 1:
+##        if (path / "dynamicinput.tif").exists():
+##            convert_geotiff_to_txt("dynamicinput")
+##            console.put("dynamicinput.txt generated\n")
+##        else:
+##            console.put("dynamicinput.tif not found\n")
+##            flagfordynamicinputVar = 0
+##
+### convert `taucsoilandveg.tif` to `taucsoilandveg.txt`
+##    f.write(str(int(flagfortaucsoilandvegVar))+'\n')
+##    if flagfortaucsoilandvegVar == 1:
+##        if (path / "taucsoilandveg.tif").exists():
+##            convert_geotiff_to_txt("taucsoilandveg")
+##            console.put("taucsoilandveg.txt generated\n")
+##        else:
+##            console.put("taucsoilandveg.tif not found\n")
+##            flagfortaucsoilandvegVar = 0
+##
+### convert `d50.tif` to `d50.txt`
+##    f.write(str(int(flagford50Var))+'\n')
+##    if flagford50Var == 1:
+##        if (path / "d50.tif").exists():
+##            convert_geotiff_to_txt("d50")
+##            console.put("d50.txt generated\n")
+##        else:
+##            console.put("d50.tif not found\n")
+##            flagformaskVar = 0
+##
+### convert `rockcover.tif` to `rockcover.txt`
+##    f.write(str(int(flagforrockcoverVar))+'\n')
+##    if flagforrockcoverVar == 1:
+##        if (path / "rockcover.tif").exists():
+##            convert_geotiff_to_txt("rockcover")
+##            console.put("rockcover.txt generated\n")
+##        else:
+##            console.put("rockcover.tif not found\n")
+##            flagformaskVar = 0
+##
+# create flags for taucsoilandveg
+    f.write(str(int(flagfortaucsoilandvegVar))+'\n')
+    if (path / "taucsoilandveg.txt").exists():
+        Path.unlink(path / "taucsoilandveg.txt")
+    if int(flagfortaucsoilandvegVar) == 1:
+        if (path.parent / "taucsoilandveg.txt").exists():
             shutil.copyfile(
-                path.parent / "taucsoilandvegfixed.txt", path / "taucsoilandvegfixed.txt")
+                path.parent / "taucsoilandveg.txt", path / "taucsoilandveg.txt")
             console.put(
-                ("taucsoilandvegfixed.txt found and copied to inner directory\n\n"))
+                ("taucsoilandveg.txt found and copied to inner directory\n\n"))
         else:
-            console.put("taucsoilandvegfixed.txt not found\n")
-    f.write(str(int(flagFord50Var))+'\n')
+            console.put("taucsoilandveg.txt not found\n")
+    f.write(str(int(flagford50Var))+'\n')
     if (path / "d50.txt").exists():
         Path.unlink(path / "d50.txt")
-    if int(flagFord50Var) == 1:
+    if int(flagford50Var) == 1:
         if (path.parent / "d50.txt").exists():
             shutil.copyfile(path.parent / "d50.txt", path / "d50.txt")
             console.put(
@@ -419,10 +454,10 @@ def generate_input_txt_file(
         else:
             console.put(
                 ("d50.txt not found\n\n"))
-    f.write(str(int(flagForRockCoverVar))+'\n')
+    f.write(str(int(flagforrockcoverVar))+'\n')
     if (path / "rockcover.txt").exists():
         path.unlink(path / "rockcover.txt")
-    if int(flagForRockCoverVar) == 1:
+    if int(flagforrockcoverVar) == 1:
         if (path.parent / "rockcover.txt").exists():
             shutil.copyfile(path.parent / "rockcover.txt",
                             path / "rockcover.txt")
@@ -430,10 +465,10 @@ def generate_input_txt_file(
                 "rockcover.txt found and copied to inner directory\n\n")
         else:
             console.put("rockcover.txt not found\n")
-    f.write(str(fillIncrementVar)+'\n')
-    f.write(str(minSlopeVar)+'\n')
+    f.write(str(fillincrementVar)+'\n')
+    f.write(str(minslopeVar)+'\n')
     f.write(str(expansionVar)+'\n')
-    f.write(str(yellowThresholdVar)+'\n')
+    f.write(str(yellowthresholdVar)+'\n')
     f.write(str(lattice_size_xVar)+'\n')
     f.write(str(lattice_size_yVar)+'\n')
     f.write(str(deltaXVar)+'\n')
@@ -490,11 +525,7 @@ def save_image_as_txt(imagePath, console):
 
         arr = band.ReadAsArray()
         dimensions = [arr.shape[0], arr.shape[1]]
-        console.put("GEO Tiff successfully converted")
-        console.put("Parameters Tab now available")
-        console.put("Click Parameters Tab for next selections")
         return (filename, dimensions[1], dimensions[0])
-
 
 def convert_geotiff_to_txt(filename, console):
     console.put("Converting geotiff to txt")
@@ -532,11 +563,14 @@ def hillshade_and_color_relief(filename, console):
     """Generates the hillshade and color-relief images from the original 
     geotiff image that will be available on the map"""
 
-    console.put(
-        "Generating hillshade and color relief...\n")
+    console.put("Generating hillshade and color relief...\n")
     cmd0 = f"gdaldem hillshade \"{filename}\" hillshade.png"
-    print(cmd0)
-    console.put(cmd0)
+    #print(cmd0)
+    #console.put(cmd0)
+    # Print Ready to Run Model
+    console.put("GEO Tiff successfully converted")
+    console.put("Click Generate Parameter again to update any changes")
+    console.put("When ready click 'Run Model' button")
     console.put(str(subprocess.check_output(cmd0, shell=True), 'UTF-8'))
 
 
@@ -554,11 +588,11 @@ def save_output():
             shutil.copy(file_name, saveDir / file_name)
 
 
-def main(imagePath, console, flagForDyanmicModeVar):
-    rillgen = Rillgen2d(
+def main(imagePath, console, flagfordyanmicmodeVar):
+    rillgen = rillgen2d(
         imagePath,
         console,
-        flagForDyanmicModeVar
+        flagfordyanmicmodeVar
     )
     convert_geotiff_to_txt(Path(imagePath).stem, console)
     t1 = Thread(target=rillgen.generate_color_ramp,

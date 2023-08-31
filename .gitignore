@@ -3,7 +3,7 @@
 /test
 /.streamlit
 /.devcontainer
-/__pycache__
+__pycache__/
 # Prerequisites
 *.d
 

@@ -3,9 +3,7 @@ import PIL
 import os
 # Change the shell to the expected directory
 import streamlit.components.v1 as components
-import multiprocessing, logging
-logger = multiprocessing.log_to_stderr()
-logger.setLevel(multiprocessing.SUBDEBUG)
+
 
 from pathlib import Path
 # Threading makes sense here, since C code doesn't have global interpreter lock?
@@ -14,12 +12,10 @@ import streamlit as st
 import time
 MAIN_DIRECTORY = Path(__file__).parent.parent
 os.chdir(MAIN_DIRECTORY)
+
 from rillgen2d import Rillgen2d
 from parameters.Parameters import Parameters
 from utils import get_image_from_url, extract_geotiff_from_tarfile
-
-
-st.set_page_config(page_title="Rillgen2d", page_icon=None, layout="wide", initial_sidebar_state="auto", menu_items=None)
 
 
 def reset_session_state():
@@ -77,14 +73,12 @@ class Frontend:
         self.params = st.session_state.parameters
         self.rillgen2d = st.session_state.rillgen2d
 
-
     
     @exception_wrapper
     def generate_parameters_callback(self):
         path = MAIN_DIRECTORY / "tmp"
         if path.exists():
             shutil.rmtree(path.as_posix())
-        print(Path().cwd()) 
         os.mkdir(MAIN_DIRECTORY / "tmp")
         path = st.session_state.imagePathInput
         if path.startswith("http"):
@@ -114,7 +108,6 @@ class Frontend:
 
     def getMask(self, filepath):
         # TODO Figure out input for filepath
-        print(self.params.mask_flag)
         if self.params.get_value("mask_flag"):
             try:
                 maskfile = Path(filepath)
@@ -194,7 +187,6 @@ class Frontend:
         if params.get_value("mask_flag") == 1:
             self.getMask(params.get_associated_filepath("mask_flag"))
         params.writeParametersToFile(MAIN_DIRECTORY / "tmp" / "input.txt")
-        print(self.rillgen2d.__repr__)
         # if self.rillgen2d.ident: 
         #     st.session_state.rillgen2d = Rillgen2d(self.param, st.session_state.console)
         self.rillgen2d.start()
@@ -228,7 +220,7 @@ class Frontend:
     def display_map(self):
         """Display the raster map """
         with st.container():
-            components.html(Path("./map.html").read_text(),
+            components.html(Path(MAIN_DIRECTORY / "tmp/map.html").read_text(),
                             height=600)
             st.button(
                 "Save Output", key="saveButton",
@@ -258,11 +250,14 @@ class Frontend:
             else:
                 self.display_console()
                 self.display_preview()
-                if Path("./map.html").exists() and "rillgen2d" in st.session_state and st.session_state.rillgen2d:
+                if Path(MAIN_DIRECTORY / "tmp/map.html").exists() and "rillgen2d" in st.session_state and st.session_state.rillgen2d:
                     self.display_map()
         if self.app_is_running():
             time.sleep(.5)
             st.experimental_rerun()
 
-app = Frontend()
-app.main_page()
+
+if __name__ == "__main__":
+    st.set_page_config(page_title="Rillgen2d", page_icon=None, layout="wide", initial_sidebar_state="auto", menu_items=None)
+    app = Frontend()
+    app.main_page()

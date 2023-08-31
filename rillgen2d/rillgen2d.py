@@ -105,7 +105,7 @@ class Rillgen2d(Process):
         self.run_command("rm " + filename + "_dem.asc")
     
     
-    def run(self, image_path):
+    def run(self):
         self.image_path = self.params.image_path
         os.chdir(self.temporary_directory)
         self.convert_geotiff_to_txt(Path(self.image_path).stem)
@@ -176,7 +176,7 @@ class Rillgen2d(Process):
         self.console.put("Setting up Rillgen")
         mode = 1
         self.console.put("Hydroilic correction step in progress")
-        self.x(
+        self.run_command(
             "awk '{print $3}' " + self.image_path.stem + ".asc > topo.txt"
         )
         self.run_command(
@@ -371,7 +371,6 @@ class Rillgen2d(Process):
         # Open existing dataset
         self.console.put("GDAL converting .tif to .txt...")
         self.console.put("Filename is: " + Path(filename).name)
-        print(filename)
         src_ds = gdal.Open(filename)
         band = src_ds.GetRasterBand(1)
 

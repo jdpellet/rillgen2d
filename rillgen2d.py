@@ -26,8 +26,11 @@ import folium
 import osgeo
 import PIL
 
-# Apparently this API is supposed to be internal atm and seems to rapidly change without documentation between upadtes
+# Apparently this API is supposed to be internal atm and seems to rapidly change without documentation between updates
+#
+# update pillow to accept large images
 PIL.Image.MAX_IMAGE_PIXELS = 933120000
+
 # multiprocessing might be good instead, depending on the function
 
 """This is the main rillgen2d file which handles the gui and communicates with console.py
@@ -35,7 +38,7 @@ and rillgen.c in order to perform the rillgen calculations"""
 
 
 class rillgen2d():
-    def __init__(self, imagePath, queueObject, flagfordynamicVar):
+    def __init__(self, imagePath, queueObject):
         """Initializing the tkinter application and its tabs.
         The PyQt5 Application must go where it can be initialized
         only once in order to avoid bugs; otherwise the garbage
@@ -48,9 +51,8 @@ class rillgen2d():
         self.dimensions = None  # These are the dimensions of the input file that the user chooses
         # socket for the connection between rillgen2d.py and console.py; client socket
         self.rillgen = None  # Used to import the rillgen.c code
-
         self.img1 = None
-        self.flagfordynamicVar = flagfordynamicVar
+        #self.flagformodeVar = False
         # figure that will preview the image via rasterio
 
         """We only want the first tab for now; the others appear in order after the 
@@ -101,18 +103,21 @@ class rillgen2d():
         self.console.put("Hillshade and color relief generated\n")
         gtif = None
 
-        #self.generate_color_ramp(self.filename, 1)
+        self.generate_color_ramp(self.filename, 1)
 
     def make_popup(self, mode):
         if mode == 1:
-            self.console.put("hydrologic correction step in progress")
+            self.console.put("C code Hydrologic correction step in progress")
         else:
-            self.console.put("dynamic mode in progress")
+            self.console.put("C code Dynamic mode activated, in progress")
 
-    def setup_rillgen(self):
+    def setup_rillgen(self, console):
         """Sets up files for the rillgen.c code by creating topo.txt and xy.txt, and
         imports the rillgen.c code using the CDLL library"""
-        self.console.put("Setting up Rillgen")
+        self.console.put("Setting up RillGen2d")
+        # compile the c file so that it will be useable later
+        cmd = "gcc -Wall -shared -fPIC ./rillgen2d.c -o rillgen.so"
+        console.put(str(subprocess.check_output(cmd, shell=True), "UTF-8"))
         mode = 1
         self.make_popup(mode)
         cmd0 = "awk '{print $3}' " + self.imagePath.stem + ".asc > topo.txt"
@@ -124,48 +129,21 @@ class rillgen2d():
                 str(Path.cwd().parent / 'rillgen.so'))
         t1 = Thread(target=self.run_rillgen)
         t1.start()
-        still_update = True
-        while still_update:
-            if mode == 1:
-                currentPercentage = self.rillgen.hydrologic_percentage()
-            else:
-                currentPercentage = self.rillgen.dynamic_percentage()
-            if currentPercentage == 0:
-                time.sleep(0.5)
-            elif currentPercentage > 0 and currentPercentage < 100:
-                self.console.put(currentPercentage)
-                time.sleep(0.5)
-            else:
-                self.console.put(100)
-                if mode == 1 and self.flagfordynamicVar == 1:
-                    mode = 2
-                    self.console.put("Hydrologic correction step completed.")
-                    currentPercentage = 0
-                    self.console.put("Starting dynamic mode...")
-                    self.make_popup(mode)
-                else:
-                    if self.flagfordynamicVar == 1:
-                        self.console.put(
-                            "Dynamic mode completed. Creating outputs...")
-                    else:
-                        self.console.put(
-                            ("Hydrologic correction step completed. Creating outputs..."))
-                    still_update = False
         t1.join()
 
     def run_rillgen(self):
         """Runs the rillgen.c library using the CDLL module"""
-        self.console.put("Running Rillgen")
+        self.console.put("Running RillGen2d")
         self.rillgen.main()
         cmd4 = "paste xy.txt tau.txt > xy_tau.txt"
         self.run_command(cmd4)
-        cmd5 = "paste xy.txt f.txt > xy_f.txt"
+        cmd5 = "paste xy.txt f1.txt > xy_f1.txt"
         self.run_command(cmd5)
+        cmd6 = "paste xy.txt f2.txt > xy_f2.txt"
+        self.run_command(cmd6)
 
     def populate_view_output_tab(self):
-        """Populate the third tab with tkinter widgets. The third tab allows
-        the user to generate a folium map based on the rillgen output
-        and also allows them to preview the image hillshade and color relief"""
+        """Creates a Folium Leaflet map and populates the View Output tab with it"""
         self.canvas3bg = PIL.Image.open(
             Path.cwd().as_posix() + "/hillshade.png")
         self.canvas3fg = PIL.Image.open(
@@ -175,7 +153,6 @@ class rillgen2d():
         self.bgcpy = self.bgcpy.convert("RGBA")
         self.fgcpy = self.fgcpy.convert("RGBA")
         self.alphablended = PIL.Image.blend(self.bgcpy, self.fgcpy, alpha=.4)
-        # some tkinter versions do not support .png images
         self.console.put("Preview Complete")
         return self.generate_map()
 
@@ -185,7 +162,7 @@ class rillgen2d():
             str(subprocess.check_output(command, shell=True), "UTF-8"))
 
     def set_georeferencing_information(self):
-        """Sets the georeferencing information for f.tif and tau.tif (and incised depth.t if self.flagfordynamicVar==1) to be the same as that
+        """Sets the georeferencing information for f1.tif f2.tif and tau.tif (and incised depth.t if self.flagformodeVar==1) to be the same as that
         from the original geotiff file"""
 
         self.console.put("Setting georeferencing information\n")
@@ -206,14 +183,18 @@ class rillgen2d():
         tgt_srs = src_srs.CloneGeogCS()
 
         self.geo_ext = self.ReprojectCoords(ext, src_srs, tgt_srs)
-        cmd0 = "gdal_translate xy_tau.txt tau.tif"
+        cmd0 = "gdal_translate -f GTiff xy_tau.txt tau.tif -co TILED=YES -co COMPRESS=DEFLATE -co COPY_SRC_OVERVIEWS=YES -co COG=YES"
         self.run_command(cmd0)
-        t1 = Thread(target=self.generate_color_ramp("tau.tif", 2))
-        t1.start()
-        cmd1 = "gdal_translate xy_f.txt f.tif"
-        self.run_command(cmd1)
-        t2 = Thread(target=self.generate_color_ramp("f.tif", 3))
-        t2.start()
+        #t2 = Thread(target=self.generate_color_ramp("tau.tif", 2))
+        #t2.start()
+        cmd1 = "gdal_translate -f GTiff xy_f1.txt f1.tif -co TILED=YES -co COMPRESS=DEFLATE -co COPY_SRC_OVERVIEWS=YES -co COG=YES"
+        #self.run_command(cmd1)
+        #t3 = Thread(target=self.generate_color_ramp("f1.tif", 3))
+        #t3.start()
+        cmd2 = "gdal_translate -f GTiff xy_f2.txt f2.tif -co TILED=YES -co COMPRESS=DEFLATE -co COPY_SRC_OVERVIEWS=YES -co COG=YES"
+        self.run_command(cmd2)
+        #t4 = Thread(target=self.generate_color_ramp("f2.tif", 3))
+        #t4.start()
         projection = ds.GetProjection()
         geotransform = ds.GetGeoTransform()
 
@@ -222,7 +203,7 @@ class rillgen2d():
                 "No projection or geotransform found on file" + str(self.filename))
             sys.exit(1)
 
-        for elem in ["tau.tif", "f.tif", "inciseddepth.tif"]:
+        for elem in ["tau.tif", "f1.tif", "f2.tif", "inciseddepth.tif"]:
             if (Path.cwd() / elem).exists():
                 ds2 = gdal.Open(elem, gdal.GA_Update)
                 if ds2 is None:
@@ -243,27 +224,34 @@ class rillgen2d():
                 if elem == "tau.tif":
                     self.console.put(
                         ("Translating tau.tif to .png\n\n"))
-                    cmd2 = "gdal_translate -a_nodata 255 -ot Byte -of PNG " + \
+                    cmd3 = "gdal_translate -a_nodata 255 -ot Byte -of PNG " + \
                         elem.split(sep='.')[0] + ".tif " + \
                         elem.split(sep='.')[0] + ".png"
-                elif elem == "f.tif":
+                elif elem == "f1.tif":
                     self.console.put(
-                        "Translating f.tif to .png\n\n")
-                    cmd2 = "gdal_translate -a_nodata 255 -ot Byte -scale 0 0.1 -of PNG " + \
+                        "Translating f1.tif to .png\n\n")
+                    cmd3 = "gdal_translate -a_nodata 255 -ot Byte -scale 0 0.1 -of PNG " + \
                         elem.split(sep='.')[0] + ".tif " + \
                         elem.split(sep='.')[0] + ".png"
+                elif elem == "f2.tif":
+                    self.console.put(
+                        "Translating f2.tif to .png\n\n")
+                    cmd3 = "gdal_translate -a_nodata 255 -ot Byte -scale 0 0.1 -of PNG " + \
+                        elem.split(sep='.')[0] + ".tif " + \
+                        elem.split(sep='.')[0] + ".png"    
                 else:
                     self.console.put(
                         ("Translating inciseddepth.tif to .png\n\n"))
-                    cmd2 = "gdal_translate -a_nodata 255 -ot Byte -of PNG " + \
+                    cmd3 = "gdal_translate -a_nodata 255 -ot Byte -of PNG " + \
                         elem.split(sep='.')[0] + ".tif " + \
                         elem.split(sep='.')[0] + ".png"
-                self.run_command(cmd2)
+                self.run_command(cmd3)
             ds2 = None
 
         ds = None
-        t1.join()
-        t2.join()
+        #t2.join()
+        #t3.join()
+        #t4.join()
         self.console.put("Georeferencing complete\n")
         self.convert_ppm()
         self.console.put("Success!\n")
@@ -331,11 +319,13 @@ class rillgen2d():
         return self.m
 
 def generate_input_txt_file(
-        flagforequationVar,
-        flagfordynamicmodeVar,
+        flagformodeVar,
+        flagforroutingmethodVar,
+        flagforsheerstressequationVar,
         flagformaskVar,
         flagfortaucsoilandvegVar,
         flagford50Var,
+        flagforrockthicknessVar, 
         flagforrockcoverVar,
         fillincrementVar,
         minslopeVar,
@@ -343,36 +333,43 @@ def generate_input_txt_file(
         yellowthresholdVar,
         lattice_size_xVar,
         lattice_size_yVar,
-        deltaXVar,
-        noDataVar,
-        smoothingLengthVar,
+        deltaxVar,
+        nodataVar,
+        smoothinglengthVar,
+        manningsnVar,
+        depthweightfactorVar,
+        numberofslicesVar,
+        numberofsweepsVar,
         rainVar,
-        taucSoilAndVegeVar,
+        taucsoilandvegeVar,
         d50Var,
-        rockCoverVar,
-        tanAngleOfInternalFrictionVar,
+        rockthicknessVar,
+        rockcoverVar,
+        tanangleofinternalfrictionVar,
         bVar,
         cVar,
-        rillWidthVar,
+        rillwidthcoefficientVar,
+        rillwidthexponentVar,
         console
 ):
     """Generate the input.txt file using the flags from the second tab.
 
     There are then helper functions, the first of which runs the rillgen.c script
-    in order to create xy_f.txt and xy_tau.txt (and xy_inciseddepth.txt if flagfordynamicmodeVar==1)
+    in order to create xy_f.txt and xy_tau.txt (and xy_inciseddepth.txt if flagformodeVar==1)
 
     The second helper function then sets the georeferencing information from the original
-    geotiff file to xy_f.txt and xy_tau.txt (and xy_inciseddepth.txt if flagfordynamicmodeVar==1) in order to generate f.tif and tau.tif"""
+    geotiff file to xy_f.txt and xy_tau.txt (and xy_inciseddepth.txt if flagformodeVar==1) in order to generate f1.tif and tau.tif"""
     path = Path.cwd() / 'input.txt'
     if path.exists():
         Path.unlink(path)
     path = Path.cwd()
     f = open('input.txt', 'w')
-    f.write(str(int(flagforequationVar)) + '\n')
-    f.write(str(int(flagfordynamicmodeVar)) + '\n')
+
+    # flag for enabling dynamic mode 
+    f.write(str(int(flagformodeVar)) + '\n')
     if (path / "dynamicinput.txt").exists():
         Path.unlink(path / "dynamicinput.txt")
-    if flagfordynamicmodeVar == 1:
+    if flagformodeVar == 1:
         if (path.parent / "dynamicinput.txt").exists():
             shutil.copyfile(path.parent / "dynamicinput.txt",
                             path / "dynamicinput.txt")
@@ -381,7 +378,13 @@ def generate_input_txt_file(
         else:
             console.put("dynamicinput.txt not found\n")
 
-# convert `mask.tif` to `mask.txt`
+    # flag for routing method
+    f.write(str(int(flagforroutingmethodVar))+'\n')
+
+    # flag for shear stress equation
+    f.write(str(int(flagforsheerstressequationVar))+'\n')
+
+    # create flag for mask
     f.write(str(int(flagformaskVar))+'\n')
     if flagformaskVar == 1:
         if (path / "mask.tif").exists():
@@ -390,48 +393,8 @@ def generate_input_txt_file(
         else:
             console.put("mask.tif not found\n")
             flagformaskVar = 0
-
-### convert `dynamicinput.tif` to `dynamicinput.txt`
-##    f.write(str(int(flagfordynamicinputVar))+'\n')
-##    if flagfordynamicinputVar == 1:
-##        if (path / "dynamicinput.tif").exists():
-##            convert_geotiff_to_txt("dynamicinput")
-##            console.put("dynamicinput.txt generated\n")
-##        else:
-##            console.put("dynamicinput.tif not found\n")
-##            flagfordynamicinputVar = 0
-##
-### convert `taucsoilandveg.tif` to `taucsoilandveg.txt`
-##    f.write(str(int(flagfortaucsoilandvegVar))+'\n')
-##    if flagfortaucsoilandvegVar == 1:
-##        if (path / "taucsoilandveg.tif").exists():
-##            convert_geotiff_to_txt("taucsoilandveg")
-##            console.put("taucsoilandveg.txt generated\n")
-##        else:
-##            console.put("taucsoilandveg.tif not found\n")
-##            flagfortaucsoilandvegVar = 0
-##
-### convert `d50.tif` to `d50.txt`
-##    f.write(str(int(flagford50Var))+'\n')
-##    if flagford50Var == 1:
-##        if (path / "d50.tif").exists():
-##            convert_geotiff_to_txt("d50")
-##            console.put("d50.txt generated\n")
-##        else:
-##            console.put("d50.tif not found\n")
-##            flagformaskVar = 0
-##
-### convert `rockcover.tif` to `rockcover.txt`
-##    f.write(str(int(flagforrockcoverVar))+'\n')
-##    if flagforrockcoverVar == 1:
-##        if (path / "rockcover.tif").exists():
-##            convert_geotiff_to_txt("rockcover")
-##            console.put("rockcover.txt generated\n")
-##        else:
-##            console.put("rockcover.tif not found\n")
-##            flagformaskVar = 0
-##
-# create flags for taucsoilandveg
+    
+    # create flags for taucsoilandveg
     f.write(str(int(flagfortaucsoilandvegVar))+'\n')
     if (path / "taucsoilandveg.txt").exists():
         Path.unlink(path / "taucsoilandveg.txt")
@@ -443,6 +406,8 @@ def generate_input_txt_file(
                 ("taucsoilandveg.txt found and copied to inner directory\n\n"))
         else:
             console.put("taucsoilandveg.txt not found\n")
+    
+    # d50 flag 
     f.write(str(int(flagford50Var))+'\n')
     if (path / "d50.txt").exists():
         Path.unlink(path / "d50.txt")
@@ -454,6 +419,21 @@ def generate_input_txt_file(
         else:
             console.put(
                 ("d50.txt not found\n\n"))
+    
+    # rock thickness flag
+    f.write(str(int(flagforrockthicknessVar))+'\n')
+    if (path / "rockthickness.txt").exists():
+        path.unlink(path / "rockthickness.txt")
+    if int(flagforrockthicknessVar) == 1:
+        if (path.parent / "rockthickness.txt").exists():
+            shutil.copyfile(path.parent / "rockthickness.txt",
+                            path / "rockthickness.txt")
+            console.put(
+                "rockthickness.txt found and copied to inner directory\n\n")
+        else:
+            console.put("rockthickness.txt not found\n")
+    
+    # rockcover flag
     f.write(str(int(flagforrockcoverVar))+'\n')
     if (path / "rockcover.txt").exists():
         path.unlink(path / "rockcover.txt")
@@ -465,23 +445,54 @@ def generate_input_txt_file(
                 "rockcover.txt found and copied to inner directory\n\n")
         else:
             console.put("rockcover.txt not found\n")
+    
+    # fill increment
     f.write(str(fillincrementVar)+'\n')
+    # min slope
     f.write(str(minslopeVar)+'\n')
+    # expansion
     f.write(str(expansionVar)+'\n')
+    # yellow threshold
     f.write(str(yellowthresholdVar)+'\n')
+    # lattice size x
     f.write(str(lattice_size_xVar)+'\n')
+    # lattice size y
     f.write(str(lattice_size_yVar)+'\n')
-    f.write(str(deltaXVar)+'\n')
-    f.write(str(noDataVar)+'\n')
-    f.write(str(smoothingLengthVar)+'\n')
+    # delta x
+    f.write(str(deltaxVar)+'\n')
+    # nodata
+    f.write(str(nodataVar)+'\n')
+    # smoothing length
+    f.write(str(smoothinglengthVar)+'\n')
+    # mannings n
+    f.write(str(manningsnVar)+'\n')
+    # depth weight factor
+    f.write(str(depthweightfactorVar)+'\n')
+    # number of slices
+    f.write(str(numberofslicesVar)+'\n')
+    # number of sweeps
+    f.write(str(numberofsweepsVar)+'\n')
+    # rain
     f.write(str(rainVar)+'\n')
-    f.write(str(taucSoilAndVegeVar)+'\n')
+    # tau c soil and vegetation
+    f.write(str(taucsoilandvegeVar)+'\n')
+    # d50
     f.write(str(d50Var)+'\n')
-    f.write(str(rockCoverVar)+'\n')
-    f.write(str(tanAngleOfInternalFrictionVar)+'\n')
+    # rock thickness fixed
+    f.write(str(rockthicknessVar)+'\n')
+    # rock cover
+    f.write(str(rockcoverVar)+'\n')
+    # tan angle of internal friction
+    f.write(str(tanangleofinternalfrictionVar)+'\n')
+    # b
     f.write(str(bVar)+'\n')
+    # c
     f.write(str(cVar)+'\n')
-    f.write(str(rillWidthVar)+'\n')
+    # rill width coefficient
+    f.write(str(rillwidthcoefficientVar)+'\n')
+    # rill width exponent
+    f.write(str(rillwidthexponentVar)+'\n')
+    # print output
     console.put(("Generated input.txt\n"))
     f.close()
 
@@ -505,11 +516,8 @@ def save_image_as_txt(imagePath, console):
             shutil.copyfile(str(imagePath) + ".aux.xml",
                             str(path / imagePath.stem) + ".aux.xml")
         shutil.copyfile("input.txt", path / "input.txt")
-        """This portion compiles the rillgen2d.c file in order to import it as a module"""
 
-        # compile the c file so that it will be useable later
-        cmd = "gcc -Wall -shared -fPIC ./rillgen2d.c -o rillgen.so"
-        console.put(str(subprocess.check_output(cmd, shell=True), "UTF-8"))
+        """This portion compiles the rillgen2d.c file in order to import it as a module"""
 
         for fname in Path.cwd().iterdir():
             if fname.suffix == ".tif":
@@ -588,17 +596,15 @@ def save_output():
             shutil.copy(file_name, saveDir / file_name)
 
 
-def main(imagePath, console, flagfordyanmicmodeVar):
+def main(imagePath, console):
     rillgen = rillgen2d(
         imagePath,
-        console,
-        flagfordyanmicmodeVar
+        console
     )
     convert_geotiff_to_txt(Path(imagePath).stem, console)
-    t1 = Thread(target=rillgen.generate_color_ramp,
-                args=(rillgen.filename, 1))
-    t1.start()
+    #t5 = Thread(target=rillgen.generate_color_ramp, args=(rillgen.filename, 1))
+    #t5.start()
+    #t5.join()
     rillgen.setup_rillgen()
-    t1.join()
     rillgen.set_georeferencing_information()
     rillgen.populate_view_output_tab()

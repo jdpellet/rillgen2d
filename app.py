@@ -1,15 +1,11 @@
 import shutil
 import PIL
-from PIL import Image, ImageDraw, ImageFont
 import requests
 import os
 import tarfile
-
 from pathlib import Path
-
 # Threading makes sense here, since C code doesn't have global interpreter lock?
 from threading import Thread
-
 from queue import Queue
 import streamlit as st
 try:
@@ -17,7 +13,7 @@ try:
 except ModuleNotFoundError:
     os.chdir("..")
     import rillgen2d as rg2d
-import streamlit.components.v1 as components
+
 
 
 class App:
@@ -33,71 +29,93 @@ class App:
         if "imagePath" not in st.session_state:
             st.session_state.imagePath = None
 
+        self.get_parameter_values()
         self.initialize_parameter_fields()
 
     def initialize_parameter_fields(self, force=False):
         """
         Initialize the parameter fields to the correct types, set values to null
         """
-        if 'flagforequationVar' not in st.session_state or force:
-            st.session_state.flagforequationVar = True
-        if 'flagfordynamicmodeVar' not in st.session_state or force:
-            st.session_state.flagfordynamicmodeVar = False
-        if 'flagformaskVar' not in st.session_state or force:
+        if "flagformodeVar" not in st.session_state:
+            st.session_state.flagformodeVar = False
+        if "flagforroutingmethodVar" not in st.session_state:
+            st.session_state.flagforroutingmethodVar = 0
+        if "flagforsheerstressequationVar" not in st.session_state:    
+            st.session_state.flagforsheerstressequationVar = False
+        if "flagformaskVar" not in st.session_state:    
             st.session_state.flagformaskVar = False
+        if "flagfortaucsoilandvegVar" not in st.session_state:    
             st.session_state.flagfortaucsoilandvegVar = False
+        if "flagford50Var" not in st.session_state:    
             st.session_state.flagford50Var = False
+        if "flagforrockthicknessVar" not in st.session_state:    
+            st.session_state.flagforrockthicknessVar = False
             st.session_state.flagforrockcoverVar = False
-            st.session_state.fillIncrementVar = 0.0
-            st.session_state.minSlopeVar = 0.0
-            st.session_state.expansionVar = 0
-            st.session_state.yellowThresholdVar = 0.0
+            st.session_state.fillincrementVar = 0.01
+            st.session_state.minslopeVar = 0.03
+            st.session_state.expansionVar = 2
+            st.session_state.yellowthresholdVar = 1.25
             st.session_state.lattice_size_xVar = 0
             st.session_state.lattice_size_yVar = 0
-            st.session_state.deltaXVar = 0.0
-            st.session_state.noDataVar = 0
-            st.session_state.smoothingLengthVar = 0
-            st.session_state.rainVar = 0
+            st.session_state.deltaxVar = 0.5
+            st.session_state.nodataVar = -9999
+            st.session_state.smoothinglengthVar = 0
+            st.session_state.manningsnVar = 0.5
+            st.session_state.depthweightfactorVar = 0.6
+            st.session_state.numberofslicesVar = 10
+            st.session_state.numberofsweepsVar = 3
+            st.session_state.rainVar = 73
             st.session_state.taucsoilandvegeVar = 0
-            st.session_state.d50Var = 0.0
-            st.session_state.rockCoverVar = 0
-            st.session_state.tanAngleOfInternalFrictionVar = 0.0
-            st.session_state.bVar = 0
-            st.session_state.cVar = 0.0
-            st.session_state.rillWidthVar = 0.0
+            st.session_state.d50Var = 0.1
+            st.session_state.rockthicknessVar = 0.3
+            st.session_state.rockcoverVar = 1
+            st.session_state.tanangleofinternalfrictionVar = 0.6
+            st.session_state.bVar = 1
+            st.session_state.cVar = 0.87
+            st.session_state.rillwidthcoefficientVar = 1.5
+            st.session_state.rillwidthexponentVar = 0.3
             st.session_state.show_parameters = False
-
+    
     def get_parameter_values(self):
-        # we want to keep the values that a user optinally provides for reproducibility 
-        f = open('input.txt', 'r')
-        st.session_state.flagforequationVar = int(f.readline().strip())
-        st.session_state.flagfordynamicmodeVar = int(f.readline().strip())
-        st.session_state.flagformaskVar = int(f.readline().strip())
-        st.session_state.flagfortaucsoilandvegVar = int(f.readline().strip())
-        st.session_state.flagford50Var = int(f.readline().strip())
-        st.session_state.flagforrockcoverVar = int(f.readline().strip())
-        st.session_state.fillIncrementVar = float(f.readline().strip())
-        st.session_state.minSlopeVar = float(f.readline().strip())
-        st.session_state.expansionVar = int(f.readline().strip())
-        st.session_state.yellowThresholdVar = float(f.readline().strip())
-        # st.session_state.lattice_size_xVar = self.dimensions[1]
-        # st.session_state.lattice_size_yVar = self.dimensions[0]
-        f.readline()
-        f.readline()
-        st.session_state.deltaXVar = float(f.readline().strip())
-        st.session_state.noDataVar = int(f.readline().strip())
-        st.session_state.smoothingLengthVar = int(f.readline().strip())
-        st.session_state.rainVar = int(f.readline().strip())
-        st.session_state.taucsoilandvegeVar = int(f.readline().strip())
-        st.session_state.d50Var = float(f.readline().strip())
-        st.session_state.rockCoverVar = int(f.readline().strip())
-        st.session_state.tanAngleOfInternalFrictionVar = float(
-            f.readline().strip())
-        st.session_state.bVar = int(f.readline().strip())
-        st.session_state.cVar = float(f.readline().strip())
-        st.session_state.rillWidthVar = float(f.readline().strip())
-        st.session_state.show_parameters = True
-        f.close()
+    # Open the input.txt file for reading
+        with open('input.txt', 'r') as f:
+            def read_first_column():
+                return f.readline().split('\t')[0].strip()
+        # Use the helper function to read the values
+            st.session_state.flagformodeVar = int(read_first_column())
+            st.session_state.flagforroutingmethodVar = int(read_first_column())
+            st.session_state.flagforshearstressequationVar = int(read_first_column())
+            st.session_state.flagformaskVar = int(read_first_column())
+            st.session_state.flagfortaucsoilandvegVar = int(read_first_column())
+            st.session_state.flagford50Var = int(read_first_column())
+            st.session_state.flagforrockthickVar = int(read_first_column())
+            st.session_state.flagforrockcoverVar = int(read_first_column())
+            st.session_state.fillincrementVar = float(read_first_column())
+            st.session_state.minslopeVar = float(read_first_column())
+            st.session_state.expansionVar = int(read_first_column())
+            st.session_state.yellowthresholdVar = float(read_first_column())
+            # Skip the next two lines
+            f.readline()
+            f.readline()
+            st.session_state.deltaxVar = float(read_first_column())
+            st.session_state.nodataVar = int(read_first_column())
+            st.session_state.smoothinglengthVar = int(read_first_column())
+            st.session_state.manningsnVar = float(read_first_column())
+            st.session_state.depthweightfactorVar = float(read_first_column())
+            st.session_state.numberofslicesVar = int(read_first_column())
+            st.session_state.numberofsweepsVar = int(read_first_column())
+            st.session_state.rainVar = int(read_first_column())
+            st.session_state.taucsoilandvegeVar = int(read_first_column())
+            st.session_state.d50Var = float(read_first_column())
+            st.session_state.rockthicknessVar = float(read_first_column())
+            st.session_state.rockcoverVar = int(read_first_column())
+            st.session_state.tanangleofinternalfrictionVar = float(read_first_column())
+            st.session_state.bVar = int(read_first_column())
+            st.session_state.cVar = float(read_first_column())
+            st.session_state.rillwidthcoefficientVar = float(read_first_column())
+            st.session_state.rillwidthexponentVar = float(read_first_column())
+            st.session_state.show_parameters = True
+            f.close()
 
     def get_image_from_url(self, url):
         """Given the url of an image when a raster is generated or located online,
@@ -175,8 +193,7 @@ class App:
                 st.session_state.console.put("maskfile: is: " + str(maskfile))
             except Exception:
                 raise Exception("Invalid mask.tif file")
-
-    
+  
     def populate_parameters_tab(self):
         """Populate the second tab in the application with tkinter widgets. This tab holds editable parameters
         that will be used to run the rillgen2dwitherode.c script. lattice_size_x and lattice_size_y are read in from the
@@ -228,36 +245,48 @@ class App:
                     args=(
                         st.session_state.imagePath,
                         st.session_state.console,
-                        st.session_state.flagfordynamicmodeVar,
+                        #st.session_state.flagformodeVar,
                     ),
                     key="goButton1"
                 )
                 
                 # Open Map
 
-                # Flag for equation variable
-                st.checkbox(
-                    "Rock Armor Sheer Strength",
-                    value=st.session_state.flagforequationVar,
-                    disabled=not st.session_state.show_parameters,
-                    help="Default: checked, checked uses [Pelletier et al. (2021)]() equation, \
-                          unchecked implements the rock armor shear strength equation of [Haws and Erickson (2020)]()", 
-                    key="flagforequationVar"
-                )
-
-                # Flag for dynamic node variable
+                # Flag for dynamic mode variable
                 st.checkbox(
                     "Enable Dynamic Mode (optional)",
-                    value=st.session_state.flagfordynamicmodeVar,
+                    value=st.session_state.flagformodeVar,
                     disabled=not st.session_state.show_parameters,
                     help="Default: unchecked, checked requires file named `dynamicinput`, \
                             unchecked uses 'peak mode' with spatially uniform rainfall",
-                    key="flagfordynamicmodeVar"
+                    key="flagformodeVar"
                 )
-                if st.session_state.flagfordynamicmodeVar:
+                if st.session_state.flagformodeVar:
                     st.text_input("Path to required file named `dynamicinput`",
-                                  key="dynamicInputPath",
+                                  key="modeInputPath",
                                   help="Path to required file named `dynamicinput` as either `.tif` or `.txt`")
+
+                # Flag for routing method variable
+                # fill increment variable
+                st.number_input(
+                    "Routing Method (0,1,2)):",
+                    value=st.session_state.flagforroutingmethodVar,
+                    step=1,
+                    disabled=not st.session_state.show_parameters,
+                    help="Default: ",
+                    key="flagforroutingmethodVar"
+                )
+
+
+                # Flag for sheer strength equation variable
+                st.checkbox(
+                    "Rock Armor Sheer Strength",
+                    value=st.session_state.flagforsheerstressequationVar,
+                    disabled=not st.session_state.show_parameters,
+                    help="Default: checked, checked uses [Pelletier et al. (2021)]() equation, \
+                          unchecked implements the rock armor shear strength equation of [Haws and Erickson (2020)]()", 
+                    key="flagforsheerstressequationVar"
+                )
                 # Flag for mask variable
                 st.checkbox(
                     "Mask (optional)",
@@ -271,7 +300,7 @@ class App:
                 if st.session_state.flagformaskVar:
                     st.text_input("Path to required file named `mask`", key="maskPath")
 
-                # flagfortaucsoilandveg variable
+                # flag for taucsoilandveg variable
                 st.checkbox(
                     "Soil & Vegetation Layer (optional):",
                     value=st.session_state.flagfortaucsoilandvegVar,
@@ -286,6 +315,7 @@ class App:
                                   key="taucsoilandvegPath",
 
                                   help="Path to required file named `taucsoilandveg` as either `.tif` or `.txt`")
+                
                 # Flag for d50 variable
                 st.checkbox(
                     "Rock Armor Layer (optional):",
@@ -300,6 +330,22 @@ class App:
                                   key="d50InputPath",
 
                                   help="Path to required file named `d50` as either `.tif` or `.txt")
+                
+                # Flag for rock thickness variable
+                st.checkbox(
+                    "Rock Thickness (optional):",
+                    value=st.session_state.flagforrockthicknessVar,
+                    disabled=not st.session_state.show_parameters,
+                    help="Default: unchecked, checked requires file named `rockthickness`. If a raster (`rockthickness`) is provided \
+                          the model applies variable rock thickness fractions, unchecked means \
+                          a fixed rock thickness value will be used.",
+                    key="flagforrockthicknessVar",
+                )
+                if st.session_state.flagforrockthicknessVar:
+                    st.text_input("Path to required file named `rockthickness`",
+                                  key="rockthicknessInputPath",
+                                  help="Path to required file named `rockthickness` as either `.tif` or `.txt")
+
                 # Flag for rockcover
                 st.checkbox(
                     "Rock Cover (optional):",
@@ -312,25 +358,25 @@ class App:
                 )
                 if st.session_state.flagforrockcoverVar:
                     st.text_input("Path to required file named `rockcover`",
-                                  key="rockCoverPath",
+                                  key="rockcoverInputPath",
                                   help="Path to required file named `rockcover` as either `.tif` or `.txt")
 
-                # fillIncrement variable
+                # fill increment variable
                 st.number_input(
                     "Fill increment (m):",
-                    value=st.session_state.fillIncrementVar,
+                    value=st.session_state.fillincrementVar,
                     step=0.001,
                     format="%.3f",
                     disabled=not st.session_state.show_parameters,
                     help="Value in meters (m) used to fill pits and flats for the hydrologic correction step. \
                           `0.01` is a reasonable default value for lidar-based DEMs.",
-                    key="fillIncrementVar"
+                    key="fillincrementVar"
                 )
 
                 # minslope variable
                 st.number_input(
                     "Minimum Slope Angle (degrees):",
-                    value=st.session_state.minSlopeVar,
+                    value=st.session_state.minslopeVar,
                     step=0.001,
                     format="%.3f",
                     disabled=not st.session_state.show_parameters,
@@ -338,8 +384,9 @@ class App:
                           Setting this value larger than 0 is useful for eliminating runoff from \
                           portions of the landscape that the user expects are too flat to produce \
                           significant runoff.",
-                    key="minSlopeVar"
+                    key="minslopeVar"
                 )
+
                 # Expansion variable
                 st.number_input(
                     "Expansion (pixels):",
@@ -350,17 +397,18 @@ class App:
                           is predicted easier to see in the model output.",
                     key="expansionVar"
                 )
+
                 # yellowThreshold variable
                 st.number_input(
                     "Rilling Threshold (f):",
-                    value=st.session_state.yellowThresholdVar,
+                    value=st.session_state.yellowthresholdVar,
                     disabled=not st.session_state.show_parameters,
                     help="Threshold value of `f` used to indicate an area that is close to but \
                           less than the threshold for generating rills (yellow). The model will \
                           visualize any location with a `f` value between this value and 1 as \
                           potentially prone to rill generation (any area with a `f` value larger \
                           than 1 is considered prone to rill generation and is colored red).",
-                    key='yellowThresholdVar'
+                    key='yellowthresholdVar'
                 )
 
                 # Lattice_size_x variable
@@ -383,30 +431,67 @@ class App:
                 # Deltax variable
                 st.number_input(
                     "DEM Resolution (m)",
-                    value=st.session_state.deltaXVar,
+                    value=st.session_state.deltaxVar,
                     disabled=not st.session_state.show_parameters,
                     help="Resolution (m) $\Delta$X of the DEM is derived from the `.tif` file metadata. \
                           Review for accuracy, do not change unless something looks wrong.",
-                    key="deltaXVar"
+                    key="deltaxVar"
                 )
 
                 # Nodata variable
                 st.number_input(
                     "NoData (null)",
-                    value=st.session_state.noDataVar,
+                    value=st.session_state.nodataVar,
                     disabled=not st.session_state.show_parameters,
-                    help="the NoData null value of the DEM (m) which will be masked, defaults to `-9999`",
-                    key="noDataVar",
+                    help="the no data null value of the DEM (m) which will be masked, defaults to `-9999`",
+                    key="nodataVar",
                 )
 
-                # Smoothinglength variable
+                # Smoothing length variable
                 st.number_input(
                     "Smoothing Length (pixels)",
-                    value=st.session_state.smoothingLengthVar,
+                    value=st.session_state.smoothinglengthVar,
                     disabled=not st.session_state.show_parameters,
                     help="Length scale (pixels) for smoothing of the slope map. A length of 1 has no smoothing",
-                    key="smoothingLengthVar"
+                    key="smoothinglengthVar"
                 )
+
+                # Manning's n variable
+                st.number_input(
+                    "Manning's n (m^(1/3)/s)",
+                    value=st.session_state.manningsnVar,
+                    disabled=not st.session_state.show_parameters,
+                    help="Manning's N",
+                    key="manningsnVar"
+                )
+
+                # Depth weight factor variable
+                st.number_input(
+                    "Depth Weight Factor",
+                    value=st.session_state.depthweightfactorVar,
+                    disabled=not st.session_state.show_parameters,
+                    help="Depth weight factor",
+                    key="depthweightfactorVar"
+                )
+
+                # number of slices variable
+                st.number_input(
+                    "Number of Slices",
+                    value=st.session_state.numberofslicesVar,
+                    disabled=not st.session_state.show_parameters,
+                    help="Number of slices",
+                    key="numberofslicesVar"
+                )
+
+                # number of sweeps variable
+                st.number_input(
+                    "Number of Sweeps",
+                    value=st.session_state.numberofsweepsVar,
+                    disabled=not st.session_state.show_parameters,
+                    help="Number of sweeps",
+                    key="numberofsweepsVar"
+                )
+
                 # Rain fixed variable
                 st.number_input(
                     "Peak rainfall intensity (mm/hr).",
@@ -434,23 +519,35 @@ class App:
                     key="d50Var"
                 )
 
-                # Rockcover fixed variable
+                # Rock thickness fixed variable
+                st.number_input(
+                    "Rock Thickness (m)",
+                    value=st.session_state.rockthicknessVar,
+                    disabled=not st.session_state.show_parameters,
+                    help="This value depth of rock armor. \
+                          Defaults as 1 for continuous rock armors. \
+                          This value is ignored if flag for 'Rock Thickness' is checked above.",
+                    key="rockthicknessVar"
+                )
+
+                # Rock cover fixed variable
                 st.number_input(
                     "Rock Cover (ratio)",
-                    value=st.session_state.rockCoverVar,
+                    value=st.session_state.rockcoverVar,
                     disabled=not st.session_state.show_parameters,
                     help="This value indicates the fraction of area covered by rock armor. \
                           Will be 1 for continuous rock armors, <1 for partial rock cover. \
                           This value is ignored if flag for 'Rock Cover' is checked above.",
-                    key="rockCoverVar"
+                    key="rockcoverVar"
                 )
+                
                 # tanAngleOfInternalFriction fixed variable
                 st.number_input(
                     "Tangent of the angle of internal friction",
-                    value=st.session_state.tanAngleOfInternalFrictionVar,
+                    value=st.session_state.tanangleofinternalfrictionVar,
                     disabled=not st.session_state.show_parameters,
                     help="Values typically in the range of 0.5 to 0.8.",
-                    key="tanAngleOfInternalFrictionVar"
+                    key="tanangleofinternalfrictionVar"
                 )
 
                 # b variable
@@ -470,13 +567,22 @@ class App:
                     key="cVar"
                 )
 
-                # rillWidth variable
+                # rill width coefficient variable
                 st.number_input(
-                    "Rill Width (m)",
-                    value=st.session_state.rillWidthVar,
+                    "Rill Width Coefficient (m)",
+                    value=st.session_state.rillwidthcoefficientVar,
                     disabled=not st.session_state.show_parameters,
                     help="The width of rills (m) as they begin to form. This value is used to localize water flow to a width less than the width of a pixel. For example, if deltax = 1 m and rillwidth = 20 cm then the flow entering each pixel is assumed, for the purposes of rill development, to be localized in a width equal to one fifth of the pixel width.",
-                    key="rillWidthVar"
+                    key="rillwidthcoefficientVar"
+                )
+
+                # rill width exponent variable
+                st.number_input(
+                    "Rill Width Exponent (m)",
+                    value=st.session_state.rillwidthexponentVar,
+                    disabled=not st.session_state.show_parameters,
+                    help="The width of rills (m) as they begin to form. This value is used to localize water flow to a width less than the width of a pixel. For example, if deltax = 1 m and rillwidth = 20 cm then the flow entering each pixel is assumed, for the purposes of rill development, to be localized in a width equal to one fifth of the pixel width.",
+                    key="rillwidthexponentVar"
                 )
 
                 self.parameterButton = st.button(
@@ -492,13 +598,13 @@ class App:
                     args=(
                         st.session_state.imagePath,
                         st.session_state.console,
-                        st.session_state.flagfordynamicmodeVar,
+                        #st.session_state.flagformodeVar,
                     ),
                     key="goButton2"
                 )
 
                 st.caption('NOTE: The hydrologic correction step can take a long time if there are lots of depressions in the input DEM and/or if the'
-                           + ' landscape is very steep. RILLGEN2D can be sped up by increasing the value of "fillIncrement" or by performing the hydrologic correction step in a'
+                           + ' landscape is very steep. RILLGEN2D can be sped up by increasing the value of "fillincrement" or by performing the hydrologic correction step in a'
                            + ' different program (e.g., ArcGIS or TauDEM) prior to input into RILLGEN2D.')
         # The width of rills (in m) as they begin to form. This value is used to localize water flow to a width less than the width of a pixel.
         # For example, if deltax = 1 m and rillwidth = 20 cm then the flow entering each pixel is assumed, for the purposes of rill development, to be localized in a width equal to one fifth of the pixel width.
@@ -506,9 +612,10 @@ class App:
 
     def validate_file_paths(self):
         flag_path_pairs = [
-            ("flagfordynamicmodeVar", "dynamicInputPath"),
+            ("flagformodeVar", "modeInputPath"),
             ("flagford50Var", "d50InputPath"),
-            ("flagforrockcoverVar", "rockCoverPath"),
+            ("flagforrockthicknessVar", "rockthicknessInputPath"),
+            ("flagforrockcoverVar", "rockcoverInputPath"),
             ("flagfortaucsoilandvegVar", "taucsoilandvegPath"),
         ]
         valid_paths = True
@@ -544,56 +651,72 @@ class App:
         if path.exists():
             Path.unlink(path)
         f = open('parameters.txt', 'w+')
-        f.write(str(int(st.session_state.flagforequationVar)) +
-                '\t /* Flag for equation out */ \n')
-        f.write(str(int((st.session_state.flagfordynamicmodeVar))) +
-                '\t /* Flag for dynamicmode out */ \n')
+        f.write(str(int(st.session_state.flagformodeVar)) +
+                '\t /* Flag for mode out */ \n')
+        f.write(str(int(st.session_state.flagforroutingmethodVar)) +
+                '\t /* Flag for routing method out */ \n')
+        f.write(str(int((st.session_state.flagforsheerstressequationVar))) +
+                '\t /* Flag for sheer stress equation out */ \n')
         f.write(str(int(st.session_state.flagformaskVar)) +
                 '\t /* Flag for mask out */ \n')
         f.write(str(int(st.session_state.flagfortaucsoilandvegVar)) +
                 '\t /* Flag for taucsoilandveg out */ \n')
         f.write(str(int(st.session_state.flagford50Var)) +
                 '\t /* Flag for d50 out */ \n')
+        f.write(str(int(st.session_state.flagforrockthicknessVar)) +
+                '\t /* Flag for rockthickness out */ \n')
         f.write(str(int(st.session_state.flagforrockcoverVar)) +
                 '\t /* Flag for rockcover out */ \n')
         f.write(str(st.session_state.fillIncrementVar).replace(
-            "\n", "") + '\t /* fillIncrement out */ \n')
-        f.write(str(st.session_state.minSlopeVar).replace(
+            "\n", "") + '\t /* fillincrement out */ \n')
+        f.write(str(st.session_state.minslopeVar).replace(
             "\n", "") + '\t /* minslope out */ \n')
         f.write(str(st.session_state.expansionVar).replace(
             "\n", "") + '\t /* Expansion out */ \n')
-        f.write(str(st.session_state.yellowThresholdVar).replace(
+        f.write(str(st.session_state.yellowthresholdVar).replace(
             "\n", "") + '\t /* Yellow threshold out */ \n')
         f.write(str(st.session_state.lattice_size_xVar).replace(
             "\n", "") + '\t /* Lattice Size X out */ \n')
         f.write(str(st.session_state.lattice_size_yVar).replace(
             "\n", "") + '\t /* Lattice Size Y out */ \n')
-        f.write(str(st.session_state.deltaXVar).replace(
+        f.write(str(st.session_state.deltaxVar).replace(
             "\n", "") + '\t /* Delta X out */ \n')
-        f.write(str(st.session_state.noDataVar).replace(
+        f.write(str(st.session_state.nodataVar).replace(
             "\n", "") + '\t /* nodata out */ \n')
-        f.write(str(st.session_state.smoothingLengthVar).replace(
+        f.write(str(st.session_state.smoothinglengthVar).replace(
             "\n", "") + '\t /* smoothing length out */ \n')
+        f.write(str(st.session_state.manningsnVar).replace(
+            "\n", "") + '\t /* manningsn out */ \n')
+        f.write(str(st.session_state.depthweightfactorVar).replace(
+            "\n", "") + '\t /* depth weight factor out */ \n')
+        f.write(str(st.session_state.numberofslicesVar).replace(
+            "\n", "") + '\t /* number of slices out */ \n')
+        f.write(str(st.session_state.numberofsweepsVar).replace(
+            "\n", "") + '\t /* number of sweeps out */ \n')
         f.write(str(st.session_state.rainVar).replace(
             "\n", "") + '\t /* Rain out */ \n')
         f.write(str(st.session_state.taucsoilandvegeVar).replace(
             "\n", "") + '\t /* tauc soil and vege out */ \n')
         f.write(str(st.session_state.d50Var).replace(
             "\n", "") + '\t /* d50 out */ \n')
+        f.write(str(st.session_state.rockthicknessVar).replace(
+            "\n", "") + '\t /* rock thickness out */ \n')
         f.write(str(st.session_state.rockCoverVar).replace(
             "\n", "") + '\t /* rock cover out */ \n')
-        f.write(str(st.session_state.tanAngleOfInternalFrictionVar).replace(
+        f.write(str(st.session_state.tanangleofinternalfrictionVar).replace(
             "\n", "") + '\t /* tangent of the angle of internal friction out*/ \n')
         f.write(str(st.session_state.bVar).replace(
             "\n", "") + '\t /* b out */ \n')
         f.write(str(st.session_state.cVar).replace(
             "\n", "") + '\t /* c out */ \n')
-        f.write(str(st.session_state.rillWidthVar).replace(
-            "\n", "") + '\t /* rill width out */ \n')
+        f.write(str(st.session_state.rillwidthcoefficientVar).replace(
+            "\n", "") + '\t /* rill width coefficient out */ \n')
+        f.write(str.st_session_state.rillwidthexponentVar.replace(
+            "\n", "") + '\t /* rill width exponent out */ \n')
         st.success("Generated parameters.txt\n\n"+'\n'+"Click on Run Model\n")
         f.close()
 
-    def run_callback(self, imagePath, console, flagfordyanmicmodeVar):
+    def run_callback(self, imagePath, console):
         """Run callback"""
         no_error = True
         if not self.validate_file_paths():
@@ -608,47 +731,55 @@ class App:
         if not no_error:
             return
         rg2d.generate_input_txt_file(
-            st.session_state.flagforequationVar,
-            st.session_state.flagfordynamicmodeVar,
+            st.session_state.flagformodeVar,
+            st.session_state.flagforroutingmethodVar,
+            st.session_state.flagforsheerstressequationVar,
             st.session_state.flagformaskVar,
             st.session_state.flagfortaucsoilandvegVar,
             st.session_state.flagford50Var,
+            st.session_state.flagforrockthicknessVar,
             st.session_state.flagforrockcoverVar,
-            st.session_state.fillIncrementVar,
-            st.session_state.minSlopeVar,
+            st.session_state.fillincrementVar,
+            st.session_state.minslopeVar,
             st.session_state.expansionVar,
-            st.session_state.yellowThresholdVar,
+            st.session_state.yellowthresholdVar,
             st.session_state.lattice_size_xVar,
             st.session_state.lattice_size_yVar,
-            st.session_state.deltaXVar,
-            st.session_state.noDataVar,
-            st.session_state.smoothingLengthVar,
+            st.session_state.deltaxVar,
+            st.session_state.nodataVar,
+            st.session_state.smoothinglengthVar,
+            st.session_state.manningsnVar,
+            st.session_state.depthweightfactorVar,
+            st.session_state.numberofslicesVar,
+            st.session_state.numberofsweepsVar,
             st.session_state.rainVar,
             st.session_state.taucsoilandvegeVar,
             st.session_state.d50Var,
-            st.session_state.rockCoverVar,
-            st.session_state.tanAngleOfInternalFrictionVar,
+            st.session_state.rockthicknessVar,
+            st.session_state.rockcoverVar,
+            st.session_state.tanangleofinternalfrictionVar,
             st.session_state.bVar,
             st.session_state.cVar,
-            st.session_state.rillWidthVar,
+            st.session_state.rillwidthcoefficientVar,
+            st.session_state.rillwidthexponentVar,
             st.session_state.console
         )
 
         if st.session_state.rillgen2d is None or not st.session_state.rillgen2d.is_alive():
             st.session_state.rillgen2d = Thread(
-                target=rg2d.main, args=(imagePath, console, flagfordyanmicmodeVar))
+                target=rg2d.main, args=(imagePath, console))
             st.session_state.rillgen2d.start()
 
 # update display of the bash console
 # change the color of the background of display_console to black
     def display_console(self):
-        """Update the console with the latest 4 messages"""
+        """Update the console with the latest 6 messages"""
         while not st.session_state.console.empty():
             message = st.session_state.console.get()
             if message:
                 st.session_state.console_log.append(message)
         with st.expander("Terminal", True):
-            for line in st.session_state.console_log[-5:-1:1]:
+            for line in st.session_state.console_log[-7:-1:1]:
                 st.write(line)
             st.markdown(
             """
@@ -678,7 +809,7 @@ class App:
     def display_map(self):
         """Display the raster map """
         with st.container():
-            components.html(Path("./map.html").read_text(),
+            st.components.html(Path("./map.html").read_text(),
                             height=500, width=700)
             st.button(
                 "Save Output", key="saveButton",
@@ -701,7 +832,7 @@ class App:
             st.warning("Output file not found at " + output_path)
         else:
             with st.container():
-                components.html((Path(output_path) / "map.html").read_text())
+                st.components.html((Path(output_path) / "map.html").read_text())
 
     def app_is_running(self):
         return \

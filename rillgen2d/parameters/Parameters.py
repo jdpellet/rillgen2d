@@ -18,15 +18,14 @@ class Parameters:
         self.add_parameter(
             OptionField(
                 name="mode", 
-                display_name="Mode", 
+                display_name="Enable Dynamic Mode (optional)", 
                 conditional_field=[
                     EmptyField(),
                     FileField(
                         display_name="Variable Input",
                         name="variableinput.txt",
                         help=(
-                            "A raster file with the same dimensions as the DEM," 
-                            + " with 1s where you want to mask and 0s where you don't"
+                            "Path to required file named `dynamicinput` as either `.tif` or `.txt`"
                         ),
                         value="",
                         comment="",
@@ -37,7 +36,8 @@ class Parameters:
                     "Static Uniform Rainfall with Simple Outputs", 
                     "Rainfall Variable in Space and/or Time and Complex Outputs"
                 ],
-                help="ASK ABOUT WHAT TO INCLUDE IN THE HELP FOR NEW VARIABLES",
+                help="Default: unchecked, checked requires file named `dynamicinput`, \
+                            unchecked uses 'peak mode' with spatially uniform rainfall",
             )
         )
         
@@ -57,11 +57,12 @@ class Parameters:
         #0=HawsandErickson(2020),1=Pelletieretal(inpress))
         self.add_parameter(
             OptionField(
+                display_name="Rock Armor Sheer Strength",
                 name="shear_stress_equation_flag",
                 value=1,
                 comment="Flag_for_shear_stress_equation.0=HawsandErickson(2020),1=Pelletieretal(inpress)",
-                help="",
-                display_name="Sheer Stress Equation Flag",
+                help="Default: uses [Pelletier et al. (2021)]() equation, \
+                     Other option implements the rock armor shear strength equation of [Haws and Erickson (2020)]()",
                 options=["Haws and Erickson (2020)", "Pelletier et al. (in press)"],
             )
         )
@@ -70,16 +71,17 @@ class Parameters:
         self.add_parameter(
             CheckBoxField(
                 name="mask_flag",
-                display_name="Mask Flag",
+                display_name="Mask (optional)",
                 value=0,
                 comment="Flag_for_mask.0=nomask,1=mask",
-                help="",
+                help="Default: unchecked, checked requires file named `mask`. If a raster (`mask`) is provided, \
+                        the run restricts the model to certain portions of the input DEM \
+                        (`mask values = 1` means run the model, `0` means ignore these areas).",
                 conditional_field=FileField(
-                    display_name="Mask File",
+                    display_name="Path to required file named `mask`",
                     name="mask.tif",
                     help=(
-                        "A raster file with the same dimensions as the DEM," + 
-                        "with 1s where you want to mask and 0s where you don't"
+                       ""
                     ),
                     comment="",
                     value="",
@@ -89,15 +91,18 @@ class Parameters:
 
         self.add_parameter(
             CheckBoxField(
+                display_name="Soil & Vegetation Layer (optional)",
                 name = "tauc_soil_and_veg_flag",
                 value=0,
                 comment="Flag_for_tauc_soil_and_veg._0=fixed,1=rasterprovided",
-                help="",
-                display_name="Tauc Soil and Vegetation Flag",
+                help="Default: unchecked,checked requires file named `taucsoilandveg`. If a raster `taucsoilandveg` \
+                    is provided the model applies the shear strength of soil and veg, \
+                    unchecked means a fixed value will be used.",
+
                 conditional_field=FileField(
                     name="tauc_filepath",
-                    display_name="Tauc Soil and Vegetation Raster filepath",
-                    help="",
+                    display_name="Path to required file named `taucsoilandveg`",
+                    help="Path to required file named `taucsoilandveg` as either `.tif` or `.txt`",
                 ),
             )
         )
@@ -107,12 +112,13 @@ class Parameters:
                 name = "d50_flag",
                 value = 0, 
                 comment = "Flag_for_d50._0=fixed,1=rasterprovided",
-                help="",
-                display_name="d50 Flag",
+                help="Default: unchecked, checked requires file named `d50`. If a raster `d50` is provided the model \
+                          applies the median rock diameter, unchecked means a fixed value will be used.",
+                display_name="Rock Armor Layer (optional):",
                 conditional_field=FileField(
-                    display_name="d50 File",
+                    display_name="Path to required file named `d50`",
                     name="d50_filepath",
-                    help="A raster file with the same dimensions as the DEM, with 1s where you want to mask and 0s where you don't",
+                    help="Path to required file named `d50` as either `.tif` or `.txt",
                 )
             )
         )
@@ -122,12 +128,14 @@ class Parameters:
                 name="rock_thickness_flag",
                 value=0,
                 comment="Flag_for_rock_thickness._0=fixed,1=rasterprovided",
-                help="",
-                display_name="Rock Thickness Flag",
+                help="Default: unchecked, checked requires file named `rockthickness`. If a raster (`rockthickness`) is provided \
+                          the model applies variable rock thickness fractions, unchecked means \
+                          a fixed rock thickness value will be used.",
+                display_name="Rock Thickness (optional):",
                 conditional_field=FileField(
-                    display_name="Rock Thickness Raster File",
+                    display_name="Path to required file named `rockthickness`",
                     name="rock_thickness_filepath",
-                    help="",
+                    help="Path to required file named `rockthickness` as either `.tif` or `.txt",
                 )
             )
         )
@@ -137,12 +145,14 @@ class Parameters:
                 name="rock_cover_flag",
                 value=0,
                 comment="Flag_for_rock_cover._0=fixed,1=rasterprovided",
-                help="",
-                display_name="Rock Cover Flag",
+                help="Default: unchecked, checked requires file named `rockcover`. If a raster (`rockcover`) is provided \
+                          the model applies the rock cover fraction, unchecked means \
+                          a fixed value  will be used.",
+                display_name="Rock Cover (optional):",
                 conditional_field=FileField(
                     display_name="Path to rock cover raster",
                     name="rock_cover_filepath",
-                    help="",
+                    help="Path to required file named `rockcover` as either `.tif` or `.txt",
                 )
             )
         )
@@ -152,9 +162,12 @@ class Parameters:
             NumericField(
                 name="fill_increment",
                 value=.01,
+                step=.001,
+                format="%.3f",
                 comment="Fill_increment_(meters)",
-                help="",
-                display_name="Fill Increment",
+                help="Value in meters (m) used to fill pits and flats for the hydrologic correction step. \
+                        `0.01` is a reasonable default value for lidar-based DEMs.",
+                display_name="Fill increment (m):",
             )
         )
         #meter per meter
@@ -162,9 +175,14 @@ class Parameters:
             NumericField(
                 name="min_slope",
                 value=.01,
+                step=0.001,
+                format="%.3f",
                 comment="_Minimum_slope_(meter per meter)",
-                help="",
-                display_name="Minimum Slope"
+                help="Value used to halt runoff from areas below a threshold slope steepness. \
+                      Setting this value larger than 0 is useful for eliminating runoff from \
+                      portions of the landscape that the user expects are too flat to produce \
+                      significant runoff.",
+                display_name="Minimum Slope Angle (degrees):"
             )
         )
         # pixels
@@ -173,8 +191,10 @@ class Parameters:
                 name="expansion",
                 value=1,
                 comment="Expansion_(pixels)",
-                help="",
-                display_name="Expansion"
+                help="Value (pixels) used to expand the zone where rills are predicted in \
+                      the output raster. This is useful for making the areas where rilling \
+                      is predicted easier to see in the model output.",
+                display_name="Expansion (pixels):"
             )
         )
         
@@ -183,8 +203,12 @@ class Parameters:
                 name="yellow_threshold",
                 value=.1,
                 comment="Yellow_threshold",
-                help="",
-                display_name="Yellow Threshold"
+                help="Threshold value of `f` used to indicate an area that is close to but \
+                          less than the threshold for generating rills (yellow). The model will \
+                          visualize any location with a `f` value between this value and 1 as \
+                          potentially prone to rill generation (any area with a `f` value larger \
+                          than 1 is considered prone to rill generation and is colored red).",
+                display_name="Rilling Threshold (f):"
             )
         )
         # Don't initialize these, till we know the size of the image
@@ -213,8 +237,9 @@ class Parameters:
                 name="delta_x",
                 value=1,
                 comment="Delta_x",
-                help="",
-                display_name='$\Delta$ x',
+                help="Resolution (m) $\Delta$X of the DEM is derived from the `.tif` file metadata. \
+                          Review for accuracy, do not change unless something looks wrong.",
+                display_name='DEM Resolution (m)',
             )
         )
         
@@ -223,8 +248,8 @@ class Parameters:
                 name="no_data_value", 
                 value=-9999, 
                 comment="No_data_value",
-                help="",
-                display_name="No Data Value",
+                help="the no data null value of the DEM (m) which will be masked, defaults to `-9999",
+                display_name="NoData (null)",
             )
         )
         #pixels
@@ -233,8 +258,8 @@ class Parameters:
                 name= "smoothing_length",
                 value=1, 
                 comment="Smoothing_length_(pixels)",
-                help="",
-                display_name="Smoothing Length",
+                help="Length scale (pixels) for smoothing of the slope map. A length of 1 has no smoothing",
+                display_name="Smoothing Length (pixels)",
             )
         )
         #m^(1/3)/s
@@ -243,9 +268,9 @@ class Parameters:
             NumericField(
                 name="manningsn",
                 value=.01,
-                comment="Manningsn_(m^(1/3)/s)",
+                comment="Manning's N",
                 help="",
-                display_name="Manningsn"
+                display_name=r"Manning's N (m^(1/3))/(s))'"
             )
 
         )
@@ -256,7 +281,7 @@ class Parameters:
                 value=.01,
                 comment="Depth_weight_factor",
                 help="",
-                display_name="Depth_Weight_Factor"
+                display_name="Depth Weight Factor"
             )
         )
         self.add_parameter(
@@ -284,8 +309,8 @@ class Parameters:
                 name="rain_fixed",
                 value=1,
                 comment="Rain_fixed_(mm/hr)",
-                help="",
-                display_name="Rain Fixed"
+                help="Uniform rainfall used in 'peak' mode. This value is ignored if 'Enable Dynamic Mode' flag is checked above.",
+                display_name="Peak rainfall intensity (mm/hr)"
             )
         )
         self.add_parameter( 
@@ -293,8 +318,8 @@ class Parameters:
                 name="tauc_soil_and_veg",
                 value=1,
                 comment="Tauc_soil_and_vegetation",
-                help="",
-                display_name="Tauc Soil and Vegetation"
+                help="Tau C for soil and vegetation",
+                display_name="Threshold shear stress for soil and vegetation (Pa)"
             )
         )
         
@@ -304,8 +329,8 @@ class Parameters:
                 name="d50_fixed",
                 value=.01,
                 comment="D50_fixed_(meters)",
-                help="",
-                display_name="D50 Fixed",
+                help="This value is ignored if Rock Armor Flag (`d50`) is checked above.",
+                display_name="Median rock armor diameter (mm)",
             )
         )
         # meters
@@ -314,8 +339,10 @@ class Parameters:
                 name="rock_thickness_fixed",
                 value=.01,
                 comment="Rock_thickness_fixed_(meters)",
-                help="",
-                display_name="Rock Thickness Fixed"
+                help="This value depth of rock armor. \
+                          Defaults as 1 for continuous rock armors. \
+                          This value is ignored if flag for 'Rock Thickness' is checked above.",
+                display_name="Rock Thickness (m)"
             )
         )
 
@@ -324,8 +351,10 @@ class Parameters:
                 name="rock_cover_fixed",
                 value=1,
                 comment="Rock_cover_fixed",
-                help="",
-                display_name="Rock Cover Fixed"
+                help="This value indicates the fraction of area covered by rock armor. \
+                          Will be 1 for continuous rock armors, <1 for partial rock cover. \
+                          This value is ignored if flag for 'Rock Cover' is checked above.",
+                display_name="Rock Cover (ratio)"
             )
         )
         self.add_parameter(
@@ -333,8 +362,8 @@ class Parameters:
                 name="tan_angle_of_internal_friction",
                 value=.01,
                 comment="Tan_angle_of_internal_friction",
-                help="",
-                display_name ="Tan Angle of Internal Friction"
+                help="Values typically in the range of 0.5 to 0.8.",
+                display_name ="Tangent of the angle of internal friction"
             )
          )
 
@@ -344,8 +373,8 @@ class Parameters:
                 name="b",
                 value=1,
                 comment="b(2*(1-c))",
-                help="",
-                display_name="B",
+                help="This value is the coefficient in the model component that predicts the relationship between runoff and contributing area.",
+                display_name="Coefficient of runoff to contributing area (b)",
             )
         )
         
@@ -354,8 +383,8 @@ class Parameters:
                 name="c", 
                 value=.01,
                 comment="c", 
-                help="", 
-                display_name="c", 
+                help="This value is the exponent in the model component that predicts the relationship between runoff and contributing area.", 
+                display_name="Exponent of runoff to contributing area (c)", 
             )
         )
         # meters
@@ -364,8 +393,8 @@ class Parameters:
                 name="rill_width_coefficient",
                 value=.01, 
                 comment="Rill_width_coefficient_(meters)",
-                help="",   
-                display_name="Rill Width Coefficient",
+                help="The width of rills (m) as they begin to form. This value is used to localize water flow to a width less than the width of a pixel. For example, if deltax = 1 m and rillwidth = 20 cm then the flow entering each pixel is assumed, for the purposes of rill development, to be localized in a width equal to one fifth of the pixel width.",   
+                display_name="Rill Width Coefficient (m)",
             )
         )
         
@@ -373,9 +402,9 @@ class Parameters:
             NumericField(
                 name="rill_width_exponent",
                 value=.01,
-                help="",
+                help="The width of rills (m) as they begin to form. This value is used to localize water flow to a width less than the width of a pixel. For example, if deltax = 1 m and rillwidth = 20 cm then the flow entering each pixel is assumed, for the purposes of rill development, to be localized in a width equal to one fifth of the pixel width.",
                 comment="Rill_width_exponent",
-                display_name="Rill Width Exponent"
+                display_name="Rill Width Exponent (m)t"
             )
         )
 
@@ -411,10 +440,6 @@ class Parameters:
             self.get_attribute_object(attribute).draw()
         
         
-        
-    def get_associated_filepath(self, attribute):
-        cur_obj = self.get_attribute_object(attribute)
-    
 
     
     def get_value(self, attribute):
@@ -435,7 +460,6 @@ class Parameters:
                 self.get_attribute_object(attribute).comment = comment
             line = line[0]
             cur_obj = self.get_attribute_object(attribute)
-            print(cur_obj.name)
             self.get_attribute_object(attribute).value = type(cur_obj.value)((line))
 
         file.close()

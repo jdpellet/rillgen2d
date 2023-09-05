@@ -1,4 +1,0 @@
-folium
-matplotlib
-rasterio
-PyQt5

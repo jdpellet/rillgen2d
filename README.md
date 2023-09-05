@@ -35,12 +35,20 @@ cd C:\path\to\rillgen2d
 Run the following commands to create adn activate the conda environment
 
 ```powershell
+# Create a temporary conda env in which to install mamba (installing in base can run into permissions issues)
+conda create -n base2 mamba -c conda-forge -y
+
+# Activate the temporary environment
+conda activate base2
 
 # create environment for rillgen2d
-conda env create -f environment_windows.yml
+mamba env create -f environment_windows.yml
 
 # activate conda environment
-conda activate rillgen2d
+mamba activate rillgen2d
+
+# Remove the temp env (if you want)
+conda env remove -n base2
 
 ```
 
@@ -60,7 +68,7 @@ Once the Python environment has been created and activated, you can start the GU
 ```powershell
 
 streamlit run rillgen2dApp.py
-
+# You will be prompted to create a streamlit account, you can just hit enter to skip this step
 ```
 
 [Search localhost:5000 on your preferred browser](http://localhost:5000/)
@@ -114,7 +122,7 @@ streamlit run rillgen2dApp.py
 
 ## Download Source Code
 
-The RillGen2D uses a combination of opensource python libraries for visualization in the Graphic User Interface (GUI). To install these tools we recommend that you use the `conda` environment and package manager. 
+The RillGen2D uses a combination of opensource python libraries for visualization in the Graphic User Interface (GUI). To install these tools we recommend that you use the `conda` environment and package manager.
 
 First, download the latest `.zip` or `.tar.gz` from our [Releases](https://github.com/tyson-swetnam/rillgen2d/releases)
 
@@ -124,7 +132,7 @@ First, download the latest `.zip` or `.tar.gz` from our [Releases](https://githu
 
 [Source Code Linux/MacOSX v0.2 tar.gz](https://github.com/tyson-swetnam/rillgen2d/archive/refs/tags/0.2.tar.gz)
 
-Next, unpack the Zip or Tar file and put them somewhere you can find them from the command prompt or terminal. 
+Next, unpack the Zip or Tar file and put them somewhere you can find them from the command prompt or terminal.
 
 If you want to pull from source, clone this repository to your local computer:
 
@@ -136,9 +144,6 @@ cd rillgen2d
 ```
 
 The `main` branch has the latest features. The `develop` branch is where testing is taking place.
-
-## Data
-Rillgen2d runs on
 
 ## Debugging
 

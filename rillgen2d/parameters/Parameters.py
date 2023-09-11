@@ -14,6 +14,7 @@ class Parameters:
         # Initializing variables to the correct types and associated useful information
         # 0=staticuniformrainfallwithsimpleoutputs,1=rainfallvariableinspaceand/ortimeandcomplexoutputs)
         self.image_path = ""
+        self.file_fields = []
         #Mode probably needs more custom behavior in the acutal paramters
         self.add_parameter(
             OptionField(
@@ -23,12 +24,13 @@ class Parameters:
                     EmptyField(),
                     FileField(
                         display_name="Variable Input",
-                        name="variableinput.txt",
+                        name="variableinput",
                         help=(
                             "Path to required file named `dynamicinput` as either `.tif` or `.txt`"
                         ),
                         value="",
                         comment="",
+                        filename="variableinput.txt",
                     )
                 ],
                 value=1, 
@@ -67,7 +69,6 @@ class Parameters:
             )
         )
 
-        #TODO maybe we don't need to have a checkbox for this
         self.add_parameter(
             CheckBoxField(
                 name="mask_flag",
@@ -79,12 +80,10 @@ class Parameters:
                         (`mask values = 1` means run the model, `0` means ignore these areas).",
                 conditional_field=FileField(
                     display_name="Path to required file named `mask`",
-                    name="mask.tif",
-                    help=(
-                       ""
-                    ),
+                    filename="mask.txt",
                     comment="",
                     value="",
+                    name="mask_filepath",
                 )
             )
         )
@@ -103,6 +102,7 @@ class Parameters:
                     name="tauc_filepath",
                     display_name="Path to required file named `taucsoilandveg`",
                     help="Path to required file named `taucsoilandveg` as either `.tif` or `.txt`",
+                    filename="taucsoilandveg.txt",
                 ),
             )
         )
@@ -119,6 +119,7 @@ class Parameters:
                     display_name="Path to required file named `d50`",
                     name="d50_filepath",
                     help="Path to required file named `d50` as either `.tif` or `.txt",
+                    filename="d50.txt"
                 )
             )
         )
@@ -136,6 +137,7 @@ class Parameters:
                     display_name="Path to required file named `rockthickness`",
                     name="rock_thickness_filepath",
                     help="Path to required file named `rockthickness` as either `.tif` or `.txt",
+                    filename="rockthickness.txt"
                 )
             )
         )
@@ -153,10 +155,10 @@ class Parameters:
                     display_name="Path to rock cover raster",
                     name="rock_cover_filepath",
                     help="Path to required file named `rockcover` as either `.tif` or `.txt",
+                    filename="rockcover.txt"
                 )
             )
         )
-        #TODO REMOVE DEFAULT ARG OR FIGURE OUT SOMETHING SMARTER. INPUT_FIELD_TYPE FEELS AWKWARD
         #meters
         self.add_parameter(
             NumericField(
@@ -417,36 +419,24 @@ class Parameters:
         setattr(self, field.name, field)
 
     def mutable_input_fields(self):
-        non_input_fields = ["lattice_size_x", "lattice_size_y"]
         return [
-            field for field in self.order_of_attributes if field not in non_input_fields
+            field for field in self.order_of_attributes if not isinstance(field, StaticParameter)
         ]
     
     def parametersAsArray(self):
         return [self.get_value(attribute) for attribute in self.order_of_attributes]
     
-    def getEnabledFilePaths(self):
-        return [
-            self.get_attribute_object(attribute).get_value() for attribute in self.order_of_attributes
-            if isinstance(
-                self.get_attribute_object(attribute),
-                (FileField, OptionField, CheckBoxField,)
-            ) and isinstance(self.get_attribute_object(attribute).get_value(), str)
-        ]
     
     def draw_fields(self):
         st.table({"Lattice Size X:": self.get_value("lattice_size_x"), "Lattice Size Y:": self.get_value("lattice_size_y")})
         for attribute in self.order_of_attributes:
-            self.get_attribute_object(attribute).draw()
-        
-        
+            self.get_parameter(attribute).draw()
 
-    
     def get_value(self, attribute):
         return getattr(self, attribute).get_value()
     
     # Helper to clarify the type of the attribute
-    def get_attribute_object(self, attribute):
+    def get_parameter(self, attribute):
         return getattr(self, attribute)
     
     def getParametersFromFile(self, filename):
@@ -457,25 +447,37 @@ class Parameters:
             line = file.readline().strip().split()
             if len(line) > 1:
                 comment = line[1]
-                self.get_attribute_object(attribute).comment = comment
+                self.get_parameter(attribute).comment = comment
             line = line[0]
-            cur_obj = self.get_attribute_object(attribute)
-            self.get_attribute_object(attribute).value = type(cur_obj.value)((line))
-
+            cur_obj = self.get_parameter(attribute)
+            self.get_parameter(attribute).value = type(cur_obj.value)((line))
         file.close()
     
     def writeParametersToFile(self, path, comment=True):
         file = open(path, "w")
         sum_of_length_of_comments = 0
         for attribute in self.order_of_attributes:
-            current_attr_obj = self.get_attribute_object(attribute)
+            current_attr_obj = self.get_parameter(attribute)
             sum_of_length_of_comments += len(current_attr_obj.comment)
-
             string = \
                     str(current_attr_obj.get_value()) + "\t" + "_".join(current_attr_obj.comment.strip().split(" "))+ "\n" \
                     if comment else \
                     str(current_attr_obj.value) + "\n"
- 
-                
             file.write(string)
         file.close()
+    
+    def validate(self):
+        errors = []
+        for attribute in self.order_of_attributes:
+            error = self.get_parameter(attribute).validate()
+            if error:
+                errors.append(error)
+        return errors
+    
+    def copy_files_to_dir(self, path):
+        for attribute in self.order_of_attributes:
+            checkbox = self.get_parameter(attribute)
+            if isinstance(checkbox, (OptionField, CheckBoxField)) and checkbox.get_inner_type() == FileField:
+                file_parameter = checkbox.get_inner_parameter()
+                filepath = file_parameter.filename
+                shutil.copy(file_parameter.get_value(), path / filepath)

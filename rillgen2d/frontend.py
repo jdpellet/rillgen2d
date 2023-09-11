@@ -127,17 +127,16 @@ class Frontend:
             st.warning("Failed to save output")
 
     def getMask(self, filepath):
-        # TODO Figure out input for filepath
-        if self.params.get_value("mask_flag"):
-            try:
-                maskfile = Path(filepath)
-                if maskfile.suffix == ".tar" or maskfile.suffix == ".gz":
-                    maskfile = extract_geotiff_from_tarfile(maskfile, Path.cwd())
-
-                shutil.copyfile(maskfile, Path.cwd() / "mask.tif")
-                st.session_state.console.put("maskfile: is: " + str(maskfile))
-            except Exception:
-                raise Exception("Invalid mask.tif file")
+        print(filepath)
+        try:
+            maskfile = Path(filepath)
+            if maskfile.suffix == ".tar" or maskfile.suffix == ".gz":
+                maskfile = extract_geotiff_from_tarfile(maskfile, Path.cwd())
+            shutil.copyfile(maskfile, MAIN_DIRECTORY / "tmp/mask.txt")
+            st.session_state.console.put("maskfile: is: " + str(maskfile))
+        except Exception as e:
+            print(e)
+            raise Exception("Invalid mask.tif file")
 
     def populate_parameters_tab(self):
         """
@@ -152,12 +151,12 @@ class Frontend:
             st.button("View Output Directory", key="view_output_button")
             return
         
-        "https://data.cyverse.org/dav-anon/iplant/home/elliothagyard/geoSpatialTiffFiles/2mb.tif"
+
         st.header("Input DEM")
         st.text_input(
             "Load DEM (`.tif`) from Web URL (`https://`)",
             key="imagePathInput1",
-            value="",
+            value=        "https://data.cyverse.org/dav-anon/iplant/home/elliothagyard/geoSpatialTiffFiles/2mb.tif",
             help="Load valid raster (`.tif`) from a URL (`https://`), the file will be downloaded",
             on_change=reset_session_state,
         ),
@@ -178,7 +177,6 @@ class Frontend:
         st.button(
             "Run Rillgen2d",
             on_click=self.run_callback,
-            args=(self.params,),
             disabled= self.params.display_parameters is False and self.app_is_running() is False
         )
         st.caption(
@@ -193,31 +191,20 @@ class Frontend:
         # The width of rills (in m) as they begin to form. This value is used to localize water flow to a width less than the width of a pixel.
         # For example, if deltax = 1 m and rillwidth = 20 cm then the flow entering each pixel is assumed, for the purposes of rill development, to be localized in a width equal to one fifth of the pixel width.
         ########################### ^MAIN TAB^ ###########################
+        
 
-    def validate_file_paths(self):
-        invalid_files = []
-        for path in self.params.getEnabledFilePaths():
-            if not Path(path).exists():
-                invalid_files.append(path)
-        if invalid_files:
-            raise FileNotFoundError(
-                f"The following filepaths are invalid: {invalid_files}"
-            )
-
-    @exception_wrapper
-    def run_callback(self, params):
+    def run_callback(self):
         """Run Rillgen2d"""
-        invalid_paths = []
-        for path in self.params.getEnabledFilePaths():
-            if not Path(path).exists():
-                invalid_paths.append(path)
-        if invalid_paths:
-            raise FileNotFoundError(
-                f"The following filepaths are invalid: {invalid_paths}"
-            )
-        if params.get_value("mask_flag") == 1:
-            self.getMask(params.get_associated_filepath("mask_flag"))
-        params.writeParametersToFile(MAIN_DIRECTORY / "tmp" / "input.txt")
+        errors = self.params.validate()
+        if errors:
+            for error in errors:
+                st.error(error)
+            return
+        print("here")
+        self.params.copy_files_to_dir(MAIN_DIRECTORY / "tmp")
+        if self.params.get_value("mask_flag") == 1:
+            self.getMask(self.params.get_parameter("mask_flag").get_inner_value())
+        self.params.writeParametersToFile(MAIN_DIRECTORY / "tmp" / "input.txt")
         # if self.rillgen2d.ident:
         #     st.session_state.rillgen2d = Rillgen2d(self.param, st.session_state.console)
         self.rillgen2d.start()

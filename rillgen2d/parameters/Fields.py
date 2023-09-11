@@ -5,7 +5,7 @@ import streamlit as st
 from pathlib import Path
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
-from typing import Any, Union, List, Dict, Optional
+from typing import Any, Union, List, Dict, Optional, Callable
 
 """
     Class handling the parameters for the model, and reading/creating input.txt
@@ -26,6 +26,9 @@ class Field(ABC):
     @abstractmethod
     def validate(self):
         raise NotImplementedError("validate method not implemented")
+    
+    def get_inner_type(self):
+        return type(self)
 
 
 @dataclass(kw_only=True)
@@ -49,7 +52,7 @@ class EmptyField(Field):
         pass
 
     def get_value(self):
-        return super().get_value()
+        return self.value
 
     def validate(self):
         pass
@@ -78,12 +81,27 @@ class OptionField(BaseField):
             self.conditional_field[self.options.index(self.output)].draw()
 
     def validate(self):
-        if self.conditional_field[self.output]:
-            self.options[self.output].validate()
+        if self.conditional_field:
+            err = self.conditional_field[self.options.index(self.output)].validate()
+            if err:
+                err+= f" for '{self.display_name}'"
+            return err
         return super().validate()
+    
+    def get_inner_value(self):
+        out = self.get_inner_parameter()
+        return out.get_inner_value() if out else None
+    
+    def get_inner_type(self):
+        out = self.get_inner_parameter()
+        return out.get_inner_type() if out else None
+    
+    def get_inner_parameter(self):
+        if self.output and self.conditional_field:
+            return self.conditional_field[self.options.index(self.output)]
+        else:
+            return None
 
-    def get_value(self):
-        return self.options.index(self.output)
 
 
 @dataclass(kw_only=True)
@@ -106,16 +124,35 @@ class CheckBoxField(BaseField):
             self.conditional_field.draw()
 
     def validate(self):
+        if self.output and self.conditional_field:
+            err = self.conditional_field.validate()
+            if err:
+                err += f" for {self.display_name}"
+            return err
         return super().validate()
 
     def get_value(self):
         return int(self.output)
+    
+    def get_inner_value(self):
+        out = self.get_inner_parameter()
+        return out.get_inner_value() if out else None
+    
+    def get_inner_type(self):
+        out = self.get_inner_parameter()
+        return out.get_inner_type() if out else None
+    
+    def get_inner_parameter(self):
+        if self.output and self.conditional_field:
+            return self.conditional_field
+        else:
+            return None
 
 
 @dataclass(kw_only=True)
 class FileField(BaseField):
-    path: str = ""
     output: st.text_input = None
+    filename : str = None
 
     def draw(self):
         self.output = st.text_input(
@@ -125,8 +162,14 @@ class FileField(BaseField):
         )
 
     def validate(self):
-        if not Path(FileField.output).exists:
-            raise FileNotFoundError(f"File {FileField.output} does not exist")
+        if not Path(self.output).is_file() or not self.output:
+            return f"File {self.output} does not exist"
+        return super().validate()
+    
+    def get_value(self):
+        return self.output
+        
+
 
 
 @dataclass(kw_only=True)
@@ -134,9 +177,7 @@ class NumericField(BaseField):
     output: st.number_input = None
     step: float | int = None
     format: str = None
-    
-    
-    
+
     def draw(self):
         self.output = st.number_input(
             self.display_name,

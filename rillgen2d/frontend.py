@@ -1,62 +1,28 @@
 import shutil
 import PIL
 import os
-
-# Change the shell to the expected directory
-import streamlit.components.v1 as components
-
-
-from pathlib import Path
-
-# Threading makes sense here, since C code doesn't have global interpreter lock?
-import multiprocessing as mp
-import streamlit as st
 import time
 
+import streamlit.components.v1 as components
+from pathlib import Path
+import multiprocessing as mp
+import streamlit as st
+
+#Change directory to the root of the project before doing relative imports
 MAIN_DIRECTORY = Path(__file__).parent.parent
 os.chdir(MAIN_DIRECTORY)
 
 from rillgen2d import Rillgen2d
 from parameters.Parameters import Parameters
-from utils import get_image_from_url, extract_geotiff_from_tarfile
+#TODO switch to prefixing with utils. to improve traceability
+from utils import (
+    get_image_from_url, 
+    extract_geotiff_from_tarfile, 
+    reset_session_state, 
+    exception_wrapper
+)
 
 
-def reset_session_state():
-    """
-    Clear the session state, and delete the tmp directory.
-    Only called when handling exceptions
-    """
-    path = MAIN_DIRECTORY / "tmp"
-    if path.exists():
-        shutil.rmtree(path.as_posix())
-    for key in st.session_state:
-        if key == "imagePathInput1" or key == "imagePathInput2":
-            continue
-        del st.session_state[key]
-
-
-def exception_wrapper(callback):
-    """
-    Broad error handling for callbacks. This is probably a terrible way to do this
-    """
-
-    def wrapper(*args, **kwargs):
-        try:
-            callback(*args, **kwargs)   
-        #TODO Add more specific exceptions. This seems like obviously practice
-        except Exception as e:
-            print(e)
-            st.error(e)
-            st.error(
-                str(type(e).__name__)
-            )
-            # TypeError
-            st.error( str(__file__))
-    
-            if st.session_state.rillgen2d is not None and st.session_state.rillgen2d.is_alive():
-                st.session_state.rillgen2d.join()
-            reset_session_state()
-    return wrapper
 
 
 class Frontend:
@@ -125,6 +91,13 @@ class Frontend:
             st.success("Successfully saved output to " + str(outDir))
         else:
             st.warning("Failed to save output")
+    
+    def stop_callback(self):  
+        #TODO check if queue can become corrupted
+        self.rillgen2d.terminate()
+        del st.session_state.rillgen2d
+        del st.session_state.parameters
+        st.session_state.display_parameters = False
 
     def getMask(self, filepath):
         print(filepath)
@@ -167,18 +140,26 @@ class Frontend:
             help="Load valid DEM raster (`.tif`) in the same directory as `rillgen2d.py` or use a full path (e.g., `C:/yourname/Downloads/rasters/dem.tif`, or `/Users/yourname/Downloads/rasters/dem.tif`)",
             on_change=reset_session_state,
         )
+
         # If I switch to the file upload look at this for rasterio docs on in memoroy files: https://rasterio.readthedocs.io/en/latest/topics/memory-files.html
         st.button(
             "Generate Parameters",
             on_click=self.generate_parameters_callback,
             key="genParameter",
+            disabled= self.app_is_running() is True
         )
-
-        st.button(
-            "Run Rillgen2d",
-            on_click=self.run_callback,
-            disabled= self.params.display_parameters is False and self.app_is_running() is False
-        )
+        if not self.app_is_running():
+            st.button(
+                "Run Rillgen2d",
+                on_click=self.run_callback,
+                disabled= self.params.display_parameters is False
+            )
+        else:
+            st.button(
+                "Stop Rillgen2d",
+                key="stopRillgen",
+                on_click=self.stop_callback,
+            )
         st.caption(
             "NOTE: The hydrologic correction step can take a long time if there are lots of depressions in the input DEM and/or if the"
             + ' landscape is very steep. RILLGEN2D can be sped up by increasing the value of "fillIncrement" or by performing the hydrologic correction step in a'
@@ -186,7 +167,7 @@ class Frontend:
         )
         # TODO this feels awkward and requires a lot of metadata to be stored in params object, maybe figure out a better way for this
         if self.params.display_parameters:
-            self.params.draw_fields()
+            self.params.draw_fields(disabled=self.app_is_running())
 
         # The width of rills (in m) as they begin to form. This value is used to localize water flow to a width less than the width of a pixel.
         # For example, if deltax = 1 m and rillwidth = 20 cm then the flow entering each pixel is assumed, for the purposes of rill development, to be localized in a width equal to one fifth of the pixel width.
@@ -241,6 +222,14 @@ class Frontend:
                     PIL.Image.open( MAIN_DIRECTORY / "tmp/hillshade.png"),
                     caption="Hillshade generated from expected DEM raster")
 
+    def display_outputs(self):
+        if st.session_state.has_run_once is False:
+            return
+        self.display_preview()
+        map = MAIN_DIRECTORY / "tmp/map.html"
+        if map.exists() and "rillgen2d" in st.session_state and st.session_state.rillgen2d:
+            self.display_map()
+            self.display_tau()
 
     # display the Leaflet Folium Map
     def display_map(self):
@@ -272,10 +261,11 @@ class Frontend:
                 components.html((Path(output_path) / "map.html").read_text())
 
     def app_is_running(self):
-        return \
-            "rillgen2d" in st.session_state \
-            and st.session_state.rillgen2d\
+        return (
+            "rillgen2d" in st.session_state 
+            and st.session_state.rillgen2d
             and st.session_state.rillgen2d.is_alive()
+        )
 
     def main_page(self):
         """Main page of the app."""
@@ -288,10 +278,7 @@ class Frontend:
                 self.view_output(st.session_state.output_path)
             else:
                 self.display_console()
-                self.display_preview()
-                if Path(MAIN_DIRECTORY / "tmp/map.html").exists() and "rillgen2d" in st.session_state and st.session_state.rillgen2d:
-                    self.display_map()
-                    self.display_tau()
+
 
         if self.app_is_running():
             time.sleep(0.5)

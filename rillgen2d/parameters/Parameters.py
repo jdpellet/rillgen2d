@@ -427,10 +427,10 @@ class Parameters:
         return [self.get_value(attribute) for attribute in self.order_of_attributes]
     
     
-    def draw_fields(self):
+    def draw_fields(self, disabled):
         st.table({"Lattice Size X:": self.get_value("lattice_size_x"), "Lattice Size Y:": self.get_value("lattice_size_y")})
         for attribute in self.order_of_attributes:
-            self.get_parameter(attribute).draw()
+            self.get_parameter(attribute).draw(disabled)
 
     def get_value(self, attribute):
         return getattr(self, attribute).get_value()

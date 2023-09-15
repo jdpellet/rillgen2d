@@ -16,7 +16,7 @@ class Field(ABC):
     """Interface for the parameter fields"""
 
     @abstractmethod
-    def draw(self):
+    def draw(self, disabled):
         pass
 
     @abstractmethod
@@ -48,7 +48,7 @@ class BaseField(Field):
 
 @dataclass(kw_only=True)
 class EmptyField(Field):
-    def draw(self):
+    def draw(self, disabled):
         pass
 
     def get_value(self):
@@ -68,7 +68,7 @@ class OptionField(BaseField):
     def _callback(self):
         self.value = 0
 
-    def draw(self):
+    def draw(self, disabled):
         self.output = st.selectbox(
             label=self.display_name,
             options=self.options,
@@ -76,9 +76,10 @@ class OptionField(BaseField):
             # help=self.help,
             # key=self.name,
             on_change=self._callback,
+            disabled=disabled,
         )
         if self.conditional_field:
-            self.conditional_field[self.options.index(self.output)].draw()
+            self.conditional_field[self.options.index(self.output)].draw(disabled)
 
     def validate(self):
         if self.conditional_field:
@@ -114,14 +115,15 @@ class CheckBoxField(BaseField):
         if self.output and self.conditional_field:
             self.conditional_field.draw()
 
-    def draw(self):
+    def draw(self, disabled):
         self.output = st.checkbox(
             self.display_name,
             help=self.help,
             key=self.name,
+            disabled=disabled,
         )
         if self.output and self.conditional_field:
-            self.conditional_field.draw()
+            self.conditional_field.draw(disabled)
 
     def validate(self):
         if self.output and self.conditional_field:
@@ -154,11 +156,12 @@ class FileField(BaseField):
     output: st.text_input = None
     filename : str = None
 
-    def draw(self):
+    def draw(self, disabled):
         self.output = st.text_input(
             self.display_name,
             help=self.help,
             key=self.name,
+            disabled=disabled,
         )
 
     def validate(self):
@@ -178,7 +181,7 @@ class NumericField(BaseField):
     step: float | int = None
     format: str = None
 
-    def draw(self):
+    def draw(self, disabled):
         self.output = st.number_input(
             self.display_name,
             help=self.help,
@@ -186,12 +189,13 @@ class NumericField(BaseField):
             format=self.format,
             key=self.name,
             value=self.value,
+            disabled=disabled,
         )
 
 
 @dataclass(kw_only=True)
 class StaticParameter(BaseField):
-    def draw(self):
+    def draw(self, disabled):
         pass
 
     def get_value(self):

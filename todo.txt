@@ -1,0 +1,5 @@
+Testing on windows
+Save output 
+Readme/Tutorial
+Small maintainability fixes (commenting, type hinting, evaluate perf impact of multiprocessing, etc.)
+Packaging/Checking install process

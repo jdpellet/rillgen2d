@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import streamlit as st
 from pathlib import Path
-from dataclasses import dataclass
 from .Fields import Field, NumericField, FileField, OptionField, EmptyField, CheckBoxField, StaticParameter
 import shutil
 
-class Parameters: 
+
+class Parameters:
     def __init__(self):
         # Making this array so we can set attributes in a loop
         self.order_of_attributes = []
@@ -15,11 +15,11 @@ class Parameters:
         # 0=staticuniformrainfallwithsimpleoutputs,1=rainfallvariableinspaceand/ortimeandcomplexoutputs)
         self.image_path = ""
         self.file_fields = []
-        #Mode probably needs more custom behavior in the acutal paramters
+        # Mode probably needs more custom behavior in the acutal paramters
         self.add_parameter(
             OptionField(
-                name="mode", 
-                display_name="Enable Dynamic Mode (optional)", 
+                name="mode",
+                display_name="Enable Dynamic Mode (optional)",
                 conditional_field=[
                     EmptyField(),
                     FileField(
@@ -33,30 +33,30 @@ class Parameters:
                         filename="variableinput.txt",
                     )
                 ],
-                value=1, 
+                value=1,
                 options=[
-                    "Static Uniform Rainfall with Simple Outputs", 
+                    "Static Uniform Rainfall with Simple Outputs",
                     "Rainfall Variable in Space and/or Time and Complex Outputs"
                 ],
                 help="Default: unchecked, checked requires file named `dynamicinput`, \
                             unchecked uses 'peak mode' with spatially uniform rainfall",
             )
         )
-        
+
         # 0=MFD,1=depth-based,2=DInfinity
         self.add_parameter(
             OptionField(
-                display_name="Routing Method", 
+                display_name="Routing Method",
                 name="routing_method",
                 comment="Flag_for_outing_method._0=MFD,1=depth-based,2=DInfinity",
-                value=1, 
-                #TODO
+                value=1,
+                # TODO
                 help="",
                 options=["MFD", "Depth-based", "DInfinity"],
             )
         )
-        
-        #0=HawsandErickson(2020),1=Pelletieretal(inpress))
+
+        # 0=HawsandErickson(2020),1=Pelletieretal(inpress))
         self.add_parameter(
             OptionField(
                 display_name="Rock Armor Sheer Strength",
@@ -65,7 +65,8 @@ class Parameters:
                 comment="Flag_for_shear_stress_equation.0=HawsandErickson(2020),1=Pelletieretal(inpress)",
                 help="Default: uses [Pelletier et al. (2021)]() equation, \
                      Other option implements the rock armor shear strength equation of [Haws and Erickson (2020)]()",
-                options=["Haws and Erickson (2020)", "Pelletier et al. (in press)"],
+                options=["Haws and Erickson (2020)",
+                         "Pelletier et al. (in press)"],
             )
         )
 
@@ -91,7 +92,7 @@ class Parameters:
         self.add_parameter(
             CheckBoxField(
                 display_name="Soil & Vegetation Layer (optional)",
-                name = "tauc_soil_and_veg_flag",
+                name="tauc_soil_and_veg_flag",
                 value=0,
                 comment="Flag_for_tauc_soil_and_veg._0=fixed,1=rasterprovided",
                 help="Default: unchecked,checked requires file named `taucsoilandveg`. If a raster `taucsoilandveg` \
@@ -106,12 +107,12 @@ class Parameters:
                 ),
             )
         )
-        
+
         self.add_parameter(
             CheckBoxField(
-                name = "d50_flag",
-                value = 0, 
-                comment = "Flag_for_d50._0=fixed,1=rasterprovided",
+                name="d50_flag",
+                value=0,
+                comment="Flag_for_d50._0=fixed,1=rasterprovided",
                 help="Default: unchecked, checked requires file named `d50`. If a raster `d50` is provided the model \
                           applies the median rock diameter, unchecked means a fixed value will be used.",
                 display_name="Rock Armor Layer (optional):",
@@ -141,7 +142,7 @@ class Parameters:
                 )
             )
         )
-        
+
         self.add_parameter(
             CheckBoxField(
                 name="rock_cover_flag",
@@ -159,7 +160,7 @@ class Parameters:
                 )
             )
         )
-        #meters
+        # meters
         self.add_parameter(
             NumericField(
                 name="fill_increment",
@@ -172,7 +173,7 @@ class Parameters:
                 display_name="Fill increment (m):",
             )
         )
-        #meter per meter
+        # meter per meter
         self.add_parameter(
             NumericField(
                 name="min_slope",
@@ -199,7 +200,7 @@ class Parameters:
                 display_name="Expansion (pixels):"
             )
         )
-        
+
         self.add_parameter(
             NumericField(
                 name="yellow_threshold",
@@ -214,10 +215,10 @@ class Parameters:
             )
         )
         # Don't initialize these, till we know the size of the image
-        #TODO why should these be Static Fields vs just being stored in the object?
+        # TODO why should these be Static Fields vs just being stored in the object?
         self.add_parameter(
             StaticParameter(
-                name = "lattice_size_x",
+                name="lattice_size_x",
                 value=1,
                 comment="Lattice_size_x",
                 help="",
@@ -226,14 +227,14 @@ class Parameters:
         )
         self.add_parameter(
             StaticParameter(
-                name="lattice_size_y", 
-                value = 1, 
+                name="lattice_size_y",
+                value=1,
                 comment="Lattice_size_Y",
                 help="",
                 display_name="Lattice Size Y",
             )
         )
-        
+
         self.add_parameter(
             NumericField(
                 name="delta_x",
@@ -244,28 +245,28 @@ class Parameters:
                 display_name='DEM Resolution (m)',
             )
         )
-        
+
         self.add_parameter(
             NumericField(
-                name="no_data_value", 
-                value=-9999, 
+                name="no_data_value",
+                value=-9999,
                 comment="No_data_value",
                 help="the no data null value of the DEM (m) which will be masked, defaults to `-9999",
                 display_name="NoData (null)",
             )
         )
-        #pixels
+        # pixels
         self.add_parameter(
-            NumericField( 
-                name= "smoothing_length",
-                value=1, 
+            NumericField(
+                name="smoothing_length",
+                value=1,
                 comment="Smoothing_length_(pixels)",
                 help="Length scale (pixels) for smoothing of the slope map. A length of 1 has no smoothing",
                 display_name="Smoothing Length (pixels)",
             )
         )
-        #m^(1/3)/s
-        #? Not sure if this is supposed ot be 1 word
+        # m^(1/3)/s
+        # ? Not sure if this is supposed ot be 1 word
         self.add_parameter(
             NumericField(
                 name="manningsn",
@@ -276,7 +277,7 @@ class Parameters:
             )
 
         )
-        
+
         self.add_parameter(
             NumericField(
                 name="depth_weight_factor",
@@ -295,7 +296,7 @@ class Parameters:
                 display_name="Number of Slices"
             )
         )
-        
+
         self.add_parameter(
             NumericField(
                 name="number_of_sweeps",
@@ -315,7 +316,7 @@ class Parameters:
                 display_name="Peak rainfall intensity (mm/hr)"
             )
         )
-        self.add_parameter( 
+        self.add_parameter(
             NumericField(
                 name="tauc_soil_and_veg",
                 value=1,
@@ -324,7 +325,7 @@ class Parameters:
                 display_name="Threshold shear stress for soil and vegetation (Pa)"
             )
         )
-        
+
         # meters
         self.add_parameter(
             NumericField(
@@ -365,11 +366,11 @@ class Parameters:
                 value=.01,
                 comment="Tan_angle_of_internal_friction",
                 help="Values typically in the range of 0.5 to 0.8.",
-                display_name ="Tangent of the angle of internal friction"
+                display_name="Tangent of the angle of internal friction"
             )
-         )
+        )
 
-        #? b(2*(1-c)) No clue how to name this, just using b
+        # ? b(2*(1-c)) No clue how to name this, just using b
         self.add_parameter(
             NumericField(
                 name="b",
@@ -379,27 +380,27 @@ class Parameters:
                 display_name="Coefficient of runoff to contributing area (b)",
             )
         )
-        
+
         self.add_parameter(
             NumericField(
-                name="c", 
+                name="c",
                 value=.01,
-                comment="c", 
-                help="This value is the exponent in the model component that predicts the relationship between runoff and contributing area.", 
-                display_name="Exponent of runoff to contributing area (c)", 
+                comment="c",
+                help="This value is the exponent in the model component that predicts the relationship between runoff and contributing area.",
+                display_name="Exponent of runoff to contributing area (c)",
             )
         )
         # meters
         self.add_parameter(
             NumericField(
                 name="rill_width_coefficient",
-                value=.01, 
+                value=.01,
                 comment="Rill_width_coefficient_(meters)",
-                help="The width of rills (m) as they begin to form. This value is used to localize water flow to a width less than the width of a pixel. For example, if deltax = 1 m and rillwidth = 20 cm then the flow entering each pixel is assumed, for the purposes of rill development, to be localized in a width equal to one fifth of the pixel width.",   
+                help="The width of rills (m) as they begin to form. This value is used to localize water flow to a width less than the width of a pixel. For example, if deltax = 1 m and rillwidth = 20 cm then the flow entering each pixel is assumed, for the purposes of rill development, to be localized in a width equal to one fifth of the pixel width.",
                 display_name="Rill Width Coefficient (m)",
             )
         )
-        
+
         self.add_parameter(
             NumericField(
                 name="rill_width_exponent",
@@ -414,7 +415,8 @@ class Parameters:
         Function to add rillgen parameter to the object with the given name, value, comment, display_name, and other
         relevant metadata for an input field type
     """
-    def add_parameter(self, field : Field):
+
+    def add_parameter(self, field: Field):
         self.order_of_attributes.append(field.name)
         setattr(self, field.name, field)
 
@@ -422,24 +424,23 @@ class Parameters:
         return [
             field for field in self.order_of_attributes if not isinstance(field, StaticParameter)
         ]
-    
+
     def parametersAsArray(self):
         return [self.get_value(attribute) for attribute in self.order_of_attributes]
-    
-    
-    def draw_fields(self, disabled):
-        st.table({"Lattice Size X:": self.get_value("lattice_size_x"), "Lattice Size Y:": self.get_value("lattice_size_y")})
+
+    def draw_fields(self, disabled: bool):
+        st.table({"Lattice Size X:": self.get_value("lattice_size_x"),
+                 "Lattice Size Y:": self.get_value("lattice_size_y")})
         for attribute in self.order_of_attributes:
             self.get_parameter(attribute).draw(disabled)
 
-    def get_value(self, attribute):
+    def get_value(self, attribute: str):
         return getattr(self, attribute).get_value()
-    
-    # Helper to clarify the type of the attribute
-    def get_parameter(self, attribute):
+
+    def get_parameter(self, attribute: str):
         return getattr(self, attribute)
-    
-    def getParametersFromFile(self, filename):
+
+    def getParametersFromFile(self, filename: str | Path):
         file = open(filename, "r")
         for attribute in self.order_of_attributes:
             # Get the first word of the line,
@@ -452,29 +453,30 @@ class Parameters:
             cur_obj = self.get_parameter(attribute)
             self.get_parameter(attribute).value = type(cur_obj.value)((line))
         file.close()
-    
-    def writeParametersToFile(self, path, comment=True):
+
+    def writeParametersToFile(self, path: str | Path, comment=True):
         file = open(path, "w")
         sum_of_length_of_comments = 0
         for attribute in self.order_of_attributes:
             current_attr_obj = self.get_parameter(attribute)
             sum_of_length_of_comments += len(current_attr_obj.comment)
             string = \
-                    str(current_attr_obj.get_value()) + "\t" + "_".join(current_attr_obj.comment.strip().split(" "))+ "\n" \
-                    if comment else \
-                    str(current_attr_obj.value) + "\n"
+                str(current_attr_obj.get_value()) + "\t" + "_".join(current_attr_obj.comment.strip().split(" ")) + "\n" \
+                if comment else \
+                str(current_attr_obj.value) + "\n"
+            print(attribute + " " + str(current_attr_obj.get_value()))
             file.write(string)
         file.close()
-    
-    def validate(self):
+
+    def validate(self) -> list[str]:
         errors = []
         for attribute in self.order_of_attributes:
             error = self.get_parameter(attribute).validate()
             if error:
                 errors.append(error)
         return errors
-    
-    def copy_files_to_dir(self, path):
+
+    def copy_files_to_dir(self, path: Path):
         for attribute in self.order_of_attributes:
             checkbox = self.get_parameter(attribute)
             if isinstance(checkbox, (OptionField, CheckBoxField)) and checkbox.get_inner_type() == FileField:

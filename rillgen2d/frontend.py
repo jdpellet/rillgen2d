@@ -1,3 +1,11 @@
+from utils import (
+    get_image_from_url,
+    extract_geotiff_from_tarfile,
+    reset_session_state,
+    exception_wrapper
+)
+from parameters.Parameters import Parameters
+from rillgen2d import Rillgen2d
 import shutil
 import PIL
 import os
@@ -8,21 +16,10 @@ from pathlib import Path
 import multiprocessing as mp
 import streamlit as st
 
-#Change directory to the root of the project before doing relative imports
+# Change directory to the root of the project before doing relative imports
 MAIN_DIRECTORY = Path(__file__).parent.parent
 os.chdir(MAIN_DIRECTORY)
-
-from rillgen2d import Rillgen2d
-from parameters.Parameters import Parameters
-#TODO switch to prefixing with utils. to improve traceability
-from utils import (
-    get_image_from_url, 
-    extract_geotiff_from_tarfile, 
-    reset_session_state, 
-    exception_wrapper
-)
-
-
+# TODO switch to prefixing with utils. to improve traceability
 
 
 class Frontend:
@@ -43,7 +40,7 @@ class Frontend:
 
     @exception_wrapper
     def generate_parameters_callback(self):
-    
+
         path1 = st.session_state.imagePathInput1
         path2 = st.session_state.imagePathInput2
         if path1 and path2:
@@ -53,7 +50,7 @@ class Frontend:
             st.warning("Please fill in an image path")
             return
         path = path1 or path2
-        
+
         tmp_path = MAIN_DIRECTORY / "tmp"
         if tmp_path.exists():
             shutil.rmtree(tmp_path.as_posix())
@@ -91,16 +88,15 @@ class Frontend:
             st.success("Successfully saved output to " + str(outDir))
         else:
             st.warning("Failed to save output")
-    
-    def stop_callback(self):  
-        #TODO check if queue can become corrupted
+
+    def stop_callback(self):
+        # TODO check if queue can become corrupted
         self.rillgen2d.terminate()
         del st.session_state.rillgen2d
         del st.session_state.parameters
         st.session_state.display_parameters = False
 
     def getMask(self, filepath):
-        print(filepath)
         try:
             maskfile = Path(filepath)
             if maskfile.suffix == ".tar" or maskfile.suffix == ".gz":
@@ -120,16 +116,16 @@ class Frontend:
         st.header("Parameters")
         self.existing_output = st.checkbox("View Output Directory")
         if self.existing_output:
-            st.text_input("Output Directory Path", value=Path.cwd(), key="output_path")
+            st.text_input("Output Directory Path",
+                          value=Path.cwd(), key="output_path")
             st.button("View Output Directory", key="view_output_button")
             return
-        
 
         st.header("Input DEM")
         st.text_input(
             "Load DEM (`.tif`) from Web URL (`https://`)",
             key="imagePathInput1",
-            value=        "https://data.cyverse.org/dav-anon/iplant/home/elliothagyard/geoSpatialTiffFiles/2mb.tif",
+            value="https://data.cyverse.org/dav-anon/iplant/home/elliothagyard/geoSpatialTiffFiles/2mb.tif",
             help="Load valid raster (`.tif`) from a URL (`https://`), the file will be downloaded",
             on_change=reset_session_state,
         ),
@@ -146,13 +142,13 @@ class Frontend:
             "Generate Parameters",
             on_click=self.generate_parameters_callback,
             key="genParameter",
-            disabled= self.app_is_running() is True
+            disabled=self.app_is_running() is True
         )
         if not self.app_is_running():
             st.button(
                 "Run Rillgen2d",
                 on_click=self.run_callback,
-                disabled= self.params.display_parameters is False
+                disabled=self.params.display_parameters is False
             )
         else:
             st.button(
@@ -172,7 +168,6 @@ class Frontend:
         # The width of rills (in m) as they begin to form. This value is used to localize water flow to a width less than the width of a pixel.
         # For example, if deltax = 1 m and rillwidth = 20 cm then the flow entering each pixel is assumed, for the purposes of rill development, to be localized in a width equal to one fifth of the pixel width.
         ########################### ^MAIN TAB^ ###########################
-        
 
     def run_callback(self):
         """Run Rillgen2d"""
@@ -181,25 +176,23 @@ class Frontend:
             for error in errors:
                 st.error(error)
             return
-        print("here")
         self.params.copy_files_to_dir(MAIN_DIRECTORY / "tmp")
         if self.params.get_value("mask_flag") == 1:
-            self.getMask(self.params.get_parameter("mask_flag").get_inner_value())
+            self.getMask(self.params.get_parameter(
+                "mask_flag").get_inner_value())
         self.params.writeParametersToFile(MAIN_DIRECTORY / "tmp" / "input.txt")
-        # if self.rillgen2d.ident:
-        #     st.session_state.rillgen2d = Rillgen2d(self.param, st.session_state.console)
         self.rillgen2d.start()
-    
+
     def display_console(self):
-            """Update the console with the latest 6 messages"""
-            while not st.session_state.console.empty():
-                message = st.session_state.console.get()
-                if message:
-                    st.session_state.console_log.append(message)
-            with st.expander("Terminal", True):
-                for line in st.session_state.console_log[-7:-1:1]:
-                    st.write(line)
-                st.markdown(
+        """Update the console with the latest 6 messages"""
+        while not st.session_state.console.empty():
+            message = st.session_state.console.get()
+            if message:
+                st.session_state.console_log.append(message)
+        with st.expander("Terminal", True):
+            for line in st.session_state.console_log[-7:-1:1]:
+                st.write(line)
+            st.markdown(
                 """
                 <style>
                 .streamlit-expanderContent > div > div > div {
@@ -217,14 +210,12 @@ class Frontend:
         imagePath = "./" + "tmp/" * \
             int(not Path(imagePath).is_file()) + imagePath
         with st.expander("Check DEM landscape", True):
-            if "hillshade_generated" in st.session_state  and st.session_state.hillshade_generated:
+            if "hillshade_generated" in st.session_state and st.session_state.hillshade_generated:
                 st.image(
-                    PIL.Image.open( MAIN_DIRECTORY / "tmp/hillshade.png"),
+                    PIL.Image.open(MAIN_DIRECTORY / "tmp/hillshade.png"),
                     caption="Hillshade generated from expected DEM raster")
 
     def display_outputs(self):
-        if st.session_state.has_run_once is False:
-            return
         self.display_preview()
         map = MAIN_DIRECTORY / "tmp/map.html"
         if map.exists() and "rillgen2d" in st.session_state and st.session_state.rillgen2d:
@@ -242,6 +233,7 @@ class Frontend:
                 on_click=self.save_callback
             )
     # Add the Legend below the Leaflet Map for Tau and F
+
     def display_tau(self):
         """Display the legends"""
         imagePath = "color-relief_tau.png"
@@ -262,7 +254,7 @@ class Frontend:
 
     def app_is_running(self):
         return (
-            "rillgen2d" in st.session_state 
+            "rillgen2d" in st.session_state
             and st.session_state.rillgen2d
             and st.session_state.rillgen2d.is_alive()
         )
@@ -278,7 +270,7 @@ class Frontend:
                 self.view_output(st.session_state.output_path)
             else:
                 self.display_console()
-
+                self.display_outputs()
 
         if self.app_is_running():
             time.sleep(0.5)

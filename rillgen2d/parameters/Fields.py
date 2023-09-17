@@ -26,7 +26,7 @@ class Field(ABC):
     @abstractmethod
     def validate(self):
         raise NotImplementedError("validate method not implemented")
-    
+
     def get_inner_type(self):
         return type(self)
 
@@ -39,9 +39,6 @@ class BaseField(Field):
     comment: str = ""
     value: Any = None
 
-    def get_value(self):
-        return self.value
-
     def validate(self):
         pass
 
@@ -51,11 +48,11 @@ class EmptyField(Field):
     def draw(self, disabled):
         pass
 
-    def get_value(self):
-        return self.value
-
     def validate(self):
         pass
+
+    def get_value(self):
+        return self.value
 
 
 @dataclass(kw_only=True)
@@ -65,8 +62,8 @@ class OptionField(BaseField):
     output: int = None  # index of the selected option
     value: int = 0  # value of the selected option
 
-    def _callback(self):
-        self.value = 0
+    def _index(self):
+        return self.options.index(self.output)
 
     def draw(self, disabled):
         self.output = st.selectbox(
@@ -75,34 +72,36 @@ class OptionField(BaseField):
             index=self.value,
             # help=self.help,
             # key=self.name,
-            on_change=self._callback,
             disabled=disabled,
         )
+
         if self.conditional_field:
-            self.conditional_field[self.options.index(self.output)].draw(disabled)
+            self.conditional_field[self._index()].draw(disabled)
 
     def validate(self):
         if self.conditional_field:
-            err = self.conditional_field[self.options.index(self.output)].validate()
+            err = self.conditional_field[self._index()].validate()
             if err:
-                err+= f" for '{self.display_name}'"
+                err += f" for '{self.display_name}'"
             return err
         return super().validate()
-    
+
     def get_inner_value(self):
         out = self.get_inner_parameter()
         return out.get_inner_value() if out else None
-    
+
     def get_inner_type(self):
         out = self.get_inner_parameter()
         return out.get_inner_type() if out else None
-    
+
     def get_inner_parameter(self):
         if self.output and self.conditional_field:
-            return self.conditional_field[self.options.index(self.output)]
+            return self.conditional_field[self._index()]
         else:
             return None
 
+    def get_value(self):
+        return self._index()
 
 
 @dataclass(kw_only=True)
@@ -135,15 +134,15 @@ class CheckBoxField(BaseField):
 
     def get_value(self):
         return int(self.output)
-    
+
     def get_inner_value(self):
         out = self.get_inner_parameter()
         return out.get_inner_value() if out else None
-    
+
     def get_inner_type(self):
         out = self.get_inner_parameter()
         return out.get_inner_type() if out else None
-    
+
     def get_inner_parameter(self):
         if self.output and self.conditional_field:
             return self.conditional_field
@@ -154,7 +153,7 @@ class CheckBoxField(BaseField):
 @dataclass(kw_only=True)
 class FileField(BaseField):
     output: st.text_input = None
-    filename : str = None
+    filename: str = None
 
     def draw(self, disabled):
         self.output = st.text_input(
@@ -168,11 +167,9 @@ class FileField(BaseField):
         if not Path(self.output).is_file() or not self.output:
             return f"File {self.output} does not exist"
         return super().validate()
-    
+
     def get_value(self):
         return self.output
-        
-
 
 
 @dataclass(kw_only=True)
@@ -180,6 +177,9 @@ class NumericField(BaseField):
     output: st.number_input = None
     step: float | int = None
     format: str = None
+
+    def get_value(self):
+        return self.output
 
     def draw(self, disabled):
         self.output = st.number_input(

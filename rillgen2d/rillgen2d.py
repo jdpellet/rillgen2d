@@ -1,32 +1,24 @@
 
 from __future__ import annotations
-import importlib
-modules = ['wand', 'threading', 'pathlib', 'osgeo', 'datetime', 'ctypes', 'branca', 'os', 'subprocess', 'shutil', 'sys', 'time', 'folium', 'PIL']
-for module in modules:
-    try:
-        importlib.import_module(module)
-    except ImportError:
-        print(f"The '{module}' module is not installed.")
-
-
-from wand.image import Image as im
-from multiprocessing import Process, Queue
-from threading import Thread, current_thread
-from pathlib import Path
-from osgeo import gdal, osr
-from datetime import datetime
-from ctypes import CDLL
-import branca
-import os
-
-import subprocess
-import shutil
-import folium
-import osgeo
-import PIL
-
 import typing
+import PIL
+import osgeo
+import folium
+import shutil
+import subprocess
+import os
+import sys
+import branca
+from ctypes import CDLL
+from datetime import datetime
+from osgeo import gdal, osr
+from pathlib import Path
+from threading import Thread
+from multiprocessing import Process, Queue
+from wand.image import Image as im
 
+if typing.TYPE_CHECKING:
+    from rillgen2d.parameters import Parameters
 # Apparently this API is supposed to be internal atm and seems to rapidly change without documentation between updates
 #
 # update pillow to accept large images
@@ -50,22 +42,22 @@ class Rillgen2d(Process):
     Context manager for changing directories. Useful abstracting away tracking the current directory.
     """
 
-    def __init__(self, params, message_queue: Queue):
+    def __init__(self, params: Parameters, message_queue: Queue):
         self.console = message_queue
         self.params = params
-
+        self.temporary_directory = Path(__file__).parents[1] / "tmp"
         # params stores the filepath, but wont have it at the time of initialization
         self.image_path: str = None
         self.filename: str = None
-        self.geo_ext = None  # used to get corner coordinates for the projection
-        self.dimensions = (
+        self.geo_ext: folium.Map = None  # used to get corner coordinates for the projection
+        self.dimensions: tuple[int, int] = (
             None  # These are the dimensions of the input file that the user chooses
         )
-        self.img1 = None
-        self.rillgen = None  # Used to import the rillgen.c code
+        self.img1: folium.raster_layers.ImageOverlay = None
+        self.rillgen: CDLL = None  # Used to import the rillgen.c code
         # Tracking threads in case of exceptions so we can join them before ending the program
-        self.threads = []
-        self.temporary_directory = Path(__file__).parents[1] / "tmp"
+        self.threads: list[Thread] = []
+
         # Call the Thread constructor
         Process.__init__(self)
 
@@ -97,7 +89,7 @@ class Rillgen2d(Process):
         self.console.put(
             str(
                 subprocess.check_output(
-                    command, 
+                    command,
                     shell=True
                 ),
                 "UTF-8"
@@ -109,7 +101,8 @@ class Rillgen2d(Process):
         self.console.put("Converting geotiff to txt")
         src_ds = gdal.Open(filename + ".tif")
         if src_ds is None:
-            raise Exception("ERROR: Unable to open " + filename + " for writing")
+            raise Exception("ERROR: Unable to open " +
+                            filename + " for writing")
         # Open output format driver, see gdal_translate --formats for list
         format = "XYZ"
         driver = gdal.GetDriverByName(format)
@@ -123,7 +116,8 @@ class Rillgen2d(Process):
         self.run_command(
             "gdal_translate -of XYZ " + filename + ".tif " + filename + ".asc"
         )
-        self.run_command("awk '{print $3}' " + filename + ".asc > " + filename + ".txt")
+        self.run_command("awk '{print $3}' " +
+                         filename + ".asc > " + filename + ".txt")
         # remove temporary .asc file to save space
         self.run_command("rm " + filename + "_dem.asc")
 
@@ -180,7 +174,8 @@ class Rillgen2d(Process):
             line = ", ".join(map(str, (index_array[i], *colors[i]))) + "\n"
             f.write(line)
         f.close()
-        colormap = branca.colormap.LinearColormap(colors).to_step(index=index_array)
+        colormap = branca.colormap.LinearColormap(
+            colors).to_step(index=index_array)
         colormap.caption = caption
         setattr(self, colormap_name, colormap)
         self.run_command(
@@ -199,9 +194,10 @@ class Rillgen2d(Process):
         )
         self.rillgen = CDLL(self.temporary_directory / "rillgen.so")
         self.console.put("Setting up Rillgen")
-        
+
         self.console.put("Hydroilic correction step in progress")
-        self.run_command("awk '{print $3}' " + self.image_path.stem + ".asc > topo.txt")
+        self.run_command("awk '{print $3}' " +
+                         self.image_path.stem + ".asc > topo.txt")
         self.run_command(
             "awk '{print $1, $2}' " + self.image_path.stem + ".asc > xy.txt"
         )
@@ -209,7 +205,8 @@ class Rillgen2d(Process):
             self.rillgen = CDLL(
                 str(Path.cwd().parent / 'rillgen.so'))
         self.run_rillgen()
-        self.console.put("Hydrologic correction step completed. Creating outputs...")
+        self.console.put(
+            "Hydrologic correction step completed. Creating outputs...")
 
     @function_decorator
     def run_rillgen(self):
@@ -231,7 +228,7 @@ class Rillgen2d(Process):
     def set_georeferencing_information(self):
         """Sets the georeferencing information for f.tif and tau.tif (and incised depth.t if self.flagForDynamicVar==1) to be the same as that
         from the original geotiff file"""
-        
+
         self.console.put("Setting georeferencing information\n")
         if self.filename is None and not Path(self.filename).exists():
             self.console.put("FILE NOT FOUND: Please select a file in tab 1")
@@ -253,7 +250,7 @@ class Rillgen2d(Process):
         cmd0 = "gdal_translate -f GTiff xy_tau.txt tau.tif -co TILED=YES -co COMPRESS=DEFLATE -co COPY_SRC_OVERVIEWS=YES -co COG=YES"
         self.run_command(cmd0)
         cmd1 = "gdal_translate -f GTiff xy_f1.txt f1.tif -co TILED=YES -co COMPRESS=DEFLATE -co COPY_SRC_OVERVIEWS=YES -co COG=YES"
-        #self.run_command(cmd1)
+        # self.run_command(cmd1)
         cmd2 = "gdal_translate -f GTiff xy_f2.txt f2.tif -co TILED=YES -co COMPRESS=DEFLATE -co COPY_SRC_OVERVIEWS=YES -co COG=YES"
         self.run_command(cmd2)
         projection = ds.GetProjection()
@@ -299,7 +296,7 @@ class Rillgen2d(Process):
                         "Translating f2.tif to .png\n\n")
                     cmd3 = "gdal_translate -a_nodata 255 -ot Byte -scale 0 0.1 -of PNG " + \
                         elem.split(sep='.')[0] + ".tif " + \
-                        elem.split(sep='.')[0] + ".png"    
+                        elem.split(sep='.')[0] + ".png"
                 else:
                     self.console.put(
                         ("Translating inciseddepth.tif to .png\n\n"))
@@ -344,7 +341,7 @@ class Rillgen2d(Process):
         return ext
 
     @function_decorator
-    def ReprojectCoords(self, coords, src_srs, tgt_srs):
+    def ReprojectCoords(self, coords: list, src_srs: osr.SpatialReference, tgt_srs: osr.SpatialReference) -> list:
         """Reproject a list of x,y coordinates. From srs_srs to tgt_srs"""
         trans_coords = []
         transform = osr.CoordinateTransformation(src_srs, tgt_srs)
@@ -380,7 +377,7 @@ class Rillgen2d(Process):
         return self.m
 
     @function_decorator
-    def save_image_as_txt(self, image_path):
+    def save_image_as_txt(self, image_path: str | Path):
         """Prepares the geotiff file for the rillgen2D code by getting its dimensions (for the input.txt file) and converting it to
         .txt format"""
         if image_path == None or image_path == "":
@@ -395,7 +392,8 @@ class Rillgen2d(Process):
             if Path(str(image_path) + ".aux.xml").exists():
                 shutil.copyfile(
                     str(image_path) + ".aux.xml",
-                    str(self.temporary_directory / image_path.stem) + ".aux.xml",
+                    str(self.temporary_directory /
+                        image_path.stem) + ".aux.xml",
                 )
 
         # Open existing dataset
@@ -419,11 +417,13 @@ class Rillgen2d(Process):
 
         Path.mkdir(self.temporary_directory.parent / saveDir)
         saveDir = self.temporary_directory.parent / saveDir
-        acceptable_files = ["parameters.txt", "input.txt", "map.html", "rills.ppm"]
+        acceptable_files = ["parameters.txt",
+                            "input.txt", "map.html", "rills.ppm"]
         for fname in self.temporary_directory.iterdir():
             file_name = fname.name
             if file_name in acceptable_files or (
                 file_name.endswith(".png") or file_name.endswith(".tif")
             ):
-                shutil.copy(self.temporary_directory / file_name, saveDir / file_name)
+                shutil.copy(self.temporary_directory /
+                            file_name, saveDir / file_name)
         return saveDir

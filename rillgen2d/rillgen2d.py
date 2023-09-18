@@ -74,7 +74,7 @@ class Rillgen2d(Process):
 
         self.console.put("Generating hillshade and color relief...")
         self.run_command(
-            f"gdaldem hillshade '{self.filename}' {self.temporary_directory}/hillshade.png"
+            f"gdaldem hillshade \"{self.filename}\" {self.temporary_directory / 'hillshade.png'}"
         )
         return self.temporary_directory / "hillshade.png"
 
@@ -192,7 +192,8 @@ class Rillgen2d(Process):
         self.run_command(
             f"gcc -Wall -shared -fPIC {Path(__file__).parent}/rillgen2d.c -o {self.temporary_directory}/rillgen.so"
         )
-        self.rillgen = CDLL(self.temporary_directory / "rillgen.so")
+        #NOTE the CDLL arguemnt has to be a string for windows filepaths?
+        self.rillgen = CDLL(str(self.temporary_directory / "rillgen.so"))
         self.console.put("Setting up Rillgen")
 
         self.console.put("Hydroilic correction step in progress")

@@ -65,7 +65,7 @@ class Frontend:
         else:
             path = Path(path)
 
-        self.params.getParametersFromFile(Path.cwd() / "input.txt")
+        self.params.getParametersFromFile(MAIN_DIRECTORY / "input.txt")
 
         (
             filename,

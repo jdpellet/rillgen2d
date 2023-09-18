@@ -1,5 +1,6 @@
-Testing on windows
-Save output 
+Testing using files on windows
+Fixing the view saved output display
 Readme/Tutorial
 Small maintainability fixes (commenting, type hinting, evaluate perf impact of multiprocessing, etc.)
 Packaging/Checking install process
+Checking if there are weird orders of steps where errors can occur

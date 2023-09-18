@@ -66,19 +66,19 @@ def exception_wrapper(callback):
     """
 
     def wrapper(*args, **kwargs):
-        try:
+        # try:
             callback(*args, **kwargs)   
-        #TODO Add more specific exceptions. This seems like obviously practice
-        except Exception as e:
-            print(e)
-            st.error(e)
-            st.error(
-                str(type(e).__name__)
-            )
-            # TypeError
-            st.error( str(__file__))
+        # #TODO Add more specific exceptions. This seems like obviously practice
+        # except Exception as e:
+        #     print(e)
+        #     st.error(e)
+        #     st.error(
+        #         str(type(e).__name__)
+        #     )
+        #     # TypeError
+        #     st.error( str(__file__))
     
-            if st.session_state.rillgen2d is not None and st.session_state.rillgen2d.is_alive():
-                st.session_state.rillgen2d.join()
-            reset_session_state()
+        #     if st.session_state.rillgen2d is not None and st.session_state.rillgen2d.is_alive():
+        #         st.session_state.rillgen2d.join()
+        #     reset_session_state()
     return wrapper

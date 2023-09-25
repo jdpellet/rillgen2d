@@ -6,6 +6,5 @@ dependencies:
   - gdal
   - libgcc
   - coreutils
-  - pillow
+  - pillow>=9.5.0
   - folium
-  - pip

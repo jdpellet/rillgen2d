@@ -10,6 +10,5 @@ dependencies:
   - m2w64-gcc
   - m2-gawk
   - m2-coreutils
-  - pillow
+  - pillow>=9.5.0
   - streamlit>=1.18
-  - pip

@@ -15,7 +15,6 @@ from osgeo import gdal, osr
 from pathlib import Path
 from threading import Thread
 from multiprocessing import Process, Queue
-from wand.image import Image as im
 
 if typing.TYPE_CHECKING:
     from rillgen2d.parameters import Parameters
@@ -320,8 +319,8 @@ class Rillgen2d(Process):
             self.console.put("Unable to open rills.ppm for writing")
         else:
             self.console.put("Translating rills.ppm to .png")
-            with im(filename="rills.ppm") as img:
-                img.save(filename="P6.ppm")
+            with PIL.Image.open("rills.ppm") as img:
+                img.save("P6.ppm")
             cmd = "gdal_translate -of PNG -a_nodata 255 P6.ppm rills.png"
             self.run_command(cmd)
 

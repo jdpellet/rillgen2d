@@ -13,5 +13,3 @@ dependencies:
   - pillow
   - streamlit>=1.18
   - pip
-  - pip:
-    - wand

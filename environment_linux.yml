@@ -7,8 +7,5 @@ dependencies:
   - libgcc
   - coreutils
   - pillow
-  - imagemagick
   - folium
   - pip
-  - pip: 
-    - wand

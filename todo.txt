@@ -1,5 +1,9 @@
 Testing using files on windows
 Fixing the view saved output display
+Make windows install easier (look into making installer or working with pyinstaller to make exe)
+Check minimum version of PIL for p3 to p6 to be supported
+(https://github.com/python-pillow/Pillow/issues/4999)
+Check errors on other sequences of actions
 Readme/Tutorial
 Small maintainability fixes (commenting, type hinting, evaluate perf impact of multiprocessing, etc.)
 Packaging/Checking install process

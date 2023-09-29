@@ -1,4 +1,5 @@
-Test window install script on non-dev env
+Mess around with single bat file installer
+
 Fixing the view saved output display
 Add a check to see if rillgen has run at least once (to avoid displaying files in temp dir before running at all)
 Check errors on other sequences of actions

@@ -58,27 +58,3 @@ def reset_session_state():
         if key == "imagePathInput1" or key == "imagePathInput2":
             continue
         del st.session_state[key]
-
-
-def exception_wrapper(callback):
-    """
-    Broad error handling for callbacks. This is probably a terrible way to do this
-    """
-
-    def wrapper(*args, **kwargs):
-        # try:
-            callback(*args, **kwargs)   
-        # #TODO Add more specific exceptions. This seems like obviously practice
-        # except Exception as e:
-        #     print(e)
-        #     st.error(e)
-        #     st.error(
-        #         str(type(e).__name__)
-        #     )
-        #     # TypeError
-        #     st.error( str(__file__))
-    
-        #     if st.session_state.rillgen2d is not None and st.session_state.rillgen2d.is_alive():
-        #         st.session_state.rillgen2d.join()
-        #     reset_session_state()
-    return wrapper

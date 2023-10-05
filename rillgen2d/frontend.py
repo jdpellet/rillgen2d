@@ -1,10 +1,4 @@
-from utils import (
-    get_image_from_url,
-    extract_geotiff_from_tarfile,
-    reset_session_state,
-    exception_wrapper
-)
-from parameters.Parameters import Parameters
+from __future__ import annotations
 from rillgen2d import Rillgen2d
 import shutil
 import PIL
@@ -19,6 +13,9 @@ import streamlit as st
 # Change directory to the root of the project before doing relative imports
 MAIN_DIRECTORY = Path(__file__).parent.parent
 os.chdir(MAIN_DIRECTORY)
+from parameters.Parameters import Parameters
+from utils import get_image_from_url, extract_geotiff_from_tarfile, reset_session_state
+
 # TODO switch to prefixing with utils. to improve traceability
 
 
@@ -38,9 +35,7 @@ class Frontend:
         self.params = st.session_state.parameters
         self.rillgen2d = st.session_state.rillgen2d
 
-    @exception_wrapper
     def generate_parameters_callback(self):
-
         path1 = st.session_state.imagePathInput1
         path2 = st.session_state.imagePathInput2
         if path1 and path2:
@@ -96,7 +91,7 @@ class Frontend:
         del st.session_state.parameters
         st.session_state.display_parameters = False
 
-    def getMask(self, filepath):
+    def getMask(self, filepath: str):
         try:
             maskfile = Path(filepath)
             if maskfile.suffix == ".tar" or maskfile.suffix == ".gz":
@@ -116,8 +111,7 @@ class Frontend:
         st.header("Parameters")
         self.existing_output = st.checkbox("View Output Directory")
         if self.existing_output:
-            st.text_input("Output Directory Path",
-                          value=Path.cwd(), key="output_path")
+            st.text_input("Output Directory Path", value=Path.cwd(), key="output_path")
             st.button("View Output Directory", key="view_output_button")
             return
 
@@ -125,10 +119,11 @@ class Frontend:
         st.text_input(
             "Load DEM (`.tif`) from Web URL (`https://`)",
             key="imagePathInput1",
-            value="https://data.cyverse.org/dav-anon/iplant/home/elliothagyard/geoSpatialTiffFiles/2mb.tif",
+            value="",
             help="Load valid raster (`.tif`) from a URL (`https://`), the file will be downloaded",
             on_change=reset_session_state,
-        ),
+        )
+
         st.text_input(
             "Locally saved DEM file (`.tif`)",
             key="imagePathInput2",
@@ -142,13 +137,13 @@ class Frontend:
             "Generate Parameters",
             on_click=self.generate_parameters_callback,
             key="genParameter",
-            disabled=self.app_is_running() is True
+            disabled=self.app_is_running() is True,
         )
         if not self.app_is_running():
             st.button(
                 "Run Rillgen2d",
                 on_click=self.run_callback,
-                disabled=self.params.display_parameters is False
+                disabled=self.params.display_parameters is False,
             )
         else:
             st.button(
@@ -171,17 +166,29 @@ class Frontend:
 
     def run_callback(self):
         """Run Rillgen2d"""
-        errors = self.params.validate()
+        errors: list[str] = self.params.validate()
         if errors:
             for error in errors:
                 st.error(error)
             return
         self.params.copy_files_to_dir(MAIN_DIRECTORY / "tmp")
         if self.params.get_value("mask_flag") == 1:
-            self.getMask(self.params.get_parameter(
-                "mask_flag").get_inner_value())
+            self.getMask(self.params.get_parameter("mask_flag").get_inner_value())
         self.params.writeParametersToFile(MAIN_DIRECTORY / "tmp" / "input.txt")
+
+        # Handle edge cases where an old rillgen object still is in the run slot
+        # NOTE might be good to change Rillgen2d away from inhereting process and just create a process with a function that calls the correct stuff
+        if self.rillgen2d.has_run:
+            st.session_state.rillgen2d = Rillgen2d(
+                params=st.session_state.parameters,
+                message_queue=st.session_state.console,
+            )
+            st.session_state.rillgen2d.filename = self.rillgen2d.filename
+            del self.rillgen2d
+            self.rillgen2d = st.session_state.rillgen2d
+
         self.rillgen2d.start()
+        self.rillgen2d.has_run = True
 
     def display_console(self):
         """Update the console with the latest 6 messages"""
@@ -192,58 +199,48 @@ class Frontend:
         with st.expander("Terminal", True):
             for line in st.session_state.console_log[-7:-1:1]:
                 st.write(line)
-            st.markdown(
-                """
-                <style>
-                .streamlit-expanderContent > div > div > div {
-                    background-color: black;
-                    color: white;
-                }
-                </style>
-                """,
-                unsafe_allow_html=True,
-            )
 
     def display_preview(self):
         """Preview of the landscape."""
         imagePath = "hillshade.png"
-        imagePath = "./" + "tmp/" * \
-            int(not Path(imagePath).is_file()) + imagePath
+        imagePath = "./" + "tmp/" * int(not Path(imagePath).is_file()) + imagePath
         with st.expander("Check DEM landscape", True):
-            if "hillshade_generated" in st.session_state and st.session_state.hillshade_generated:
+            if (
+                "hillshade_generated" in st.session_state
+                and st.session_state.hillshade_generated
+            ):
                 st.image(
                     PIL.Image.open(MAIN_DIRECTORY / "tmp/hillshade.png"),
-                    caption="Hillshade generated from expected DEM raster")
+                    caption="Hillshade generated from expected DEM raster",
+                )
 
     def display_outputs(self):
         self.display_preview()
         map = MAIN_DIRECTORY / "tmp/map.html"
-        if map.exists() and "rillgen2d" in st.session_state and st.session_state.rillgen2d:
+        if map.exists() and self.rillgen2d.has_run:
             self.display_map()
             self.display_tau()
 
     # display the Leaflet Folium Map
     def display_map(self):
-        """Display the raster map """
+        """Display the raster map"""
         with st.container():
-            components.html((MAIN_DIRECTORY / "tmp/map.html").read_text(),
-                            height=500, width=700)
-            st.button(
-                "Save Output", key="saveButton",
-                on_click=self.save_callback
+            components.html(
+                (MAIN_DIRECTORY / "tmp/map.html").read_text(), height=500, width=700
             )
+            st.button("Save Output", key="saveButton", on_click=self.save_callback)
+
     # Add the Legend below the Leaflet Map for Tau and F
 
     def display_tau(self):
         """Display the legends"""
         imagePath = "color-relief_tau.png"
-        imagePath = "./" + "tmp/" * \
-            int(not Path(imagePath).is_file()) + imagePath
+        imagePath = "./" + "tmp/" * int(not Path(imagePath).is_file()) + imagePath
         with st.expander("Check Tau Results", True):
             if (MAIN_DIRECTORY / "tmp/tau.png").exists():
                 st.image(
-                    PIL.Image.open(MAIN_DIRECTORY / "tmp/tau.png"),
-                    caption="Tau C (Pa)")
+                    PIL.Image.open(MAIN_DIRECTORY / "tmp/tau.png"), caption="Tau C (Pa)"
+                )
 
     def view_output(self, output_path):
         if not (Path(output_path) / "map.html").exists():
@@ -274,7 +271,7 @@ class Frontend:
 
         if self.app_is_running():
             time.sleep(0.5)
-            st.experimental_rerun()
+            st.rerun()
 
 
 if __name__ == "__main__":
@@ -283,7 +280,7 @@ if __name__ == "__main__":
         page_icon=None,
         layout="wide",
         initial_sidebar_state="auto",
-        menu_items=None
+        menu_items=None,
     )
     app = Frontend()
     app.main_page()

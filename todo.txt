@@ -5,3 +5,5 @@ Add a check to see if rillgen has run at least once (to avoid displaying files i
 Check errors on other sequences of actions
 Readme/Tutorial updates
 Small maintainability fixes (commenting, type hinting, evaluate perf impact of multiprocessing, etc.)
+
+https://data.cyverse.org/dav-anon/iplant/home/elliothagyard/geoSpatialTiffFiles/2mb.tif

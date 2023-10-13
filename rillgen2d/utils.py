@@ -4,6 +4,8 @@ import requests
 import streamlit as st
 from pathlib import Path
 
+import tkinter as tk
+from tkinter import filedialog
 
 def get_image_from_url(url):
     """Given the url of an image when a raster is generated or located online,
@@ -47,6 +49,18 @@ def extract_geotiff_from_tarfile(tarpath, outputpath):
             break
     desiredfile = outputpath / img
     return desiredfile
+
+# Open file dialog and return the selected file path
+def open_file_dialog():
+    root = tk.Tk()
+    root.withdraw()  # Hide the main window
+    filepath = filedialog.askdirectory()
+    return filepath
+
+
+def reset_console():
+    st.session_state.console_log = []
+    st.session_state.console = mp.Queue()
 
 
 def reset_session_state():

@@ -367,10 +367,21 @@ class Rillgen2d(Process):
                 (self.geo_ext[1][0] + self.geo_ext[3][0]) / 2,
             ],
             zoom_start=16,
-            tiles="Stamen Terrain",
         )
+        
+        folium.TileLayer(
+            tiles="https://tiles.stadiamaps.com/tiles/stamen_terrain/{z}/{x}/{y}{r}.png",
+            attr=
+            """
+            &copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a>
+            &copy; <a href="https://stamen.com/" target="_blank">Stamen Design</a>
+            &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a>
+            &copy; <a href="https://www.openstreetmap.org/about/" target="_blank">OpenStreetMap contributors</a>
+            """,
+            name="Stamen Design"
+        ).add_to(self.m)
         folium.TileLayer("OpenStreetMap").add_to(self.m)
-        folium.TileLayer("Stamen Toner").add_to(self.m)
+        
         self.layer_control = folium.LayerControl()
         img1 = folium.raster_layers.ImageOverlay(
             image="hillshade.png",

@@ -14,7 +14,8 @@ import streamlit as st
 MAIN_DIRECTORY = Path(__file__).parent.parent
 os.chdir(MAIN_DIRECTORY)
 from parameters.Parameters import Parameters
-from utils import get_image_from_url, extract_geotiff_from_tarfile, reset_session_state
+from utils import (
+    get_image_from_url, extract_geotiff_from_tarfile, reset_session_state, open_file_dialog)
 
 # TODO switch to prefixing with utils. to improve traceability
 
@@ -111,8 +112,8 @@ class Frontend:
         st.header("Parameters")
         self.existing_output = st.checkbox("View Output Directory")
         if self.existing_output:
-            st.text_input("Output Directory Path", value=Path.cwd(), key="output_path")
-            st.button("View Output Directory", key="view_output_button")
+            if st.button('Select Output Directory'):
+                st.session_state.output_path = open_file_dialog()
             return
 
         st.header("Input DEM")
@@ -179,15 +180,13 @@ class Frontend:
         # Handle edge cases where an old rillgen object still is in the run slot
         # NOTE might be good to change Rillgen2d away from inhereting process and just create a process with a function that calls the correct stuff
         if self.rillgen2d.has_run:
-            st.session_state.rillgen2d = Rillgen2d(
-                params=st.session_state.parameters,
-                message_queue=st.session_state.console,
-            )
+            reset_console()
+            reset_rillgen()
             st.session_state.rillgen2d.filename = self.rillgen2d.filename
             del self.rillgen2d
             self.rillgen2d = st.session_state.rillgen2d
-
-        self.rillgen2d.start()
+        
+        st.session_state.rillgen2d.start()
         self.rillgen2d.has_run = True
 
     def display_console(self):
@@ -218,36 +217,34 @@ class Frontend:
         self.display_preview()
         map = MAIN_DIRECTORY / "tmp/map.html"
         if map.exists() and self.rillgen2d.has_run:
-            self.display_map()
-            self.display_tau()
+            self.display_map(MAIN_DIRECTORY / "tmp/map.html")
+            self.display_tau(MAIN_DIRECTORY / "tmp/tau.png")
+            st.button("Save Output", key="saveButton", on_click=self.save_callback)
 
     # display the Leaflet Folium Map
-    def display_map(self):
+    def display_map(self, path):
         """Display the raster map"""
         with st.container():
             components.html(
-                (MAIN_DIRECTORY / "tmp/map.html").read_text(), height=500, width=700
+                (path).read_text(), height=500, width=700
             )
-            st.button("Save Output", key="saveButton", on_click=self.save_callback)
+
 
     # Add the Legend below the Leaflet Map for Tau and F
 
-    def display_tau(self):
+    def display_tau(self, path):
         """Display the legends"""
-        imagePath = "color-relief_tau.png"
-        imagePath = "./" + "tmp/" * int(not Path(imagePath).is_file()) + imagePath
+        if not Path(path).exists():
+            return
         with st.expander("Check Tau Results", True):
-            if (MAIN_DIRECTORY / "tmp/tau.png").exists():
-                st.image(
-                    PIL.Image.open(MAIN_DIRECTORY / "tmp/tau.png"), caption="Tau C (Pa)"
-                )
+            st.image(PIL.Image.open(path), caption="Tau C (Pa)")
 
     def view_output(self, output_path):
         if not (Path(output_path) / "map.html").exists():
             st.warning("Output file not found at " + output_path)
         else:
-            with st.container():
-                components.html((Path(output_path) / "map.html").read_text())
+            self.display_map(Path(output_path) / "map.html")
+            self.display_tau(Path(output_path) / "tau.png")
 
     def app_is_running(self):
         return (
@@ -263,15 +260,28 @@ class Frontend:
         with st.sidebar:
             self.populate_parameters_tab()
         with app_tab:
-            if self.existing_output:
+            if self.existing_output and "output_path" in st.session_state:
                 self.view_output(st.session_state.output_path)
             else:
                 self.display_console()
                 self.display_outputs()
-
+        with readme:
+            components.iframe("https://tyson-swetnam.github.io/rillgen2d/", scrolling=True, height=1000)
         if self.app_is_running():
             time.sleep(0.5)
             st.rerun()
+
+
+def reset_console():
+    st.session_state.console_log = []
+    st.session_state.console = mp.Queue()
+
+def reset_rillgen():
+    st.session_state.rillgen2d = Rillgen2d(
+        params=st.session_state.parameters,
+        message_queue=st.session_state.console,
+    )
+
 
 
 if __name__ == "__main__":

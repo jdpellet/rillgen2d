@@ -1,9 +1,7 @@
-Mess around with single bat file installer
-
-Fixing the view saved output display
-Add a check to see if rillgen has run at least once (to avoid displaying files in temp dir before running at all)
-Check errors on other sequences of actions
+Fix file dir issue
+Avoid breaking things
+-- Tier Break
+Docker/Conda env sharing
 Readme/Tutorial updates
-Small maintainability fixes (commenting, type hinting, evaluate perf impact of multiprocessing, etc.)
 
 https://data.cyverse.org/dav-anon/iplant/home/elliothagyard/geoSpatialTiffFiles/2mb.tif

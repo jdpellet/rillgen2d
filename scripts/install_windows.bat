@@ -10,7 +10,7 @@ del Miniconda3-latest-Windows-x86_64.exe
 :: Initialize Conda
 call %INSTALL_PATH%\Scripts\activate.bat
 :: Install mamba
-call conda install mamba -c conda-forge
+call conda install mamba -c conda-forge -y
 :: Create a new Conda environment
 call mamba env create -f ..\environment_windows.yml -y
 :: Activate the new environment

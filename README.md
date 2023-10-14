@@ -16,7 +16,18 @@ Regardless of Operating System, we suggest you install [Miniconda](https://docs.
 
 We have tested these options for running the platform on Windows 11.
 
-[ImageMagick](https://imagemagick.org/script/download.php#windows) -- the ImageMagick package is not available in Windows `conda` package management, which handles the other dependencies.
+### Run the install script
+
+The batch script (./scripts/install_windows.bat) downloads the miniconda installer, prompts the user to install conda, then creates the conda environment.
+
+To run the installer, click on `install_windows.bat`
+
+A security prompt will warn about running the software, to run anyways you need to click. This
+tends to take around 15-20 minutes.
+
+### Manual Installation
+
+#### Install Miniconda
 
 Install [Miniconda](https://docs.conda.io/en/latest/miniconda.html)
 
@@ -30,7 +41,7 @@ Open the Conda terminal, change directory to the `rillgen2d` installation folder
 cd C:\path\to\rillgen2d
 ```
 
-### Set up the conda environment
+#### Set up the conda environment
 
 Run the following commands to create adn activate the conda environment
 
@@ -67,7 +78,7 @@ Once the Python environment has been created and activated, you can start the GU
 
 ```powershell
 
-streamlit run rillgen2dApp.py
+python run.py
 # You will be prompted to create a streamlit account, you can just hit enter to skip this step
 ```
 

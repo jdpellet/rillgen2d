@@ -1,25 +1,25 @@
 from __future__ import annotations
-from rillgen2d import Rillgen2d
-import shutil
-import PIL
-import os
-import time
-
-import streamlit.components.v1 as components
-from pathlib import Path
 import multiprocessing as mp
-import streamlit as st
+import os
+import shutil
+import time
+from pathlib import Path
 
-# Change directory to the root of the project before doing relative imports
+import PIL
+import streamlit as st
+import streamlit.components.v1 as components
+
 MAIN_DIRECTORY = Path(__file__).parent.parent
 os.chdir(MAIN_DIRECTORY)
+
+from rillgen2d import Rillgen2d
+from utils import (extract_geotiff_from_tarfile, get_image_from_url,
+                   open_file_dialog, reset_session_state)
 from parameters.Parameters import Parameters
-from utils import (
-    get_image_from_url, extract_geotiff_from_tarfile, reset_session_state, open_file_dialog)
+
+# Change directory to the root of the project before doing relative imports
 
 # TODO switch to prefixing with utils. to improve traceability
-
-
 class Frontend:
     def __init__(self):
         if "parameters" not in st.session_state:
@@ -174,7 +174,8 @@ class Frontend:
             return
         self.params.copy_files_to_dir(MAIN_DIRECTORY / "tmp")
         if self.params.get_value("mask_flag") == 1:
-            self.getMask(self.params.get_parameter("mask_flag").get_inner_value())
+            self.getMask(self.params.get_parameter(
+                "mask_flag").get_inner_value())
         self.params.writeParametersToFile(MAIN_DIRECTORY / "tmp" / "input.txt")
 
         # Handle edge cases where an old rillgen object still is in the run slot
@@ -185,7 +186,7 @@ class Frontend:
             st.session_state.rillgen2d.filename = self.rillgen2d.filename
             del self.rillgen2d
             self.rillgen2d = st.session_state.rillgen2d
-        
+
         st.session_state.rillgen2d.start()
         self.rillgen2d.has_run = True
 
@@ -202,7 +203,8 @@ class Frontend:
     def display_preview(self):
         """Preview of the landscape."""
         imagePath = "hillshade.png"
-        imagePath = "./" + "tmp/" * int(not Path(imagePath).is_file()) + imagePath
+        imagePath = "./" + "tmp/" * \
+            int(not Path(imagePath).is_file()) + imagePath
         with st.expander("Check DEM landscape", True):
             if (
                 "hillshade_generated" in st.session_state
@@ -219,7 +221,8 @@ class Frontend:
         if map.exists() and self.rillgen2d.has_run:
             self.display_map(MAIN_DIRECTORY / "tmp/map.html")
             self.display_tau(MAIN_DIRECTORY / "tmp/tau.png")
-            st.button("Save Output", key="saveButton", on_click=self.save_callback)
+            st.button("Save Output", key="saveButton",
+                      on_click=self.save_callback)
 
     # display the Leaflet Folium Map
     def display_map(self, path):
@@ -228,7 +231,6 @@ class Frontend:
             components.html(
                 (path).read_text(), height=500, width=700
             )
-
 
     # Add the Legend below the Leaflet Map for Tau and F
 
@@ -241,7 +243,7 @@ class Frontend:
 
     def view_output(self, output_path):
         if not (Path(output_path) / "map.html").exists():
-            st.warning("Output file not found at " + output_path)
+            st.warning("Output file not found in " + output_path)
         else:
             self.display_map(Path(output_path) / "map.html")
             self.display_tau(Path(output_path) / "tau.png")
@@ -266,7 +268,8 @@ class Frontend:
                 self.display_console()
                 self.display_outputs()
         with readme:
-            components.iframe("https://tyson-swetnam.github.io/rillgen2d/", scrolling=True, height=1000)
+            components.iframe(
+                "https://tyson-swetnam.github.io/rillgen2d/", scrolling=True, height=1000)
         if self.app_is_running():
             time.sleep(0.5)
             st.rerun()
@@ -276,12 +279,12 @@ def reset_console():
     st.session_state.console_log = []
     st.session_state.console = mp.Queue()
 
+
 def reset_rillgen():
     st.session_state.rillgen2d = Rillgen2d(
         params=st.session_state.parameters,
         message_queue=st.session_state.console,
     )
-
 
 
 if __name__ == "__main__":

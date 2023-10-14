@@ -89,14 +89,16 @@ class Rillgen2d(Process):
     @function_decorator
     def run_command(self, command):
         self.console.put(command)
-        self.console.put(str(subprocess.check_output(command, shell=True), "UTF-8"))
+        self.console.put(
+            str(subprocess.check_output(command, shell=True), "UTF-8"))
 
     @function_decorator
     def convert_geotiff_to_txt(self, filename):
         self.console.put("Converting geotiff to txt")
         src_ds = gdal.Open(filename + ".tif")
         if src_ds is None:
-            raise Exception("ERROR: Unable to open " + filename + " for writing")
+            raise Exception("ERROR: Unable to open " +
+                            filename + " for writing")
         # Open output format driver, see gdal_translate --formats for list
         format = "XYZ"
         driver = gdal.GetDriverByName(format)
@@ -110,7 +112,8 @@ class Rillgen2d(Process):
         self.run_command(
             "gdal_translate -of XYZ " + filename + ".tif " + filename + ".asc"
         )
-        self.run_command("awk '{print $3}' " + filename + ".asc > " + filename + ".txt")
+        self.run_command("awk '{print $3}' " +
+                         filename + ".asc > " + filename + ".txt")
         # remove temporary .asc file to save space
         self.run_command("rm " + filename + "_dem.asc")
 
@@ -167,7 +170,8 @@ class Rillgen2d(Process):
             line = ", ".join(map(str, (index_array[i], *colors[i]))) + "\n"
             f.write(line)
         f.close()
-        colormap = branca.colormap.LinearColormap(colors).to_step(index=index_array)
+        colormap = branca.colormap.LinearColormap(
+            colors).to_step(index=index_array)
         colormap.caption = caption
         setattr(self, colormap_name, colormap)
         self.run_command(
@@ -189,14 +193,16 @@ class Rillgen2d(Process):
         self.console.put("Setting up Rillgen")
 
         self.console.put("Hydroilic correction step in progress")
-        self.run_command("awk '{print $3}' " + self.image_path.stem + ".asc > topo.txt")
+        self.run_command("awk '{print $3}' " +
+                         self.image_path.stem + ".asc > topo.txt")
         self.run_command(
             "awk '{print $1, $2}' " + self.image_path.stem + ".asc > xy.txt"
         )
         if self.rillgen == None:
             self.rillgen = CDLL(str(Path.cwd().parent / "rillgen.so"))
         self.run_rillgen()
-        self.console.put("Hydrologic correction step completed. Creating outputs...")
+        self.console.put(
+            "Hydrologic correction step completed. Creating outputs...")
 
     @function_decorator
     def run_rillgen(self):
@@ -248,7 +254,8 @@ class Rillgen2d(Process):
 
         if projection is None and geotransform is None:
             self.console.put(
-                "No projection or geotransform found on file" + str(self.filename)
+                "No projection or geotransform found on file" +
+                str(self.filename)
             )
             sys.exit(1)
 
@@ -256,7 +263,8 @@ class Rillgen2d(Process):
             if (Path.cwd() / elem).exists():
                 ds2 = gdal.Open(elem, gdal.GA_Update)
                 if ds2 is None:
-                    self.console.put(("Unable to open " + elem + " for writing\n\n"))
+                    self.console.put(
+                        ("Unable to open " + elem + " for writing\n\n"))
                     sys.exit(1)
 
                 if geotransform is not None and geotransform != (0, 1, 0, 0, 0, 1):
@@ -297,7 +305,8 @@ class Rillgen2d(Process):
                         + ".png"
                     )
                 else:
-                    self.console.put(("Translating inciseddepth.tif to .png\n\n"))
+                    self.console.put(
+                        ("Translating inciseddepth.tif to .png\n\n"))
                     cmd3 = (
                         "gdal_translate -a_nodata 255 -ot Byte -of PNG "
                         + elem.split(sep=".")[0]
@@ -368,11 +377,10 @@ class Rillgen2d(Process):
             ],
             zoom_start=16,
         )
-        
+
         folium.TileLayer(
             tiles="https://tiles.stadiamaps.com/tiles/stamen_terrain/{z}/{x}/{y}{r}.png",
-            attr=
-            """
+            attr="""
             &copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a>
             &copy; <a href="https://stamen.com/" target="_blank">Stamen Design</a>
             &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a>
@@ -381,7 +389,7 @@ class Rillgen2d(Process):
             name="Stamen Design"
         ).add_to(self.m)
         folium.TileLayer("OpenStreetMap").add_to(self.m)
-        
+
         self.layer_control = folium.LayerControl()
         img1 = folium.raster_layers.ImageOverlay(
             image="hillshade.png",
@@ -439,7 +447,8 @@ class Rillgen2d(Process):
             if Path(str(image_path) + ".aux.xml").exists():
                 shutil.copyfile(
                     str(image_path) + ".aux.xml",
-                    str(self.temporary_directory / image_path.stem) + ".aux.xml",
+                    str(self.temporary_directory /
+                        image_path.stem) + ".aux.xml",
                 )
 
         # Open existing dataset
@@ -463,11 +472,13 @@ class Rillgen2d(Process):
 
         Path.mkdir(self.temporary_directory.parent / saveDir)
         saveDir = self.temporary_directory.parent / saveDir
-        acceptable_files = ["parameters.txt", "input.txt", "map.html", "rills.ppm"]
+        acceptable_files = ["parameters.txt",
+                            "input.txt", "map.html", "rills.ppm"]
         for fname in self.temporary_directory.iterdir():
             file_name = fname.name
             if file_name in acceptable_files or (
                 file_name.endswith(".png") or file_name.endswith(".tif")
             ):
-                shutil.copy(self.temporary_directory / file_name, saveDir / file_name)
+                shutil.copy(self.temporary_directory /
+                            file_name, saveDir / file_name)
         return saveDir

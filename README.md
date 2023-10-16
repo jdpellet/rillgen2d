@@ -18,12 +18,24 @@ We have tested these options for running the platform on Windows 11.
 
 ### Run the install script
 
-The batch script (./scripts/install_windows.bat) downloads the miniconda installer, prompts the user to install conda, then creates the conda environment.
+1. The first step is to download repository and open the repository in your file explorer.
 
-To run the installer, click on `install_windows.bat`
+2. Run the install script.
+   * The script (scripts\install_windows.bat) downloads the miniconda installer, prompts the user to install conda, then creates the conda environment.
+   * To run the installer, click on `install_windows.bat` in the Windows file explorer.
 
-A security prompt will warn about running the software, to run anyways you need to click. This
-tends to take around 15-20 minutes.
+3. Windows will create a pop-up saying that they prevented the installer from running. To run it anyways, click "More info" and then click "Run Anyway".
+
+4. After a short period, the Miniconda installer will prompt you about the different install options (the default options are fine for running rillgen).
+
+5. After installing Miniconda, the intstaller will create the enviornment. This takes around 10 minutes.
+6. Once the installer is finished, the text provides a command you can enter in the Anaconda Prompt to navigate to the correct folder. Copy it, then press enter to close the window
+7. To run rillgen, you need to do the following
+   1. Then, search `Anaconda Prompt (miniconda3)` in the search box in the taskbar
+   2. In Anaconda Prompt, run `conda activate rillgen2d`
+   3. Navigate to rillgen2d folder (either with the copied command or manually)
+   4. Launch the application with `python run.py` in the Anaconda Prompt
+   5. Then, [search localhost:5000 on your preferred browser](http://localhost:5000/)
 
 ### Manual Installation
 
@@ -127,7 +139,7 @@ Once the appropriate Python environment has been created, you can start the GUI 
 
 ``` bash
 
-streamlit run rillgen2dApp.py
+python run.py
 
 ```
 

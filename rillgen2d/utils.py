@@ -53,7 +53,7 @@ def extract_geotiff_from_tarfile(tarpath, outputpath):
 
 
 def open_file_dialog():
-    cmd = "python3 " + str(Path(__file__).parent / "file_dialog.py")
+    cmd = "python " + str(Path(__file__).parent / "file_dialog.py")
     out = subprocess.check_output(cmd, shell=True)
     directory_path = str(out, "UTF-8").strip()
     return directory_path

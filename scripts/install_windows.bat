@@ -17,6 +17,10 @@ call mamba env create -f ..\environment_windows.yml -y
 call conda activate rillgen2d
 :: Your installation script is complete. 
 echo Installation complete. 
-echo Launch the Anaconda Prompt then enter 'conda activate rillgen2d', then %cd%
+set "batchDir=%~dp0"
+set "twoFoldersAbove=%batchDir%..\"
+
+echo The filepath to rillgen2d is: %twoFoldersAbove%
+echo Launch the Anaconda Prompt then enter 'conda activate rillgen2d', then enter 'cd %twoFoldersAbove%'
 pause
 

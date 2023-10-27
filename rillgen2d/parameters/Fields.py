@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import streamlit as st
+import os
 
 from pathlib import Path
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from typing import Any, Union, Optional
+
+MAIN_DIRECTORY = Path(__file__).parent.parent.parent
+assert((MAIN_DIRECTORY / "rillgen2d").exists())
 
 
 # Abstract base class defining the interface for parameter fields
@@ -93,7 +97,7 @@ class OptionField(BaseField):
 
     def get_inner_value(self):
         out = self.get_inner_parameter()
-        return out.get_inner_value() if out else None
+        return out.get_value() if out else None
 
     def get_inner_type(self):
         out = self.get_inner_parameter()
@@ -140,7 +144,7 @@ class CheckBoxField(BaseField):
 
     def get_inner_value(self):
         out = self.get_inner_parameter()
-        return out.get_inner_value() if out else None
+        return out.get_value() if out else None
 
     def get_inner_type(self):
         out = self.get_inner_parameter()
@@ -157,25 +161,40 @@ class CheckBoxField(BaseField):
 class FileField(BaseField):
     output: Optional[str] = None  # Path to the selected file
     filename: str = None
-
+    path: str = ""
+    
     def draw(self, disabled: bool) -> None:
         """Renders a text input in the UI for file path entry."""
-        self.output = st.text_input(
+        self.output = st.file_uploader(
             self.display_name,
             help=self.help,
             key=self.name,
             disabled=disabled,
+            on_change=self.callback
         )
-
+    
+    def callback(self):
+        file = st.session_state[self.name]
+        if not file:
+            return
+        if not Path(MAIN_DIRECTORY / "tmp").exists:
+            os.mkdir(MAIN_DIRECTORY / "tmp")
+        print("HERE")
+        save_location = MAIN_DIRECTORY / "tmp" / file.name
+        with open(save_location, "wb") as f:
+            f.write(file.read())
+        self.path = str(save_location)
+    
+    
     def validate(self) -> Optional[str]:
         """Validates the existence of the file at the specified path."""
-        if not Path(self.output).is_file() or not self.output:
-            return f"File {self.output} does not exist"
+        if not Path(self.path).is_file() or not self.output:
+            return f"File {self.path} does not exist"
         return super().validate()
 
     def get_value(self) -> str:
         """Returns the path to the selected file."""
-        return self.output
+        return self.path
 
 
 @dataclass(kw_only=True)

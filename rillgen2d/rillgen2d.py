@@ -95,27 +95,27 @@ class Rillgen2d(Process):
     @function_decorator
     def convert_geotiff_to_txt(self, filename):
         self.console.put("Converting geotiff to txt")
-        src_ds = gdal.Open(filename + ".tif")
+        file_path = str(self.temporary_directory/ filename)
+        src_ds = gdal.Open(file_path + ".tif")
         if src_ds is None:
             raise Exception("ERROR: Unable to open " +
-                            filename + " for writing")
+                            file_path + ".tif" + " for writing")
         # Open output format driver, see gdal_translate --formats for list
         format = "XYZ"
         driver = gdal.GetDriverByName(format)
 
         # Output to new format
-        dst_ds = driver.CreateCopy(filename + "_dem.asc", src_ds, 0)
+        dst_ds = driver.CreateCopy(file_path + "_dem.asc", src_ds, 0)
 
         # Properly close the datasets to flush to disk
         src_ds = None
         dst_ds = None
         self.run_command(
-            "gdal_translate -of XYZ " + filename + ".tif " + filename + ".asc"
+            "gdal_translate -of XYZ " + file_path + ".tif " + file_path + ".asc"
         )
-        self.run_command("awk '{print $3}' " +
-                         filename + ".asc > " + filename + ".txt")
+        self.run_command("awk '{print $3}' " + file_path + ".asc > " + file_path + ".txt")
         # remove temporary .asc file to save space
-        self.run_command("rm " + filename + "_dem.asc")
+        self.run_command("rm " + file_path + "_dem.asc")
 
     def run(self):
         self.image_path = self.params.image_path

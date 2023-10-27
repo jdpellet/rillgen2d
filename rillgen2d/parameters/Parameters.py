@@ -96,9 +96,9 @@ class Parameters:
             checkbox = self.get_parameter(attribute)
             if (
                 isinstance(checkbox, (OptionField, CheckBoxField))
-                and checkbox.get_inner_type() == FileField
+                and isinstance(checkbox.get_inner_type(),FileField)
             ):
-                file_parameter = checkbox.get_inner_parameter()
+                file_parameter = checkbox.get_inner_value()
                 filepath = file_parameter.filename
                 shutil.copy(file_parameter.get_value(), path / filepath)
 

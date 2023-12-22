@@ -5,7 +5,6 @@
 #define FREE_ARG char *
 #define NR_END 1
 
-#define fivethirds 1.666666666666667
 #define PI 3.1415926535897932
 #define PIover4 0.78539816339744800
 #define sqrt2 1.414213562373
@@ -14,13 +13,16 @@
 #define tiny 1.e-12
 #define small 1.e-6
 #define mfdweight 1.1
+#define tenthirdstimesmfdweight 3.6666666666667
+#define twicemfdweight 2.2
+#define fivethirds 1.666666666666667
 
 long t, *topovecind;
 int flagformode, flagforroutingmethod, numberofraindata, numberofraingages, **closestgage, **nextclosestgage, expansion, smoothinglength, numberofdatapoints;
 int flagforshearstressequation, flagformode, flagformask, flagforslope, flagford50, flagfortaucsoilandveg, flagforrain, flagforthickness, flagforrockcover, **mask, flagforrockthickness, numberofslices, numberofsweeps;
 int **i1, **jl, **i2, **j2, *iup, *idown, *jup, *jdown, lattice_size_x, lattice_size_y, ic, jc;
-double depthweightfactor, manningsn, excessshearstress, rillwidth, nodatavalue, oneoverdeltax, durationofdata, timestep, ulx, uly, *raingagex;
-double oneminusdepthweightfactor, *raingagey, **sinofslope, **angle, rillwidthcoefficient, rillwidthexponent, dist, *rainvalues, durationofdata;
+double weightfactor, manningsn, excessshearstress, rillwidth, nodatavalue, oneoverdeltax, durationofdata, timestep, ulx, uly, *raingagex;
+double oneminusweightfactor, *raingagey, **sinofslope, **angle, rillwidthcoefficient, rillwidthexponent, dist, *rainvalues, durationofdata;
 double minslope, **slopefactor, **discharge, **rainl, **rain, **d50, **cu, **thickness, **rockcover, **taucsoilandveg, **tau;
 double anglel, **topo, **slope, **area, **depth, **discharge, flowl1, flowl2, flow1, flow2, flow3, flow4, flow5, flow6, flow7, flow8;
 double *topovec, fillincrement, **inciseddepth, **f1, **f2, deltax, yellowthreshold, rainfixed, b, c, d50fixed, rockcoverfixed, bulkdensity;
@@ -357,26 +359,14 @@ void priority_flood_epsilon()
 	for (j = 1; j <= lattice_size_y; j++)
 		for (i = 1; i <= lattice_size_x; i++)
 			closed[i][j] = 0;
-	/* To start, push edges onto queue (generally, start by pushing outflow nodes onto queue) */
-	for (i = 1; i <= lattice_size_x; i++)
-	{
-		t = flat_index(i, 1);
-		pf_push(pqueue, pval, t);
-		t = flat_index(i, lattice_size_y);
-		pf_push(pqueue, pval, t);
-		closed[i][1] = 1;
-		closed[i][lattice_size_y] = 1;
-	}
-	for (j = 2; j <= lattice_size_y - 1; j++)
-	{
-		t = flat_index(1, j);
-		pf_push(pqueue, pval, t);
-		t = flat_index(lattice_size_x, j);
-		pf_push(pqueue, pval, t);
-		closed[1][j] = 1;
-		closed[lattice_size_x][j] = 1;
-	}
-
+	for (j = 1; j <= lattice_size_y; j++)
+		for (i = 1; i <= lattice_size_x; i++)
+			if (mask[i][j] == 0)
+			{
+				t = flat_index(i, j);
+				pf_push(pqueue, pval, t);
+				closed[i][j] = 1;
+			}
 	/* Iterate while the priority queue is not empty */
 	while (I > 0)
 	{
@@ -388,7 +378,6 @@ void priority_flood_epsilon()
 		j = t / lattice_size_x + 1;
 		if (i == lattice_size_x)
 			j--;
-
 		/* for each neighbor of popped node, fill and push to queue if not already closed */
 		neighboris[0] = idown[i];
 		neighboris[1] = iup[i];
@@ -1099,51 +1088,51 @@ void calculatedischargefluxes(i, j) int i, j;
 	double fluxtot, averagedepth, slope1, slope2, slope3, slope4, slope5, slope6, slope7, slope8, discharge1, discharge2, discharge3, discharge4, discharge5, discharge6, discharge7, discharge8;
 
 	slope1 = topo[i][j] - topo[iup[i]][j];
-	averagedepth = depthweightfactor * depth[i][j] + oneminusdepthweightfactor * depth[iup[i]][j];
+	averagedepth = weightfactor * depth[i][j] + oneminusweightfactor * depth[iup[i]][j];
 	if ((topo[i][j] > topo[iup[i]][j]) && (averagedepth > 0))
-		discharge1 = sqrt(slope1) * pow(averagedepth, fivethirds);
+		discharge1 = pow(slope1, mfdweight) * pow(averagedepth, tenthirdstimesmfdweight) / pow(manningsn, twicemfdweight);
 	else
 		discharge1 = 0;
 	slope2 = topo[i][j] - topo[idown[i]][j];
-	averagedepth = depthweightfactor * depth[i][j] + oneminusdepthweightfactor * depth[idown[i]][j];
+	averagedepth = weightfactor * depth[i][j] + oneminusweightfactor * depth[idown[i]][j];
 	if ((topo[i][j] > topo[idown[i]][j]) && (averagedepth > 0))
-		discharge2 = sqrt(slope2) * pow(averagedepth, fivethirds);
+		discharge2 = pow(slope2, mfdweight) * pow(averagedepth, tenthirdstimesmfdweight) / pow(manningsn, twicemfdweight);
 	else
 		discharge2 = 0;
 	slope3 = topo[i][j] - topo[i][jup[j]];
-	averagedepth = depthweightfactor * depth[i][j] + oneminusdepthweightfactor * depth[i][jup[j]];
+	averagedepth = weightfactor * depth[i][j] + oneminusweightfactor * depth[i][jup[j]];
 	if ((topo[i][j] > topo[i][jup[j]]) && (averagedepth > 0))
-		discharge3 = sqrt(slope3) * pow(averagedepth, fivethirds);
+		discharge3 = pow(slope3, mfdweight) * pow(averagedepth, tenthirdstimesmfdweight) / pow(manningsn, twicemfdweight);
 	else
 		discharge3 = 0;
 	slope4 = topo[i][j] - topo[i][jdown[j]];
-	averagedepth = depthweightfactor * depth[i][j] + oneminusdepthweightfactor * depth[i][jdown[j]];
+	averagedepth = weightfactor * depth[i][j] + oneminusweightfactor * depth[i][jdown[j]];
 	if ((topo[i][j] > topo[i][jdown[j]]) && (averagedepth > 0))
-		discharge4 = sqrt(slope4) * pow(averagedepth, fivethirds);
+		discharge4 = pow(slope4, mfdweight) * pow(averagedepth, tenthirdstimesmfdweight) / pow(manningsn, twicemfdweight);
 	else
 		discharge4 = 0;
 	slope5 = (topo[i][j] - topo[iup[i]][jup[j]]) * oneoversqrt2;
-	averagedepth = depthweightfactor * depth[i][j] + oneminusdepthweightfactor * depth[iup[i]][jup[j]];
+	averagedepth = weightfactor * depth[i][j] + oneminusweightfactor * depth[iup[i]][jup[j]];
 	if ((topo[i][j] > topo[iup[i]][jup[j]]) && (averagedepth > 0))
-		discharge5 = sqrt(slope5) * pow(averagedepth, fivethirds);
+		discharge5 = pow(slope5, mfdweight) * pow(averagedepth, tenthirdstimesmfdweight) / pow(manningsn, twicemfdweight);
 	else
 		discharge5 = 0;
 	slope6 = (topo[i][j] - topo[idown[i]][jup[j]]) * oneoversqrt2;
-	averagedepth = depthweightfactor * depth[i][j] + oneminusdepthweightfactor * depth[idown[i]][jup[j]];
+	averagedepth = weightfactor * depth[i][j] + oneminusweightfactor * depth[idown[i]][jup[j]];
 	if ((topo[i][j] > topo[idown[i]][jup[j]]) && (averagedepth > 0))
-		discharge6 = sqrt(slope6) * pow(averagedepth, fivethirds);
+		discharge6 = pow(slope6, mfdweight) * pow(averagedepth, tenthirdstimesmfdweight) / pow(manningsn, twicemfdweight);
 	else
 		discharge6 = 0;
 	slope7 = (topo[i][j] - topo[iup[i]][jdown[j]]) * oneoversqrt2;
-	averagedepth = depthweightfactor * depth[i][j] + oneminusdepthweightfactor * depth[iup[i]][jdown[j]];
+	averagedepth = weightfactor * depth[i][j] + oneminusweightfactor * depth[iup[i]][jdown[j]];
 	if ((topo[i][j] > topo[iup[i]][jdown[j]]) && (averagedepth > 0))
-		discharge7 = sqrt(slope7) * pow(averagedepth, fivethirds);
+		discharge7 = pow(slope7, mfdweight) * pow(averagedepth, tenthirdstimesmfdweight) / pow(manningsn, twicemfdweight);
 	else
 		discharge7 = 0;
 	slope8 = (topo[i][j] - topo[idown[i]][jdown[j]]) * oneoversqrt2;
-	averagedepth = depthweightfactor * depth[i][j] + oneminusdepthweightfactor * depth[idown[i]][jdown[j]];
+	averagedepth = weightfactor * depth[i][j] + oneminusweightfactor * depth[idown[i]][jdown[j]];
 	if ((topo[i][j] > topo[idown[i]][jdown[j]]) && (averagedepth > 0))
-		discharge8 = sqrt(slope8) * pow(averagedepth, fivethirds);
+		discharge8 = pow(slope8, mfdweight) * pow(averagedepth, tenthirdstimesmfdweight) / pow(manningsn, twicemfdweight);
 	else
 		discharge8 = 0;
 	fluxtot = discharge1 + discharge2 + discharge3 + discharge4 + discharge5 + discharge6 + discharge7 + discharge8;
@@ -1180,11 +1169,7 @@ void routing()
 			k++;
 			for (j = 1; j <= lattice_size_y; j++)
 				for (i = 1; i <= lattice_size_x; i++)
-				{
-					slope[i][j] = minslope;
-					discharge[i][j] = rain[i][j] * deltax * deltax / (1000 * 3600); // runoff intensity in mm/hr converted to discharge in m^3/s; 1000 converts mm to m; 3600 converts hr to s
-					topovec[(j - 1) * lattice_size_x + i] = topo[i][j];
-				}
+					discharge[i][j] = rain[i][j] * deltax * deltax / (1000 * 3600);
 			calculateslope();
 			indexx(lattice_size_x * lattice_size_y, topovec, topovecind);
 			t = lattice_size_x * lattice_size_y + 1;
@@ -1218,7 +1203,6 @@ void routing()
 	for (j = 1; j <= lattice_size_y; j++)
 		for (i = 1; i <= lattice_size_x; i++)
 			discharge[i][j] = pow(depth[i][j], fivethirds) * sqrt(slope[i][j]) * deltax / manningsn;
-	printf("\n");
 }
 
 void calculatedischarge()
@@ -1263,7 +1247,7 @@ void calculatedischarge()
 	}
 	else
 	{
-		oneminusdepthweightfactor = 1 - depthweightfactor;
+		oneminusweightfactor = 1 - weightfactor;
 		routing();
 	}
 }
@@ -1358,7 +1342,7 @@ int main()
 	fscanf(fp1, "%lf %s\n", &nodatavalue, temp);
 	fscanf(fp1, "%d %s\n", &smoothinglength, temp);
 	fscanf(fp1, "%lf %s\n", &manningsn, temp);
-	fscanf(fp1, "%lf %s\n", &depthweightfactor, temp);
+	fscanf(fp1, "%lf %s\n", &weightfactor, temp);
 	fscanf(fp1, "%d %s\n", &numberofslices, temp);
 	fscanf(fp1, "%d %s\n", &numberofsweeps, temp);
 	fscanf(fp1, "%lf %s\n", &rainfixed, temp);

@@ -48,9 +48,10 @@ class Frontend:
         path = path1 or path2
 
         tmp_path = MAIN_DIRECTORY / "tmp"
-        if tmp_path.exists():
-            shutil.rmtree(tmp_path.as_posix())
-        os.mkdir(tmp_path)
+        # path2 already clears the tmp dir
+        if path == path1:
+            self.clear_tmp_dir()
+            os.mkdir(tmp_path)
 
         if path.startswith("http"):
             path = str(get_image_from_url(path))
@@ -86,7 +87,6 @@ class Frontend:
             st.warning("Failed to save output")
 
     def stop_callback(self):
-        # TODO check if queue can become corrupted
         self.rillgen2d.terminate()
         del st.session_state.rillgen2d
         del st.session_state.parameters
@@ -97,11 +97,30 @@ class Frontend:
             maskfile = Path(filepath)
             if maskfile.suffix == ".tar" or maskfile.suffix == ".gz":
                 maskfile = extract_geotiff_from_tarfile(maskfile, Path.cwd())
-            shutil.copyfile(maskfile, MAIN_DIRECTORY / "tmp/mask.txt")
+            shutil.copyfile(maskfile, MAIN_DIRECTORY / "tmp/mask.tif")
             st.session_state.console.put("maskfile: is: " + str(maskfile))
         except Exception as e:
-            print(e)
-            raise Exception("Invalid mask.tif file")
+            raise Exception(f"{filepath} is an invalid mask.tif file")
+
+    def select_file_callback(self):
+        file =  st.session_state.inputTifButton
+        if not file:
+            return
+        self.clear_tmp_dir()
+        os.mkdir(MAIN_DIRECTORY / "tmp")
+
+        save_location = MAIN_DIRECTORY / "tmp" / file.name
+        print(save_location)
+        with open(save_location, "wb") as f:
+            f.write(file.read())
+        st.session_state.imagePathInput2 = str(save_location)
+        
+
+    def clear_tmp_dir(self):
+        tmp_path = MAIN_DIRECTORY / "tmp"
+        if tmp_path.exists():
+            shutil.rmtree(tmp_path.as_posix())
+
 
     def populate_parameters_tab(self):
         """
@@ -124,15 +143,17 @@ class Frontend:
             help="Load valid raster (`.tif`) from a URL (`https://`), the file will be downloaded",
             on_change=reset_session_state,
         )
-
-        st.text_input(
+        
+        if "imagePathInput2" not in st.session_state:
+            st.session_state.imagePathInput2 = ""
+        upload = st.file_uploader(
             "Locally saved DEM file (`.tif`)",
-            key="imagePathInput2",
-            value="",
+            key="inputTifButton",
             help="Load valid DEM raster (`.tif`) in the same directory as `rillgen2d.py` or use a full path (e.g., `C:/yourname/Downloads/rasters/dem.tif`, or `/Users/yourname/Downloads/rasters/dem.tif`)",
-            on_change=reset_session_state,
+            on_change=self.select_file_callback,
         )
-
+        if  upload:
+            st.text(upload.name)
         # If I switch to the file upload look at this for rasterio docs on in memoroy files: https://rasterio.readthedocs.io/en/latest/topics/memory-files.html
         st.button(
             "Generate Parameters",
@@ -174,8 +195,9 @@ class Frontend:
             return
         self.params.copy_files_to_dir(MAIN_DIRECTORY / "tmp")
         if self.params.get_value("mask_flag") == 1:
-            self.getMask(self.params.get_parameter(
-                "mask_flag").get_inner_value())
+            self.getMask(
+            self.params.get_parameter("mask_flag").get_inner_value())
+            self.rillgen2d.convert_geotiff_to_txt("mask")
         self.params.writeParametersToFile(MAIN_DIRECTORY / "tmp" / "input.txt")
 
         # Handle edge cases where an old rillgen object still is in the run slot
@@ -292,7 +314,7 @@ if __name__ == "__main__":
         page_title="Rillgen2d",
         page_icon=None,
         layout="wide",
-        initial_sidebar_state="auto",
+        initial_sidebar_state="expanded",
         menu_items=None,
     )
     app = Frontend()

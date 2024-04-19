@@ -17,6 +17,9 @@ from multiprocessing import Process, Queue
 # Got a weird issue when I just imported PIL before. Not srue why
 from PIL import Image
 
+# Enable exceptions  for GDAL
+gdal.UseExceptions()
+
 if typing.TYPE_CHECKING:
     from rillgen2d.parameters import Parameters
 # Apparently this API is supposed to be internal atm and seems to rapidly change without documentation between updates
@@ -192,7 +195,7 @@ class Rillgen2d(Process):
         self.rillgen = CDLL(str(self.temporary_directory / "rillgen.so"))
         self.console.put("Setting up Rillgen")
 
-        self.console.put("Hydroilic correction step in progress")
+        self.console.put("Hydrologic correction step in progress")
         self.run_command("awk '{print $3}' " +
                          self.image_path.stem + ".asc > topo.txt")
         self.run_command(
@@ -243,12 +246,12 @@ class Rillgen2d(Process):
         tgt_srs = src_srs.CloneGeogCS()
 
         self.geo_ext = self.ReprojectCoords(ext, src_srs, tgt_srs)
-        cmd0 = "gdal_translate -f GTiff xy_tau.txt tau.tif -co TILED=YES -co COMPRESS=DEFLATE -co COPY_SRC_OVERVIEWS=YES -co COG=YES"
-        self.run_command(cmd0)
-        cmd1 = "gdal_translate -f GTiff xy_f1.txt f1.tif -co TILED=YES -co COMPRESS=DEFLATE -co COPY_SRC_OVERVIEWS=YES -co COG=YES"
-        # self.run_command(cmd1)
-        cmd2 = "gdal_translate -f GTiff xy_f2.txt f2.tif -co TILED=YES -co COMPRESS=DEFLATE -co COPY_SRC_OVERVIEWS=YES -co COG=YES"
-        self.run_command(cmd2)
+        cmd01 = "gdal_translate -f GTiff xy_tau.txt tau.tif"
+        self.run_command(cmd01)
+        cmd11 = "gdal_translate -f GTiff xy_f1.txt f1.tif"
+        self.run_command(cmd11)
+        cmd21 = "gdal_translate -f GTiff xy_f2.txt f2.tif"
+        self.run_command(cmd21)
         projection = ds.GetProjection()
         geotransform = ds.GetGeoTransform()
 

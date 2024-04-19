@@ -4,7 +4,11 @@ channels:
 dependencies:
   - streamlit>=1.18
   - gdal
-  - compilers
   - coreutils
   - pillow>=9.5.0
   - folium
+  - clang_osx-64
+  - clangxx_osx-64
+  - gfortran_osx-64
+
+

@@ -16,10 +16,14 @@ from rillgen2d import Rillgen2d
 from utils import (extract_geotiff_from_tarfile, get_image_from_url,
                    open_file_dialog, reset_session_state)
 from parameters.Parameters import Parameters
+from pathlib import Path
+from utils import extract_geotiff_from_tarfile
 
 # Change directory to the root of the project before doing relative imports
 
-# TODO switch to prefixing with utils. to improve traceability
+# todo switch to prefixing with utils to improve traceability
+
+
 class Frontend:
     def __init__(self):
         if "parameters" not in st.session_state:
@@ -62,21 +66,21 @@ class Frontend:
         else:
             path = Path(path)
 
-        self.params.getParametersFromFile(MAIN_DIRECTORY / "input.txt")
+            self.params.getParametersFromFile(MAIN_DIRECTORY / "input.txt")
 
-        (
-            filename,
-            lattice_size_xVar,
-            lattice_size_yVar,
-        ) = self.rillgen2d.save_image_as_txt(path)
-        self.params.lattice_size_x.value = lattice_size_xVar
-        self.params.lattice_size_y.value = lattice_size_yVar
-        if filename is None:
-            raise Exception("Invalid image file")
-        self.rillgen2d.filename = filename
-        st.session_state.hillshade = self.rillgen2d.hillshade_and_color_relief()
-        st.session_state.hillshade_generated = True
-        self.params.image_path = path
+            (
+                filename,
+                lattice_size_xVar,
+                lattice_size_yVar,
+            ) = self.rillgen2d.save_image_as_txt(Path(path))
+            self.params.lattice_size_x.value = lattice_size_xVar
+            self.params.lattice_size_y.value = lattice_size_yVar
+            if filename is None:
+                raise Exception("Invalid image file")
+            self.rillgen2d.filename = filename
+            st.session_state.hillshade = self.rillgen2d.hillshade_and_color_relief()
+            st.session_state.hillshade_generated = True
+            self.params.image_path = path
         self.params.display_parameters = True
 
     def save_callback(self):
@@ -124,16 +128,18 @@ class Frontend:
 
     def populate_parameters_tab(self):
         """
-        Populate the second tab in the application with tkinter widgets. This tab holds editable parameters
+        Populate the second tab in the application with Streamlit widgets. This tab holds editable parameters
         that will be used to run the rillgen2dwitherode.c script. lattice_size_x and lattice_size_y are read in from the
         geometry of the geotiff file
         """
         st.header("Parameters")
         self.existing_output = st.checkbox("View Output Directory")
         if self.existing_output:
-            if st.button('Select Output Directory'):
-                st.session_state.output_path = open_file_dialog()
-            return
+            uploaded_file = st.file_uploader("Choose a file from the directory")
+            if uploaded_file is not None:
+                # Get the directory of the uploaded file
+                st.session_state.output_path = os.path.dirname(uploaded_file.name)
+                st.write(f'Selected directory: {st.session_state.output_path}')
 
         st.header("Input DEM")
         st.text_input(
@@ -184,6 +190,8 @@ class Frontend:
 
         # The width of rills (in m) as they begin to form. This value is used to localize water flow to a width less than the width of a pixel.
         # For example, if deltax = 1 m and rillwidth = 20 cm then the flow entering each pixel is assumed, for the purposes of rill development, to be localized in a width equal to one fifth of the pixel width.
+
+
         ########################### ^MAIN TAB^ ###########################
 
     def run_callback(self):
@@ -311,7 +319,7 @@ def reset_rillgen():
 
 if __name__ == "__main__":
     st.set_page_config(
-        page_title="Rillgen2d",
+        page_title="RillGen 2D",
         page_icon=None,
         layout="wide",
         initial_sidebar_state="expanded",

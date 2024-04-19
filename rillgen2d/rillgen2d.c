@@ -991,7 +991,7 @@ void calculateslope()
 		smoothslope();
 }
 
-void mfdroutefordischarge(i, j) int i, j;
+void mfdroutefordischarge(int i, int j)
 {
 	double fluxtot, discharge1, discharge2, discharge3, discharge4, discharge5, discharge6, discharge7, discharge8;
 
@@ -1083,7 +1083,7 @@ void initialguessforrouting()
 				depth[i][j] = 0;
 }
 
-void calculatedischargefluxes(i, j) int i, j;
+void calculatedischargefluxes(int i, int j)
 {
 	double fluxtot, averagedepth, slope1, slope2, slope3, slope4, slope5, slope6, slope7, slope8, discharge1, discharge2, discharge3, discharge4, discharge5, discharge6, discharge7, discharge8;
 
@@ -1336,8 +1336,8 @@ int main()
 	fscanf(fp1, "%lf %s\n", &minslope, temp);
 	fscanf(fp1, "%d %s\n", &expansion, temp);
 	fscanf(fp1, "%lf %s\n", &yellowthreshold, temp);
-	fscanf(fp1, "%ld %s\n", &lattice_size_x, temp);
-	fscanf(fp1, "%ld %s\n", &lattice_size_y, temp);
+	fscanf(fp1, "%d %s\n", &lattice_size_x, temp);
+	fscanf(fp1, "%d %s\n", &lattice_size_y, temp);
 	fscanf(fp1, "%lf %s\n", &deltax, temp);
 	fscanf(fp1, "%lf %s\n", &nodatavalue, temp);
 	fscanf(fp1, "%d %s\n", &smoothinglength, temp);
@@ -1648,7 +1648,7 @@ int main()
 			else
 				fprintf(fp6, "0.0\n");
 		}
-	fprintf(fp5, "P3\n%ld %ld\n255\n", lattice_size_x, lattice_size_y);
+	fprintf(fp5, "P3\n%d %d\n255\n", lattice_size_x, lattice_size_y);
 	for (m = 1; m <= expansion; m++)
 	{
 		for (j = 1; j <= lattice_size_y; j++)

@@ -2,6 +2,7 @@ name: rillgen2d
 channels:
   - conda-forge
 dependencies:
+  - python>=3.10.*
   - streamlit>=1.18
   - gdal
   - coreutils

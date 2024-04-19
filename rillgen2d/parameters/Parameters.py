@@ -326,8 +326,7 @@ class Parameters:
                 name="delta_x",
                 value=1,
                 comment="Delta_x",
-                help="Resolution (m) $\Delta$X of the DEM is derived from the `.tif` file metadata. \
-                          Review for accuracy, do not change unless something looks wrong.",
+                help="Resolution (m) ΔX of the DEM is derived from the `.tif` file metadata. Review for accuracy, do not change unless something looks wrong.",
                 display_name="DEM Resolution (m)",
             )
         )

@@ -1,13 +1,13 @@
 site_name: Rillgen2d  
 site_description: Rillgen2D Docs
-site_author: Jon D Pelletier, Jacob van der Leeuw, Tyson L Swetnam
-site_url: https://github.com/jdpellet/rillgen2d
+site_author: Jon D Pelletier, Jacob van der Leeuw, Elliot Hagyard, Tyson L Swetnam
+site_url: https://github.com/tyson-swetnam/rillgen2d
 
 # Repository
 repo_name: rillgen2d
-repo_url: https://github.com/jdpellet/rillgen2d
+repo_url: https://github.com/tyson-swetnam/rillgen2d
 # Copyright
-copyright: 'Copyright &copy; 2021 - 2022 Jon D Pelletier'
+copyright: 'Copyright &copy; 2021 - 2024 Jon D Pelletier'
 
 
 # Configuration
@@ -39,7 +39,7 @@ theme:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/jdpellet
+      link: https://github.com/tyson-swetnam
 
 # Extensions
 markdown_extensions:
@@ -85,7 +85,6 @@ markdown_extensions:
 nav:
   - Introduction: index.md
   - Data: data.md
-  - Docker: docker.md
   - Codebase:
     - Python: python.md
     - C: c.md

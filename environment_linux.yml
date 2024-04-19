@@ -2,9 +2,10 @@ name: rillgen2d
 channels:
   - conda-forge
 dependencies:
-  - streamlit>=1.18
+  - python>=3.11.*
+  - streamlit
   - gdal
   - compilers
   - coreutils
-  - pillow>=9.5.0
+  - pillow
   - folium

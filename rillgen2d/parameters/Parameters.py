@@ -109,8 +109,11 @@ class Parameters:
             OptionField(
                 name="mode",
                 display_name="Enable Dynamic Mode (optional)",
+                options=[
+                    "Rainfall Variable in Space and/or Time and Complex Outputs",
+                    "Static Uniform Rainfall with Simple Outputs",
+                ],
                 conditional_field=[
-                    EmptyField(),
                     FileField(
                         display_name="Variable Input",
                         name="variableinput",
@@ -121,14 +124,11 @@ class Parameters:
                         comment="",
                         filename="variableinput.txt",
                     ),
+                    EmptyField(),
                 ],
                 value=1,
-                options=[
-                    "Static Uniform Rainfall with Simple Outputs",
-                    "Rainfall Variable in Space and/or Time and Complex Outputs",
-                ],
                 help="Default: unchecked, checked requires file named `dynamicinput`, \
-                            unchecked uses 'peak mode' with spatially uniform rainfall",
+                        unchecked uses 'peak mode' with spatially uniform rainfall",
             )
         )
         ...
@@ -169,7 +169,7 @@ class Parameters:
                         (`mask values = 1` means run the model, `0` means ignore these areas).",
                 conditional_field=FileField(
                     display_name="Path to required file named `mask`",
-                    filename="mask.txt",
+                    filename="mask.tif",
                     comment="",
                     value="",
                     name="mask_filepath",
@@ -327,7 +327,8 @@ class Parameters:
                 name="delta_x",
                 value=1.0,
                 comment="Delta_x",
-                help="Resolution (m) ΔX of the DEM is derived from the `.tif` file metadata. Review for accuracy, do not change unless something looks wrong.",
+                help="Resolution (m) ΔX of the DEM is derived from the `.tif` file metadata. \
+                          Review for accuracy, do not change unless something looks wrong.",
                 display_name="DEM Resolution (m)",
             )
         )

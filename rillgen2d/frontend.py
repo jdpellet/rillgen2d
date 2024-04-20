@@ -72,9 +72,14 @@ class Frontend:
                 filename,
                 lattice_size_xVar,
                 lattice_size_yVar,
+                pixel_size_x,
+                pixel_size_y,
             ) = self.rillgen2d.save_image_as_txt(Path(path))
             self.params.lattice_size_x.value = lattice_size_xVar
             self.params.lattice_size_y.value = lattice_size_yVar
+            st.session_state.pixel_size_x = pixel_size_x
+            st.session_state.pixel_size_y = pixel_size_y
+            self.params.delta_x.value = pixel_size_x
             if filename is None:
                 raise Exception("Invalid image file")
             self.rillgen2d.filename = filename

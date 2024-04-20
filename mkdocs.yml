@@ -85,6 +85,7 @@ markdown_extensions:
 nav:
   - Introduction: index.md
   - Data: data.md
+  - User Guide: gui.md
   - Codebase:
     - Python: python.md
     - C: c.md

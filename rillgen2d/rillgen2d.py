@@ -490,13 +490,17 @@ class Rillgen2d(Process):
         self.console.put("Filename is: " + Path(filename).name)
         src_ds = gdal.Open(filename)
         band = src_ds.GetRasterBand(1)
+        
+        geotransform = src_ds.GetGeoTransform()
+        pixel_size_x = geotransform[1]
+        pixel_size_y = geotransform[5]
 
         arr = band.ReadAsArray()
         dimensions = [arr.shape[0], arr.shape[1]]
         self.console.put("GEO Tiff successfully converted")
         self.console.put("Parameters Tab now available")
         self.console.put("Click Parameters Tab for next selections")
-        return filename, dimensions[1], dimensions[0]
+        return filename, dimensions[1], dimensions[0], pixel_size_x, pixel_size_y
 
     def save_output(self):
         """Save outputs from a run in a timestamp-marked folder"""

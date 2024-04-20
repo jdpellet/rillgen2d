@@ -44,6 +44,8 @@ class Parameters:
             {
                 "Lattice Size X:": self.get_value("lattice_size_x"),
                 "Lattice Size Y:": self.get_value("lattice_size_y"),
+                "Pixel Size X:": st.session_state.pixel_size_x,
+                "Pixel Size Y:": st.session_state.pixel_size_y,
             }
         )
         for attribute in self.order_of_attributes:
@@ -110,10 +112,11 @@ class Parameters:
                 name="mode",
                 display_name="Enable Dynamic Mode (optional)",
                 options=[
-                    "Rainfall Variable in Space and/or Time and Complex Outputs",
                     "Static Uniform Rainfall with Simple Outputs",
+                    "Rainfall Variable in Space and/or Time and Complex Outputs",
                 ],
                 conditional_field=[
+                    EmptyField(),
                     FileField(
                         display_name="Variable Input",
                         name="variableinput",
@@ -124,9 +127,8 @@ class Parameters:
                         comment="",
                         filename="variableinput.txt",
                     ),
-                    EmptyField(),
                 ],
-                value=1,
+                value=0,
                 help="Default: unchecked, checked requires file named `dynamicinput`, \
                         unchecked uses 'peak mode' with spatially uniform rainfall",
             )

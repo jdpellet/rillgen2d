@@ -1,5 +1,5 @@
 site_name: Rillgen2d  
-site_description: Rillgen2D Docs
+site_description: Rillgen2D Documentation
 site_author: Jon D Pelletier, Jacob van der Leeuw, Elliot Hagyard, Tyson L Swetnam
 site_url: https://github.com/tyson-swetnam/rillgen2d
 
@@ -29,12 +29,38 @@ theme:
     primary: blue
     accent: pink
   font:
-    text: Google Sans
-    code: Regular
-  favicon: assets/favicon.png
-  icon:
-    logo: logo
+    text: 'Open Sans'
+    code: 'Roboto Mono'
+  logo: 'assets/uarizona.png'
+  favicon: 'assets/favicon.ico'
+# setting features for the navigation tab
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.indexes
+    - navigation.top
+    - toc.integrate
+    - toc.follow
+    - content.code.copy
+  # Default values, taken from mkdocs_theme.yml
+  language: en
+  # custom_dir: 'overrides'
+  palette:
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: white)"
+      primary: 'white'
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
 
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to system preference
 # Options
 extra:
   social:
@@ -81,6 +107,16 @@ markdown_extensions:
       custom_checkbox: true
   - pymdownx.tilde
 
+extra_css:
+  - stylesheets/extra.css
+ 
+plugins:
+    - search
+    - mkdocstrings
+    - git-revision-date
+    - mkdocs-jupyter:
+          include_source: True
+          ignore_h1_titles: True
 # Page tree
 nav:
   - Introduction: index.md

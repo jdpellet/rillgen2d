@@ -101,7 +101,8 @@ class Frontend:
             maskfile = Path(filepath)
             if maskfile.suffix == ".tar" or maskfile.suffix == ".gz":
                 maskfile = extract_geotiff_from_tarfile(maskfile, Path.cwd())
-            shutil.copyfile(maskfile, MAIN_DIRECTORY / "tmp/mask.tif")
+            # Use the temporary file path as the source
+            shutil.copyfile(maskfile, MAIN_DIRECTORY / "tmp/mask.tif") 
             st.session_state.console.put("maskfile: is: " + str(maskfile))
         except Exception as e:
             raise Exception(f"{filepath} is an invalid mask.tif file")

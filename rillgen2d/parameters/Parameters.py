@@ -13,6 +13,7 @@ from .Fields import (
 import shutil
 import streamlit as st
 
+# The Parameters class is responsible for managing the parameters of the model.
 
 class Parameters:
     """Class encapsulating parameters management, validation, and file I/O operations."""
@@ -324,7 +325,7 @@ class Parameters:
         self.add_parameter(
             NumericField(
                 name="delta_x",
-                value=1,
+                value=1.0,
                 comment="Delta_x",
                 help="Resolution (m) ΔX of the DEM is derived from the `.tif` file metadata. Review for accuracy, do not change unless something looks wrong.",
                 display_name="DEM Resolution (m)",
@@ -358,14 +359,14 @@ class Parameters:
                 value=0.01,
                 comment="Manning's N",
                 help="",
-                display_name=r"Manning's N (m^(1/3))/(s))'",
+                display_name=r"Manning's N (m^(1/3))/(s))",
             )
         )
 
         self.add_parameter(
             NumericField(
                 name="depth_weight_factor",
-                value=0.01,
+                value= 0.01,
                 comment="Depth_weight_factor",
                 help="",
                 display_name="Depth Weight Factor",
@@ -436,7 +437,7 @@ class Parameters:
         self.add_parameter(
             NumericField(
                 name="rock_cover_fixed",
-                value=1,
+                value=1.0,
                 comment="Rock_cover_fixed",
                 help="This value indicates the fraction of area covered by rock armor. \
                           Will be 1 for continuous rock armors, <1 for partial rock cover. \

@@ -92,6 +92,10 @@ class Rillgen2d(Process):
     @function_decorator
     def run_command(self, command):
         self.console.put(command)
+        result = subprocess.run(command, shell=True, capture_output=True, text=True)
+        if result.returncode != 0:
+            raise RuntimeError(f"Command failed: {command}\nError: {result.stderr}")
+        self.console.put(result.stdout)
         self.console.put(
             str(subprocess.check_output(command, shell=True), "UTF-8"))
 
@@ -100,25 +104,41 @@ class Rillgen2d(Process):
         self.console.put("Converting geotiff to txt")
         file_path = str(self.temporary_directory/ filename)
         src_ds = gdal.Open(file_path + ".tif")
+        src_projection = src_ds.GetProjection()
+        src_geotransform = src_ds.GetGeoTransform()
+        if not src_projection or src_geotransform == (0, 1, 0, 0, 0, 1):
+            self.console.put("No Input Projection or Geotransform found. Assigning null island location.")
+            null_geotransform = (0.0, 1.0, 0.0, 0.0, 0.0, 1.0)
+            src_ds.SetGeoTransform(null_geotransform)
+            srs = osr.SpatialReference()
+            srs.ImportFromEPSG(4326)  # WGS84
+            src_ds.SetProjection(srs.ExportToWkt())
+        else:
+            self.console.put("Input Projection information found.")
+            self.console.put("Input Projection: " + src_projection)
+            self.console.put("Input Geotransform: " + str(src_geotransform))
+        
         if src_ds is None:
             raise Exception("ERROR: Unable to open " +
                             file_path + ".tif" + " for writing")
+        
         # Open output format driver, see gdal_translate --formats for list
         format = "XYZ"
         driver = gdal.GetDriverByName(format)
 
         # Output to new format
-        dst_ds = driver.CreateCopy(file_path + "_dem.asc", src_ds, 0)
+        #dst_ds = driver.CreateCopy(file_path + "_dem.asc", src_ds, 0)
 
         # Properly close the datasets to flush to disk
         src_ds = None
-        dst_ds = None
+        #dst_ds = None
         self.run_command(
-            "gdal_translate -of XYZ " + file_path + ".tif " + file_path + ".asc"
+            f"gdal_translate -of XYZ " + file_path + ".tif " + file_path + ".asc"
         )
         self.run_command("awk '{print $3}' " + file_path + ".asc > " + file_path + ".txt")
+        
         # remove temporary .asc file to save space
-        self.run_command("rm " + file_path + "_dem.asc")
+        #self.run_command("rm " + file_path + "_dem.asc")
 
     def run(self):
         self.image_path = self.params.image_path
@@ -242,9 +262,20 @@ class Rillgen2d(Process):
             # GDAL 3 changes axis order: https://github.com/OSGeo/gdal/issues/1546
             src_srs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
         proj = ds.GetProjection()
-        src_srs.ImportFromWkt(proj)
+        
+        if not proj:
+            self.console.put("DEM has no projection information. Assigning null island location.")
+            null_geotransform = (0.0, 1.0, 0.0, 0.0, 0.0, 1.0)
+            ds.SetGeoTransform(null_geotransform)
+            ds.SetProjection('NULL')
+            
+            # No need for reprojection, set geo_ext directly
+            self.geo_ext = self.GetExtent(null_geotransform, cols, rows) 
+        
+        else:
+            src_srs.ImportFromWkt(proj)     
+        
         tgt_srs = src_srs.CloneGeogCS()
-
         self.geo_ext = self.ReprojectCoords(ext, src_srs, tgt_srs)
         cmd01 = "gdal_translate -f GTiff xy_tau.txt tau.tif"
         self.run_command(cmd01)

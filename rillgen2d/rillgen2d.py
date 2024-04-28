@@ -13,7 +13,6 @@ from osgeo import gdal, osr
 from pathlib import Path
 from threading import Thread
 from multiprocessing import Process, Queue
-
 # Got a weird issue when I just imported PIL before. Not srue why
 from PIL import Image
 
@@ -67,7 +66,7 @@ class Rillgen2d(Process):
         # Call the Thread constructor
         Process.__init__(self)
 
-    """ 
+    """
         In all of the functions, we want to log the error to the console then re-raise it
         so, we are just using a function to simplify the process
     """
@@ -117,11 +116,11 @@ class Rillgen2d(Process):
             self.console.put("Input Projection information found.")
             self.console.put("Input Projection: " + src_projection)
             self.console.put("Input Geotransform: " + str(src_geotransform))
-        
+
         if src_ds is None:
             raise Exception("ERROR: Unable to open " +
                             file_path + ".tif" + " for writing")
-        
+
         # Open output format driver, see gdal_translate --formats for list
         format = "XYZ"
         driver = gdal.GetDriverByName(format)
@@ -136,7 +135,7 @@ class Rillgen2d(Process):
             f"gdal_translate -of XYZ " + file_path + ".tif " + file_path + ".asc"
         )
         self.run_command("awk '{print $3}' " + file_path + ".asc > " + file_path + ".txt")
-        
+
         # remove temporary .asc file to save space
         #self.run_command("rm " + file_path + "_dem.asc")
 
@@ -235,6 +234,9 @@ class Rillgen2d(Process):
         self.run_command("paste xy.txt tau.txt > xy_tau.txt")
         self.run_command("paste xy.txt f1.txt > xy_f1.txt")
         self.run_command("paste xy.txt f2.txt > xy_f2.txt")
+        if self.params.get_value("mode") == 1: #NA Added inciseddepth if dynamic mode
+            self.run_command("paste xy.txt inciseddepth.txt > xy_inciseddepth.txt")
+
 
     @function_decorator
     def add_thread(self, function, *args, **kwargs):
@@ -262,19 +264,19 @@ class Rillgen2d(Process):
             # GDAL 3 changes axis order: https://github.com/OSGeo/gdal/issues/1546
             src_srs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
         proj = ds.GetProjection()
-        
+
         if not proj:
             self.console.put("DEM has no projection information. Assigning null island location.")
             null_geotransform = (0.0, 1.0, 0.0, 0.0, 0.0, 1.0)
             ds.SetGeoTransform(null_geotransform)
             ds.SetProjection('NULL')
-            
+
             # No need for reprojection, set geo_ext directly
-            self.geo_ext = self.GetExtent(null_geotransform, cols, rows) 
-        
+            self.geo_ext = self.GetExtent(null_geotransform, cols, rows)
+
         else:
-            src_srs.ImportFromWkt(proj)     
-        
+            src_srs.ImportFromWkt(proj)
+
         tgt_srs = src_srs.CloneGeogCS()
         self.geo_ext = self.ReprojectCoords(ext, src_srs, tgt_srs)
         cmd01 = "gdal_translate -f GTiff xy_tau.txt tau.tif"
@@ -283,6 +285,11 @@ class Rillgen2d(Process):
         self.run_command(cmd11)
         cmd21 = "gdal_translate -f GTiff xy_f2.txt f2.tif"
         self.run_command(cmd21)
+
+        if self.params.get_value("mode") == 1: #NA Added inciseddepth if dynamic mode
+            cmd31 = "gdal_translate -f GTiff xy_inciseddepth.txt inciseddepth.tif"
+            self.run_command(cmd31)
+
         projection = ds.GetProjection()
         geotransform = ds.GetGeoTransform()
 
@@ -312,18 +319,21 @@ class Rillgen2d(Process):
                     ds2.SetGCPs(ds.GetGCPs(), ds.GetGCPProjection())
 
                 if elem == "tau.tif":
+
+                    gtiff = gdal.Open("tau.tif")#NA next 5 lines
+                    stats = gtiff.GetRasterBand(1).GetStatistics(0,1) # get max value stats[1]
+                    f = open("whiteredTau.txt", "w") # write color_text_file for gdaldem in /tmp using 0 - max value
+                    f.write("0 255 255 255\n")
+                    f.write(f"{stats[1]} 255 0 0\n")
+                    f.close()
                     self.console.put(("Translating tau.tif to .png\n\n"))
                     cmd3 = (
-                        "gdal_translate -a_nodata 255 -ot Byte -of PNG "
-                        + elem.split(sep=".")[0]
-                        + ".tif "
-                        + elem.split(sep=".")[0]
-                        + ".png"
+                        f"gdaldem color-relief tau.tif whiteredTau.txt tau.png -of PNG"
                     )
                 elif elem == "f1.tif":
                     self.console.put("Translating f1.tif to .png\n\n")
                     cmd3 = (
-                        "gdal_translate -a_nodata 255 -ot Byte -scale 0 0.1 -of PNG "
+                        "gdal_translate -a_nodata 0 -ot Byte -scale 0 2 -of PNG " #NA scale and no data changed
                         + elem.split(sep=".")[0]
                         + ".tif "
                         + elem.split(sep=".")[0]
@@ -332,23 +342,28 @@ class Rillgen2d(Process):
                 elif elem == "f2.tif":
                     self.console.put("Translating f2.tif to .png\n\n")
                     cmd3 = (
-                        "gdal_translate -a_nodata 255 -ot Byte -scale 0 0.1 -of PNG "
+                        "gdal_translate -a_nodata 0 -ot Byte -scale 0 2 -of PNG " #NA scale and no data changed
                         + elem.split(sep=".")[0]
                         + ".tif "
                         + elem.split(sep=".")[0]
                         + ".png"
                     )
                 else:
+
+                    gtif = gdal.Open("inciseddepth.tif") #NA 5 next lines
+                    stats = gtif.GetRasterBand(1).GetStatistics(0,1) # get max value stats[1]
+                    f = open("whiteredID.txt", "w") # write color_text_file for gdaldem in /tmp using 0 - max value
+                    f.write("0 255 255 255\n")
+                    f.write(f"{stats[1]} 255 0 0\n")
+                    f.close()
                     self.console.put(
                         ("Translating inciseddepth.tif to .png\n\n"))
                     cmd3 = (
-                        "gdal_translate -a_nodata 255 -ot Byte -of PNG "
-                        + elem.split(sep=".")[0]
-                        + ".tif "
-                        + elem.split(sep=".")[0]
-                        + ".png"
+                        f"gdaldem color-relief inciseddepth.tif whiteredID.txt inciseddepth.png -of PNG" #NA changed from gdal_translate to gdaldem
                     )
+
                 self.run_command(cmd3)
+
             ds2 = None
 
         ds = None
@@ -457,10 +472,21 @@ class Rillgen2d(Process):
             show=True,
             name="f",
         )
+        if self.params.get_value("mode") == 1: #NA Added inciseddepth to overlay if dynamic mode
+            img5 = folium.raster_layers.ImageOverlay(
+            image="inciseddepth.png",
+            bounds=map_bounds,
+            opacity=0.5,
+            interactive=True,
+            show=True,
+            name="inciseddepth",
+        )
         img1.add_to(self.m)
         img2.add_to(self.m)
         img3.add_to(self.m)
         img4.add_to(self.m)
+        if self.params.get_value("mode") == 1: #NA Added inciseddepth to overlay if dynamic mode
+                img5.add_to(self.m)
         self.layer_control.add_to(self.m)
         self.m.save("map.html", close_file=False)
         return self.m
@@ -490,7 +516,7 @@ class Rillgen2d(Process):
         self.console.put("Filename is: " + Path(filename).name)
         src_ds = gdal.Open(filename)
         band = src_ds.GetRasterBand(1)
-        
+
         geotransform = src_ds.GetGeoTransform()
         pixel_size_x = geotransform[1]
         pixel_size_y = geotransform[5]
@@ -507,7 +533,7 @@ class Rillgen2d(Process):
         saveDir = "outputs_save-" + str(datetime.now()).replace(" ", "").replace(
             ":", "."
         )
-
+        
         Path.mkdir(self.temporary_directory.parent / saveDir)
         saveDir = self.temporary_directory.parent / saveDir
         acceptable_files = ["parameters.txt",

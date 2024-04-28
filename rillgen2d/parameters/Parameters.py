@@ -13,6 +13,8 @@ from .Fields import (
 import shutil
 import streamlit as st
 
+import subprocess
+
 # The Parameters class is responsible for managing the parameters of the model.
 
 class Parameters:
@@ -40,14 +42,22 @@ class Parameters:
 
     def draw_fields(self, disabled: bool) -> None:
         """Draws the UI components for all ordered attributes."""
-        st.table(
-            {
-                "Lattice Size X:": self.get_value("lattice_size_x"),
+        "Input DEM size and resolution:"
+        st.table({"Lattice Size X:": self.get_value("lattice_size_x"),
                 "Lattice Size Y:": self.get_value("lattice_size_y"),
                 "Pixel Size X:": st.session_state.pixel_size_x,
                 "Pixel Size Y:": st.session_state.pixel_size_y,
             }
         )
+         # Get projection and unit information using GDALinfo
+        image_path = self.image_path  # Assuming image_path is accessible in this context
+        gdalinfo_output = subprocess.check_output(["gdalinfo", "-proj4", "-noct", image_path], text=True)
+    
+        # print(gdalinfo_output)  # Uncomment to inspect the output
+        
+        with st.expander("View `gdalinfo` metadata:"):
+            st.code(gdalinfo_output, language="text")  # Display output as code block
+
         for attribute in self.order_of_attributes:
             self.get_parameter(attribute).draw(disabled)
 
@@ -106,59 +116,25 @@ class Parameters:
                 shutil.copy(file_parameter.get_value(), path / filepath)
 
     def add_parameter_fields(self):
+        
         """Define the  basic parameter fields in order"""
         self.add_parameter(
-            OptionField(
+            CheckBoxField(
                 name="mode",
                 display_name="Enable Dynamic Mode (optional)",
-                options=[
-                    "Static Uniform Rainfall with Simple Outputs",
-                    "Rainfall Variable in Space and/or Time and Complex Outputs",
-                ],
-                conditional_field=[
-                    EmptyField(),
-                    FileField(
-                        display_name="Variable Input",
-                        name="variableinput",
-                        help=(
-                            "Path to required file named `dynamicinput` as either `.tif` or `.txt`"
-                        ),
-                        value="",
-                        comment="",
-                        filename="variableinput.txt",
-                    ),
-                ],
                 value=0,
-                help="Default: unchecked, checked requires file named `dynamicinput`, \
-                        unchecked uses 'peak mode' with spatially uniform rainfall",
+                comment="Flag_for_mode._0=peak,1=dynamic",
+                help="Default: Unchecked, uses 'Peak Mode' with spatially uniform rainfall, does not require `dynamicinput` file. Checked requires a raster named `dynamicinput` with same resolution as DEM", 
+                conditional_field=FileField(
+                    display_name="Path to required file named `variableinput`",
+                    filename="variableinput.tif",
+                    comment="",
+                    value="",
+                    name="variableinput_filepath",
+                ),
             )
         )
         ...
-        # 0=MFD,1=depth-based,2=DInfinity
-        self.add_parameter(
-            OptionField(
-                display_name="Routing Method",
-                name="routing_method",
-                comment="Flag_for_outing_method._0=MFD,1=depth-based,2=DInfinity",
-                value=1,
-                # TODO
-                help="",
-                options=["MFD", "Depth-based", "DInfinity"],
-            )
-        )
-
-        # 0=HawsandErickson(2020),1=Pelletieretal(inpress))
-        self.add_parameter(
-            OptionField(
-                display_name="Rock Armor Sheer Strength",
-                name="shear_stress_equation_flag",
-                value=1,
-                comment="Flag_for_shear_stress_equation.0=HawsandErickson(2020),1=Pelletieretal(inpress)",
-                help="Default: uses [Pelletier et al. (2021)]() equation, \
-                     Other option implements the rock armor shear strength equation of [Haws and Erickson (2020)]()",
-                options=["Haws and Erickson (2020)", "Pelletier et al. (in press)"],
-            )
-        )
 
         self.add_parameter(
             CheckBoxField(
@@ -171,7 +147,7 @@ class Parameters:
                         (`mask values = 1` means run the model, `0` means ignore these areas).",
                 conditional_field=FileField(
                     display_name="Path to required file named `mask`",
-                    filename="mask.tif",
+                    filename="",
                     comment="",
                     value="",
                     name="mask_filepath",
@@ -206,10 +182,10 @@ class Parameters:
                           applies the median rock diameter, unchecked means a fixed value will be used.",
                 display_name="Rock Armor Layer (optional):",
                 conditional_field=FileField(
-                    display_name="Path to required file named `d50`",
+                    display_name="Path to required file, likely named `d50`",
                     name="d50_filepath",
                     help="Path to required file named `d50` as either `.tif` or `.txt",
-                    filename="d50.txt",
+                    filename="",
                 ),
             )
         )
@@ -249,6 +225,34 @@ class Parameters:
                 ),
             )
         )
+        
+# 0=MFD,1=depth-based,2=DInfinity
+        self.add_parameter(
+            OptionField(
+                display_name="Routing Method",
+                name="routing_method",
+                comment="Flag_for_outing_method._0=MFD,1=depth-based,2=DInfinity",
+                value=1,
+                # TODO
+                help="",
+                options=["MFD", "Depth-based", "DInfinity"],
+            )
+        )
+
+        # 0=HawsandErickson(2020),1=Pelletieretal(inpress))
+        self.add_parameter(
+            OptionField(
+                display_name="Rock Armor Sheer Strength",
+                name="shear_stress_equation_flag",
+                value=1,
+                comment="Flag_for_shear_stress_equation.0=HawsandErickson(2020),1=Pelletieretal(inpress)",
+                help="Default: uses [Pelletier et al. (2021)]() equation, \
+                     Other option implements the rock armor shear strength equation of [Haws and Erickson (2020)]()",
+                options=["Haws and Erickson (2020)", "Pelletier et al. (in press)"],
+            )
+        )        
+        
+        
         # meters
         self.add_parameter(
             NumericField(
@@ -323,7 +327,7 @@ class Parameters:
                 display_name="Lattice Size Y",
             )
         )
-
+        # meters
         self.add_parameter(
             NumericField(
                 name="delta_x",
@@ -340,7 +344,7 @@ class Parameters:
                 name="no_data_value",
                 value=-9999,
                 comment="No_data_value",
-                help="the no data null value of the DEM (m) which will be masked, defaults to `-9999",
+                help="the no data null value of the DEM (m) which will be masked, default `-9999`",
                 display_name="NoData (null)",
             )
         )
@@ -355,14 +359,14 @@ class Parameters:
             )
         )
         # m^(1/3)/s
-        # ? Not sure if this is supposed ot be 1 word
+        # ? Not sure if this is supposed to be 1 word
         self.add_parameter(
             NumericField(
                 name="manningsn",
                 value=0.01,
                 comment="Manning's N",
                 help="",
-                display_name=r"Manning's N (m^(1/3))/(s))",
+                display_name=r"Manning's N (m^1/3)/s",
             )
         )
 
@@ -419,6 +423,7 @@ class Parameters:
             NumericField(
                 name="d50_fixed",
                 value=0.01,
+                format="%.3f",#NA
                 comment="D50_fixed_(meters)",
                 help="This value is ignored if Rock Armor Flag (`d50`) is checked above.",
                 display_name="Median rock armor diameter (mm)",

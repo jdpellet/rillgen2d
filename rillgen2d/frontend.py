@@ -383,8 +383,8 @@ class Frontend:
 #            if self.existing_output and "output_path" in st.session_state:
 #                self.view_output(st.session_state.output_path)
             self.display_preview()
-            if self.params.display_parameters: # draw lattice x and y only below preview
-                self.params.draw_fields(disabled=self.app_is_running())
+            #if self.params.display_parameters: # draw lattice x and y only below preview
+            #    self.params.draw_fields(disabled=self.app_is_running())
  
 # Results Tab
         with results:

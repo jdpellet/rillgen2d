@@ -4,7 +4,7 @@
 
 Code, example data, and manuscript supplemental materials which accompany **Pelletier, JD, XXX**
 
-Author: [Jon D Pelletier](http://jdpellet.github.io/) [![](https://orcid.org/sites/default/files/images/orcid_16x16.png)](http://orcid.org/0000-0002-0702-2646)
+Authors: [Jon D Pelletier](http://jdpellet.github.io/) [![](https://orcid.org/sites/default/files/images/orcid_16x16.png)](http://orcid.org/0000-0002-0702-2646), [Nate Abramson]() [![](https://orcid.org/sites/default/files/images/orcid_16x16.png)](https://orcid.org/0000-0001-9417-5810)
 
 Software Developers: [Jacob van der Leeuw](https://jvanderleeuw) [![](https://orcid.org/sites/default/files/images/orcid_16x16.png)](http://orcid.org/0000-0003-0892-9837), Elliot Hagyard  
 

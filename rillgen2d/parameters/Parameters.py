@@ -13,6 +13,8 @@ from .Fields import (
 import shutil
 import streamlit as st
 
+import subprocess
+
 # The Parameters class is responsible for managing the parameters of the model.
 
 class Parameters:
@@ -48,8 +50,34 @@ class Parameters:
                 "Pixel Size Y:": st.session_state.pixel_size_y,
             }
         )
+         # Get projection and unit information using GDALinfo
+        image_path = self.image_path  # Assuming image_path is accessible in this context
+        gdalinfo_output = subprocess.check_output(["gdalinfo", "-proj4", "-noct", image_path], text=True)
+    
+        # print(gdalinfo_output)  # Uncomment to inspect the output
+        
+        with st.expander("View `gdalinfo` metadata:"):
+            st.code(gdalinfo_output, language="text")  # Display output as code block
+
         for attribute in self.order_of_attributes:
             self.get_parameter(attribute).draw(disabled)
+
+    #creates four columns for visualizing Parameters
+    def draw_params(self, disabled: bool) -> None:#NA
+            col1,col2,col3,col4 = st.columns(4)
+            for attribute in self.order_of_attributes:
+                if self.order_of_attributes.index(attribute) <8:
+                    with col1:
+                        self.get_parameter(attribute).draw(disabled)
+                if self.order_of_attributes.index(attribute) >=8 and self.order_of_attributes.index(attribute) <17:
+                    with col2:
+                        self.get_parameter(attribute).draw(disabled)
+                if self.order_of_attributes.index(attribute) >=17 and self.order_of_attributes.index(attribute) <24:
+                    with col3:
+                        self.get_parameter(attribute).draw(disabled)
+                if self.order_of_attributes.index(attribute) >=24:
+                    with col4:
+                        self.get_parameter(attribute).draw(disabled)
 
     def get_value(self, attribute: str):
         """Retrieves the value of a specified attribute."""
@@ -74,14 +102,14 @@ class Parameters:
     def writeParametersToFile(self, path: str, comment=True) -> None:
         """Writes parameters to a file."""
         with open(path, "w") as file:
-            for attribute in self.order_of_attributes:
-                current_attr_obj = self.get_parameter(attribute)
+            for attribute_name in self.order_of_attributes:  # Iterate through ordered names
+                current_attr_obj = self.get_parameter(attribute_name)
                 string = (
                     f"{current_attr_obj.get_value()}\t{'_'.join(current_attr_obj.comment.strip().split(' '))}\n"
                     if comment
                     else f"{current_attr_obj.value}\n"
                 )
-                print(f"{attribute} {current_attr_obj.get_value()}")
+                print(f"{attribute_name} {current_attr_obj.get_value()}")
                 file.write(string)
 
     def validate(self) -> list[str]:
@@ -106,35 +134,33 @@ class Parameters:
                 shutil.copy(file_parameter.get_value(), path / filepath)
 
     def add_parameter_fields(self):
+        
+### Order of parameters listed below is sequential for writing into the `input.txt` file that `rillgen2d.so` requires
+### Do not modify order unless you're careful
+        
         """Define the  basic parameter fields in order"""
+
+## Input.txt #1
+
         self.add_parameter(
-            OptionField(
+            CheckBoxField(
                 name="mode",
                 display_name="Enable Dynamic Mode (optional)",
-                options=[
-                    "Static Uniform Rainfall with Simple Outputs",
-                    "Rainfall Variable in Space and/or Time and Complex Outputs",
-                ],
-                conditional_field=[
-                    EmptyField(),
-                    FileField(
-                        display_name="Variable Input",
-                        name="variableinput",
-                        help=(
-                            "Path to required file named `dynamicinput` as either `.tif` or `.txt`"
-                        ),
-                        value="",
-                        comment="",
-                        filename="variableinput.txt",
-                    ),
-                ],
                 value=0,
-                help="Default: unchecked, checked requires file named `dynamicinput`, \
-                        unchecked uses 'peak mode' with spatially uniform rainfall",
+                comment="Flag_for_mode._0=peak,1=dynamic",
+                help="Default: Unchecked, uses 'Peak Mode' with spatially uniform rainfall, does not require `dynamicinput` file. Checked requires a raster named `dynamicinput` with same resolution as DEM", 
+                conditional_field=FileField(
+                    display_name="Path to required file named `variableinput`",
+                    filename="variableinput.tif",
+                    comment="",
+                    value="",
+                    name="variableinput_filepath",
+                ),
             )
         )
         ...
-        # 0=MFD,1=depth-based,2=DInfinity
+
+#Input.txt #2  
         self.add_parameter(
             OptionField(
                 display_name="Routing Method",
@@ -147,7 +173,8 @@ class Parameters:
             )
         )
 
-        # 0=HawsandErickson(2020),1=Pelletieretal(inpress))
+#Input.txt #3 Sheer stress
+
         self.add_parameter(
             OptionField(
                 display_name="Rock Armor Sheer Strength",
@@ -158,7 +185,9 @@ class Parameters:
                      Other option implements the rock armor shear strength equation of [Haws and Erickson (2020)]()",
                 options=["Haws and Erickson (2020)", "Pelletier et al. (in press)"],
             )
-        )
+        )        
+
+#Input.txt #4 Mask
 
         self.add_parameter(
             CheckBoxField(
@@ -171,14 +200,15 @@ class Parameters:
                         (`mask values = 1` means run the model, `0` means ignore these areas).",
                 conditional_field=FileField(
                     display_name="Path to required file named `mask`",
-                    filename="mask.tif",
+                    filename="",
                     comment="",
                     value="",
                     name="mask_filepath",
                 ),
             )
         )
-
+# Input.txt #5
+ 
         self.add_parameter(
             CheckBoxField(
                 display_name="Soil & Vegetation Layer (optional)",
@@ -197,22 +227,26 @@ class Parameters:
             )
         )
 
+#Input.txt #6 d50
         self.add_parameter(
             CheckBoxField(
                 name="d50_flag",
+                display_name="Rock Armor Layer (optional):",
                 value=0,
                 comment="Flag_for_d50._0=fixed,1=rasterprovided",
                 help="Default: unchecked, checked requires file named `d50`. If a raster `d50` is provided the model \
                           applies the median rock diameter, unchecked means a fixed value will be used.",
-                display_name="Rock Armor Layer (optional):",
                 conditional_field=FileField(
                     display_name="Path to required file named `d50`",
+                    filename="",
+                    comment="",
+                    value="",
                     name="d50_filepath",
-                    help="Path to required file named `d50` as either `.tif` or `.txt",
-                    filename="d50.txt",
                 ),
             )
         )
+
+#input.txt #7
 
         self.add_parameter(
             CheckBoxField(
@@ -232,6 +266,7 @@ class Parameters:
             )
         )
 
+#input.txt #8        
         self.add_parameter(
             CheckBoxField(
                 name="rock_cover_flag",
@@ -249,6 +284,9 @@ class Parameters:
                 ),
             )
         )
+        
+#input.txt #9        
+        
         # meters
         self.add_parameter(
             NumericField(
@@ -262,7 +300,7 @@ class Parameters:
                 display_name="Fill increment (m):",
             )
         )
-        # meter per meter
+# Input.txt #10
         self.add_parameter(
             NumericField(
                 name="min_slope",
@@ -274,10 +312,11 @@ class Parameters:
                       Setting this value larger than 0 is useful for eliminating runoff from \
                       portions of the landscape that the user expects are too flat to produce \
                       significant runoff.",
-                display_name="Minimum Slope Angle (degrees):",
+                display_name="Minimum Slope Angle (meter per meter):",
             )
         )
-        # pixels
+
+# Input.txt #11  # pixels
         self.add_parameter(
             NumericField(
                 name="expansion",
@@ -290,6 +329,7 @@ class Parameters:
             )
         )
 
+#Input.txt #12
         self.add_parameter(
             NumericField(
                 name="yellow_threshold",
@@ -323,7 +363,7 @@ class Parameters:
                 display_name="Lattice Size Y",
             )
         )
-
+        # meters
         self.add_parameter(
             NumericField(
                 name="delta_x",
@@ -340,7 +380,7 @@ class Parameters:
                 name="no_data_value",
                 value=-9999,
                 comment="No_data_value",
-                help="the no data null value of the DEM (m) which will be masked, defaults to `-9999",
+                help="the no data null value of the DEM (m) which will be masked, default `-9999`",
                 display_name="NoData (null)",
             )
         )
@@ -355,14 +395,14 @@ class Parameters:
             )
         )
         # m^(1/3)/s
-        # ? Not sure if this is supposed ot be 1 word
+        # ? Not sure if this is supposed to be 1 word
         self.add_parameter(
             NumericField(
                 name="manningsn",
                 value=0.01,
                 comment="Manning's N",
                 help="",
-                display_name=r"Manning's N (m^(1/3))/(s))",
+                display_name=r"Manning's N (m^1/3)/s",
             )
         )
 
@@ -375,6 +415,7 @@ class Parameters:
                 display_name="Depth Weight Factor",
             )
         )
+
         self.add_parameter(
             NumericField(
                 name="number_of_slices",
@@ -419,6 +460,7 @@ class Parameters:
             NumericField(
                 name="d50_fixed",
                 value=0.01,
+                format="%.3f",#NA
                 comment="D50_fixed_(meters)",
                 help="This value is ignored if Rock Armor Flag (`d50`) is checked above.",
                 display_name="Median rock armor diameter (mm)",

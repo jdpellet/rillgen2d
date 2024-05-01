@@ -24,7 +24,7 @@ def get_image_from_url(url):
     img = downloaded
     if not any([downloaded.endswith(ext) for ext in [".tif", ".tiff", ".gz"]]):
         raise Exception(
-            "Invalid URL, file must be a geotiff or gzipped geotiff. Downloadeded file: "
+            "Invalid URL, file must be a geotiff or gzipped geotiff. Download File: "
             + downloaded
         )
 
@@ -61,10 +61,13 @@ def open_file_dialog():
 
 def reset_session_state():
     """
-    Clear the session state, and delete the tmp directory.
+    Clear the Session State, Deletes the `/tmp` directory.
     Only called when handling exceptions
     """
     for key in st.session_state:
         if key == "imagePathInput1" or key == "imagePathInput2":
             continue
         del st.session_state[key]
+    path = Path.cwd() / "tmp"
+    if path.exists() and path.is_dir():
+        shutil.rmtree(path)

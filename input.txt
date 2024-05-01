@@ -1,5 +1,5 @@
 1	flagformode(0=staticuniformrainfallwithsimpleoutputs,1=rainfallvariableinspaceand/ortimeandcomplexoutputs)
-0       flagforroutingmethod(0=MFD,1=depth-based,2=DInfinity)
+0   flagforroutingmethod(0=MFD,1=depth-based,2=DInfinity)
 1 	flagforshearstressequation(0=HawsandErickson(2020),1=Pelletieretal(inpress))
 1	flagformask(0=nomask,1=mask)
 0	flagfortaucsoilandveg(0=fixed,1=rasterprovided)

@@ -1,11 +1,11 @@
 site_name: Rillgen2d  
 site_description: Rillgen2D Documentation
 site_author: Jon D Pelletier, Nate Abramson, Jacob van der Leeuw, Elliot Hagyard, Tyson L Swetnam
-site_url: https://github.com/tyson-swetnam/rillgen2d
+site_url: https://github.com/jdpellet/rillgen2d
 
 # Repository
 repo_name: rillgen2d
-repo_url: https://github.com/tyson-swetnam/rillgen2d
+repo_url: https://github.com/jdpellet/rillgen2d
 # Copyright
 copyright: 'Copyright &copy; 2021 - 2024 Jon D Pelletier'
 
@@ -65,7 +65,7 @@ theme:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/tyson-swetnam
+      link: https://github.com/jdpellet
 
 # Extensions
 markdown_extensions:

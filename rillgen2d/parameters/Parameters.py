@@ -42,8 +42,9 @@ class Parameters:
 
     def draw_fields(self, disabled: bool) -> None:
         """Draws the UI components for all ordered attributes."""
-        "Input DEM size and resolution:"
-        st.table({"Lattice Size X:": self.get_value("lattice_size_x"),
+        st.table(
+            {
+                "Lattice Size X:": self.get_value("lattice_size_x"),
                 "Lattice Size Y:": self.get_value("lattice_size_y"),
                 "Pixel Size X:": st.session_state.pixel_size_x,
                 "Pixel Size Y:": st.session_state.pixel_size_y,
@@ -60,6 +61,23 @@ class Parameters:
 
         for attribute in self.order_of_attributes:
             self.get_parameter(attribute).draw(disabled)
+
+    #creates four columns for visualizing Parameters
+    def draw_params(self, disabled: bool) -> None:#NA
+            col1,col2,col3,col4 = st.columns(4)
+            for attribute in self.order_of_attributes:
+                if self.order_of_attributes.index(attribute) <8:
+                    with col1:
+                        self.get_parameter(attribute).draw(disabled)
+                if self.order_of_attributes.index(attribute) >=8 and self.order_of_attributes.index(attribute) <17:
+                    with col2:
+                        self.get_parameter(attribute).draw(disabled)
+                if self.order_of_attributes.index(attribute) >=17 and self.order_of_attributes.index(attribute) <24:
+                    with col3:
+                        self.get_parameter(attribute).draw(disabled)
+                if self.order_of_attributes.index(attribute) >=24:
+                    with col4:
+                        self.get_parameter(attribute).draw(disabled)
 
     def get_value(self, attribute: str):
         """Retrieves the value of a specified attribute."""
@@ -84,14 +102,14 @@ class Parameters:
     def writeParametersToFile(self, path: str, comment=True) -> None:
         """Writes parameters to a file."""
         with open(path, "w") as file:
-            for attribute in self.order_of_attributes:
-                current_attr_obj = self.get_parameter(attribute)
+            for attribute_name in self.order_of_attributes:  # Iterate through ordered names
+                current_attr_obj = self.get_parameter(attribute_name)
                 string = (
                     f"{current_attr_obj.get_value()}\t{'_'.join(current_attr_obj.comment.strip().split(' '))}\n"
                     if comment
                     else f"{current_attr_obj.value}\n"
                 )
-                print(f"{attribute} {current_attr_obj.get_value()}")
+                print(f"{attribute_name} {current_attr_obj.get_value()}")
                 file.write(string)
 
     def validate(self) -> list[str]:
@@ -117,7 +135,13 @@ class Parameters:
 
     def add_parameter_fields(self):
         
+### Order of parameters listed below is sequential for writing into the `input.txt` file that `rillgen2d.so` requires
+### Do not modify order unless you're careful
+        
         """Define the  basic parameter fields in order"""
+
+## Input.txt #1
+
         self.add_parameter(
             CheckBoxField(
                 name="mode",
@@ -135,6 +159,35 @@ class Parameters:
             )
         )
         ...
+
+#Input.txt #2  
+        self.add_parameter(
+            OptionField(
+                display_name="Routing Method",
+                name="routing_method",
+                comment="Flag_for_outing_method._0=MFD,1=depth-based,2=DInfinity",
+                value=1,
+                # TODO
+                help="",
+                options=["MFD", "Depth-based", "DInfinity"],
+            )
+        )
+
+#Input.txt #3 Sheer stress
+
+        self.add_parameter(
+            OptionField(
+                display_name="Rock Armor Sheer Strength",
+                name="shear_stress_equation_flag",
+                value=1,
+                comment="Flag_for_shear_stress_equation.0=HawsandErickson(2020),1=Pelletieretal(inpress)",
+                help="Default: uses [Pelletier et al. (2021)]() equation, \
+                     Other option implements the rock armor shear strength equation of [Haws and Erickson (2020)]()",
+                options=["Haws and Erickson (2020)", "Pelletier et al. (in press)"],
+            )
+        )        
+
+#Input.txt #4 Mask
 
         self.add_parameter(
             CheckBoxField(
@@ -154,7 +207,8 @@ class Parameters:
                 ),
             )
         )
-
+# Input.txt #5
+ 
         self.add_parameter(
             CheckBoxField(
                 display_name="Soil & Vegetation Layer (optional)",
@@ -173,22 +227,26 @@ class Parameters:
             )
         )
 
+#Input.txt #6 d50
         self.add_parameter(
             CheckBoxField(
                 name="d50_flag",
+                display_name="Rock Armor Layer (optional):",
                 value=0,
                 comment="Flag_for_d50._0=fixed,1=rasterprovided",
                 help="Default: unchecked, checked requires file named `d50`. If a raster `d50` is provided the model \
                           applies the median rock diameter, unchecked means a fixed value will be used.",
-                display_name="Rock Armor Layer (optional):",
                 conditional_field=FileField(
-                    display_name="Path to required file, likely named `d50`",
-                    name="d50_filepath",
-                    help="Path to required file named `d50` as either `.tif` or `.txt",
+                    display_name="Path to required file named `d50`",
                     filename="",
+                    comment="",
+                    value="",
+                    name="d50_filepath",
                 ),
             )
         )
+
+#input.txt #7
 
         self.add_parameter(
             CheckBoxField(
@@ -208,6 +266,7 @@ class Parameters:
             )
         )
 
+#input.txt #8        
         self.add_parameter(
             CheckBoxField(
                 name="rock_cover_flag",
@@ -226,32 +285,7 @@ class Parameters:
             )
         )
         
-# 0=MFD,1=depth-based,2=DInfinity
-        self.add_parameter(
-            OptionField(
-                display_name="Routing Method",
-                name="routing_method",
-                comment="Flag_for_outing_method._0=MFD,1=depth-based,2=DInfinity",
-                value=1,
-                # TODO
-                help="",
-                options=["MFD", "Depth-based", "DInfinity"],
-            )
-        )
-
-        # 0=HawsandErickson(2020),1=Pelletieretal(inpress))
-        self.add_parameter(
-            OptionField(
-                display_name="Rock Armor Sheer Strength",
-                name="shear_stress_equation_flag",
-                value=1,
-                comment="Flag_for_shear_stress_equation.0=HawsandErickson(2020),1=Pelletieretal(inpress)",
-                help="Default: uses [Pelletier et al. (2021)]() equation, \
-                     Other option implements the rock armor shear strength equation of [Haws and Erickson (2020)]()",
-                options=["Haws and Erickson (2020)", "Pelletier et al. (in press)"],
-            )
-        )        
-        
+#input.txt #9        
         
         # meters
         self.add_parameter(
@@ -266,7 +300,7 @@ class Parameters:
                 display_name="Fill increment (m):",
             )
         )
-        # meter per meter
+# Input.txt #10
         self.add_parameter(
             NumericField(
                 name="min_slope",
@@ -278,10 +312,11 @@ class Parameters:
                       Setting this value larger than 0 is useful for eliminating runoff from \
                       portions of the landscape that the user expects are too flat to produce \
                       significant runoff.",
-                display_name="Minimum Slope Angle (degrees):",
+                display_name="Minimum Slope Angle (meter per meter):",
             )
         )
-        # pixels
+
+# Input.txt #11  # pixels
         self.add_parameter(
             NumericField(
                 name="expansion",
@@ -294,6 +329,7 @@ class Parameters:
             )
         )
 
+#Input.txt #12
         self.add_parameter(
             NumericField(
                 name="yellow_threshold",
@@ -379,6 +415,7 @@ class Parameters:
                 display_name="Depth Weight Factor",
             )
         )
+
         self.add_parameter(
             NumericField(
                 name="number_of_slices",

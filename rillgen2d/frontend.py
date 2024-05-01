@@ -314,6 +314,8 @@ class Frontend:
             self.display_tau(MAIN_DIRECTORY / "tmp/tau.png")
             st.subheader("F")
             self.display_f(MAIN_DIRECTORY / "tmp/f1.png")
+            st.subheader("Rills")
+            self.display_f(MAIN_DIRECTORY / "tmp/rills.png")
             
             
                               
@@ -349,6 +351,7 @@ class Frontend:
             self.display_map(Path(output_path) / "map.html")
             self.display_tau(Path(output_path) / "tau.png")
             self.display_f(Path(output_path) / "f1.png")
+            self.display_f(Path(output_path) / "rills.png")
 
     def app_is_running(self):
         return (
@@ -360,6 +363,7 @@ class Frontend:
     def main_page(self):
         """Main page of the app."""
         st.title("rillgen2d")
+        self.display_console()
         if not self.app_is_running():
             st.button(
                 "Run Rillgen2d",
@@ -379,10 +383,9 @@ class Frontend:
 #            if self.existing_output and "output_path" in st.session_state:
 #                self.view_output(st.session_state.output_path)
             self.display_preview()
-            #else:
-                #self.display_outputs()
-            #     self.display_console()
-        
+            if self.params.display_parameters: # draw lattice x and y only below preview
+                self.params.draw_fields(disabled=self.app_is_running())
+ 
 # Results Tab
         with results:
             st.button(
@@ -415,15 +418,12 @@ class Frontend:
                 "https://tyson-swetnam.github.io/rillgen2d/", scrolling=True, height=1000)
         
 # Model Parameters Tab
-        with model_params:
+        with model_params:  
             if self.params.display_parameters:
-                self.params.draw_fields(disabled=self.app_is_running())
+                self.params.draw_params(disabled=self.app_is_running())
         if self.app_is_running():
             time.sleep(0.5)
-            st.rerun()
-
-# Console Outputs 
-        self.display_console()
+            st.rerun()        
         
 def reset_console():
     st.session_state.console_log = []
